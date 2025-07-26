@@ -32,6 +32,13 @@ const data = [
     avatarIcon: 'tabler-currency-dollar'
   },
   {
+    title: 'Expense',
+    progress: 22,
+    stats: '$74.19',
+    progressColor: 'error',
+    avatarColor: 'error',
+    avatarIcon: 'tabler-brand-paypal'
+  }, {
     title: 'Profit',
     progress: 59,
     stats: '$256.34',
@@ -39,14 +46,6 @@ const data = [
     avatarColor: 'info',
     avatarIcon: 'tabler-chart-pie-2'
   },
-  {
-    title: 'Expense',
-    progress: 22,
-    stats: '$74.19',
-    progressColor: 'error',
-    avatarColor: 'error',
-    avatarIcon: 'tabler-brand-paypal'
-  }
 ]
 
 const EarningReports = () => {
@@ -109,7 +108,7 @@ const EarningReports = () => {
   }
 
   return (
-    <Card>
+    <Card className='h-[100%] flex flex-col justify-between'>
       <CardHeader
         title='Earning Reports'
         subheader='Weekly Earnings Overview'

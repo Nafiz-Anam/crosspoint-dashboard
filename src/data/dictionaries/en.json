@@ -39,7 +39,7 @@
         "client": "Client",
         "view": "View",
         "rolesPermissions": "Roles & Permissions",
-        "roles": "Roles",
+        "roles": "Assign Roles",
         "permissions": "Permissions",
         "pages": "Pages",
         "userProfile": "User Profile",

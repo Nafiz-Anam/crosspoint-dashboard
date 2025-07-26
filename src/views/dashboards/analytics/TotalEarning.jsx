@@ -35,11 +35,12 @@ const data = [
     avatarIcon: 'tabler-brand-paypal'
   },
   {
-    title: 'Total Sales',
-    subtitle: 'Refund',
+    title: 'Total Refund',
+    subtitle: 'Cancelled',
     amount: 98,
-    avatarColor: 'secondary',
-    avatarIcon: 'tabler-currency-dollar'
+    avatarColor: 'error',
+    avatarIcon: 'tabler-currency-dollar',
+    amountDiff: 'negative'
   }
 ]
 
