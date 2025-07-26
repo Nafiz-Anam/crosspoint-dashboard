@@ -1,6 +1,5 @@
 {
     "navigation": {
-        "dashboards": "Dashboards",
         "crm": "CRM",
         "analytics": "Analytics",
         "eCommerce": "eCommerce",
@@ -32,11 +31,11 @@
         "chat": "Chat",
         "calendar": "Calendar",
         "kanban": "Kanban",
-        "invoice": "Invoice",
+        "invoice": "Invoices",
         "preview": "Preview",
         "edit": "Edit",
-        "user": "Employee",
-        "client": "Client",
+        "employee": "Employees",
+        "client": "Clients",
         "view": "View",
         "rolesPermissions": "Roles & Permissions",
         "roles": "Assign Roles",
@@ -102,6 +101,6 @@
         "menuLevel2": "Menu Level 2",
         "menuLevel3": "Menu Level 3",
         "disabledMenu": "Disabled Menu",
-        "branch": "Branch"
+        "branch": "Branches"
     }
 }

@@ -68,36 +68,24 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
           exactMatch={false}
           activeUrl='/dashboards/analytics'
         >
-          {dictionary['navigation'].dashboards}
+          {dictionary['navigation'].dashboard}
         </MenuItem>
-
-        <SubMenu label={dictionary['navigation'].user} icon={<i className='tabler-user' />}>
-          <MenuItem href={`/${locale}/apps/user/list`}>{dictionary['navigation'].list}</MenuItem>
-          <MenuItem href={`/${locale}/apps/user/view`}>{dictionary['navigation'].view}</MenuItem>
-        </SubMenu>
+        <MenuItem href={`/${locale}/apps/user/list`} icon={<i className='tabler-user' />}>
+          {dictionary['navigation'].employee}
+        </MenuItem>
         <SubMenu label={dictionary['navigation'].rolesPermissions} icon={<i className='tabler-lock' />}>
           <MenuItem href={`/${locale}/apps/permissions`}>{dictionary['navigation'].permissions}</MenuItem>
           <MenuItem href={`/${locale}/apps/roles`}>{dictionary['navigation'].roles}</MenuItem>
         </SubMenu>
-        <SubMenu label={dictionary['navigation'].client} icon={<i className='tabler-user-star' />}>
-          <MenuItem href={`/${locale}/apps/client/list`}>{dictionary['navigation'].list}</MenuItem>
-          <MenuItem href={`/${locale}/apps/client/view`}>{dictionary['navigation'].view}</MenuItem>
-        </SubMenu>
-        <SubMenu label={dictionary['navigation'].invoice} icon={<i className='tabler-file-description' />}>
-          <MenuItem href={`/${locale}/apps/invoice/list`}>{dictionary['navigation'].list}</MenuItem>
-          <MenuItem href={`/${locale}/apps/invoice/preview/4987`} exactMatch={false} activeUrl='/apps/invoice/preview'>
-            {dictionary['navigation'].preview}
-          </MenuItem>
-          <MenuItem href={`/${locale}/apps/invoice/edit/4987`} exactMatch={false} activeUrl='/apps/invoice/edit'>
-            {dictionary['navigation'].edit}
-          </MenuItem>
-          <MenuItem href={`/${locale}/apps/invoice/add`}>{dictionary['navigation'].add}</MenuItem>
-        </SubMenu>
-
-        {/* New Branch Menu */}
-        <SubMenu label={dictionary['navigation'].branch} icon={<i className='tabler-building-bank' />}>
-          <MenuItem href={`/${locale}/apps/branch/list`}>{dictionary['navigation'].list}</MenuItem>
-        </SubMenu>
+        <MenuItem href={`/${locale}/apps/client/list`} icon={<i className='tabler-user-star' />}>
+          {dictionary['navigation'].client}
+        </MenuItem>
+        <MenuItem href={`/${locale}/apps/invoice/list`} icon={<i className='tabler-file-description' />}>
+          {dictionary['navigation'].invoice}
+        </MenuItem>
+        <MenuItem href={`/${locale}/apps/branch/list`} icon={<i className='tabler-building-bank' />}>
+          {dictionary['navigation'].branch}
+        </MenuItem>
       </Menu>
     </ScrollWrapper>
   )
