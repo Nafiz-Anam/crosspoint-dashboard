@@ -93,6 +93,12 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
           </MenuItem>
           <MenuItem href={`/${locale}/apps/invoice/add`}>{dictionary['navigation'].add}</MenuItem>
         </SubMenu>
+
+        {/* New Branch Menu */}
+        <SubMenu label={dictionary['navigation'].branch} icon={<i className='tabler-building-bank' />}>
+          <MenuItem href={`/${locale}/apps/branch/list`}>{dictionary['navigation'].list}</MenuItem>
+          <MenuItem href={`/${locale}/apps/branch/view`}>{dictionary['navigation'].view}</MenuItem>
+        </SubMenu>
       </Menu>
     </ScrollWrapper>
   )
