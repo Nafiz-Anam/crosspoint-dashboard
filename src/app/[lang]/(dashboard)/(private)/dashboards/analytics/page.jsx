@@ -12,9 +12,12 @@ import TotalEarning from '@views/dashboards/analytics/TotalEarning'
 import MonthlyCampaignState from '@views/dashboards/analytics/MonthlyCampaignState'
 import SourceVisits from '@views/dashboards/analytics/SourceVisits'
 import ProjectsTable from '@views/dashboards/analytics/ProjectsTable'
+import InvoiceListTable from '@views/apps/ecommerce/dashboard/InvoiceListTable'
+
 
 // Data Imports
-import { getProfileData } from '@/app/server/actions'
+import { getInvoiceData, getProfileData } from '@/app/server/actions'
+import MinimalInvoiceListTable from '@/views/apps/ecommerce/dashboard/MinimalInvoiceListTable'
 
 /**
  * ! If you need data using an API call, uncomment the below API code, update the `process.env.API_URL` variable in the
@@ -35,6 +38,7 @@ import { getProfileData } from '@/app/server/actions'
 const DashboardAnalytics = async () => {
   // Vars
   const data = await getProfileData()
+  const invoiceData = await getInvoiceData()
 
   return (
     <Grid container spacing={6}>
@@ -47,8 +51,11 @@ const DashboardAnalytics = async () => {
       <Grid size={{ xs: 12, md: 6, lg: 4 }}>
         <TotalEarning />
       </Grid>
-      <Grid size={{ xs: 12, lg: 12 }}>
+      <Grid size={{ xs: 12, lg: 6 }}>
         <ProjectsTable projectTable={data?.users.profile.projectTable} />
+      </Grid>
+      <Grid size={{ xs: 12, lg: 6 }}>
+      <MinimalInvoiceListTable invoiceData={invoiceData} />
       </Grid>
     </Grid>
   )

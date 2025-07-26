@@ -6,12 +6,11 @@ import { useEffect, useMemo, useState } from 'react'
 // MUI Imports
 import AvatarGroup from '@mui/material/AvatarGroup'
 import Typography from '@mui/material/Typography'
+import LinearProgress from '@mui/material/LinearProgress'
 import Card from '@mui/material/Card'
+import Checkbox from '@mui/material/Checkbox'
 import CardHeader from '@mui/material/CardHeader'
 import TablePagination from '@mui/material/TablePagination'
-import Chip from '@mui/material/Chip'
-import IconButton from '@mui/material/IconButton'
-import Tooltip from '@mui/material/Tooltip'
 
 // Third-party Imports
 import classnames from 'classnames'
@@ -30,6 +29,7 @@ import {
 } from '@tanstack/react-table'
 
 // Component Imports
+import OptionMenu from '@core/components/option-menu'
 import CustomAvatar from '@core/components/mui/Avatar'
 import CustomTextField from '@core/components/mui/TextField'
 import TablePaginationComponent from '@/components/TablePaginationComponent'
@@ -69,65 +69,41 @@ const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...prop
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
 
-// Function to get status configuration based on percentage
-const getStatusConfig = (percentage) => {
-  if (percentage === 100) {
-    return {
-      label: 'Completed',
-      color: 'success',
-      variant: 'filled'
-    }
-  } else if (percentage >= 75) {
-    return {
-      label: 'In Progress',
-      color: 'primary',
-      variant: 'filled'
-    }
-  } else if (percentage >= 50) {
-    return {
-      label: 'On Track',
-      color: 'info',
-      variant: 'outlined'
-    }
-  } else if (percentage >= 25) {
-    return {
-      label: 'Behind Schedule',
-      color: 'warning',
-      variant: 'filled'
-    }
-  } else if (percentage > 0) {
-    return {
-      label: 'Just Started',
-      color: 'secondary',
-      variant: 'outlined'
-    }
-  } else {
-    return {
-      label: 'Not Started',
-      color: 'default',
-      variant: 'outlined'
-    }
-  }
-}
-
 // Column Definitions
 const columnHelper = createColumnHelper()
 
 const ProjectTables = ({ projectTable }) => {
   // States
+  const [rowSelection, setRowSelection] = useState({})
+
   const [data, setData] = useState(...[projectTable])
   const [globalFilter, setGlobalFilter] = useState('')
-
-  // Handle details action
-  const handleViewDetails = (row) => {
-    console.log('View details for:', row.original)
-    // Add your navigation logic here
-    // Example: router.push(`/projects/${row.original.id}`)
-  }
 
   // Hooks
   const columns = useMemo(
     () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            {...{
+              checked: table.getIsAllRowsSelected(),
+              indeterminate: table.getIsSomeRowsSelected(),
+              onChange: table.getToggleAllRowsSelectedHandler()
+            }}
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            {...{
+              checked: row.getIsSelected(),
+              disabled: !row.getCanSelect(),
+              indeterminate: row.getIsSomeSelected(),
+              onChange: row.getToggleSelectedHandler()
+            }}
+          />
+        )
+      },
       columnHelper.accessor('title', {
         header: 'Project',
         cell: ({ row }) => (
@@ -146,42 +122,38 @@ const ProjectTables = ({ projectTable }) => {
         header: 'Assigned To',
         cell: ({ row }) => <Typography color='text.primary'>{row.original.leader}</Typography>
       }),
+      // columnHelper.accessor('avatarGroup', {
+      //   header: 'Team',
+      //   cell: ({ row }) => (
+      //     <AvatarGroup max={4} className='flex items-center pull-up'>
+      //       {row.original.avatarGroup.map((avatar, index) => (
+      //         <CustomAvatar key={index} src={avatar} size={26} />
+      //       ))}
+      //     </AvatarGroup>
+      //   ),
+      //   enableSorting: false
+      // }),
       columnHelper.accessor('status', {
         header: 'Status',
-        cell: ({ row }) => {
-          const statusConfig = getStatusConfig(row.original.status)
-          return (
-            <Chip
-              label={statusConfig.label}
-              color={statusConfig.color}
-              variant={statusConfig.variant}
-              size="small"
-              sx={{ 
-                fontWeight: 500,
-                minWidth: '100px'
-              }}
-            />
-          )
-        }
+        cell: ({ row }) => (
+          <div className='flex items-center gap-3'>
+            <LinearProgress color='primary' value={row.original.status} variant='determinate' className='is-20' />
+            <Typography color='text.primary'>{`${row.original.status}%`}</Typography>
+          </div>
+        )
       }),
       columnHelper.accessor('actions', {
         header: 'Actions',
-        cell: ({ row }) => (
-          <Tooltip title="View Details" placement="top">
-            <IconButton
-              size="small"
-              onClick={() => handleViewDetails(row)}
-              sx={{
-                color: 'text.secondary',
-                '&:hover': {
-                  color: 'primary.main',
-                  backgroundColor: 'action.hover'
-                }
-              }}
-            >
-              <i className='tabler-eye text-[22px]' />
-            </IconButton>
-          </Tooltip>
+        cell: () => (
+          <OptionMenu
+            iconClassName='text-textSecondary'
+            options={[
+              'Details',
+              'Archive',
+              { divider: true },
+              { text: 'Delete', menuItemProps: { className: 'text-error' } }
+            ]}
+          />
         ),
         enableSorting: false
       })
@@ -197,6 +169,7 @@ const ProjectTables = ({ projectTable }) => {
       fuzzy: fuzzyFilter
     },
     state: {
+      rowSelection,
       globalFilter
     },
     initialState: {
@@ -204,7 +177,10 @@ const ProjectTables = ({ projectTable }) => {
         pageSize: 5
       }
     },
+    enableRowSelection: true, //enable row selection for all rows
+    // enableRowSelection: row => row.original.age > 18, // or enable row selection conditionally per row
     globalFilterFn: fuzzyFilter,
+    onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     onGlobalFilterChange: setGlobalFilter,
     getFilteredRowModel: getFilteredRowModel(),
@@ -262,7 +238,7 @@ const ProjectTables = ({ projectTable }) => {
               .rows.slice(0, table.getState().pagination.pageSize)
               .map(row => {
                 return (
-                  <tr key={row.id}>
+                  <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
                     {row.getVisibleCells().map(cell => (
                       <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
                     ))}
