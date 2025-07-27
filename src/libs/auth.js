@@ -1,124 +1,200 @@
+// src/libs/auth.js
+
 // Third-party Imports
-import CredentialProvider from 'next-auth/providers/credentials'
-import GoogleProvider from 'next-auth/providers/google'
-import { PrismaAdapter } from '@auth/prisma-adapter'
-import { PrismaClient } from '@prisma/client'
+import CredentialsProvider from 'next-auth/providers/credentials';
 
-const prisma = new PrismaClient()
-
+// Define the AuthOptions
 export const authOptions = {
-  adapter: PrismaAdapter(prisma),
-
-  // ** Configure one or more authentication providers
-  // ** Please refer to https://next-auth.js.org/configuration/options#providers for more `providers` options
   providers: [
-    CredentialProvider({
-      // ** The name to display on the sign in form (e.g. 'Sign in with...')
-      // ** For more details on Credentials Provider, visit https://next-auth.js.org/providers/credentials
+    CredentialsProvider({
       name: 'Credentials',
       type: 'credentials',
+      credentials: {
+        email: { label: 'Email', type: 'text' },
+        password: { label: 'Password', type: 'password' }
+      },
+      async authorize(credentials, req) {
+        const { email, password } = credentials || {};
 
-      /*
-       * As we are using our own Sign-in page, we do not need to change
-       * username or password attributes manually in following credentials object.
-       */
-      credentials: {},
-      async authorize(credentials) {
-        /*
-         * You need to provide your own logic here that takes the credentials submitted and returns either
-         * an object representing a user or value that is false/null if the credentials are invalid.
-         * For e.g. return { id: 1, name: 'J Smith', email: 'jsmith@example.com' }
-         * You can also use the `req` object to obtain additional parameters (i.e., the request IP address)
-         */
-        const { email, password } = credentials
+        if (!email || !password) {
+          throw new Error(JSON.stringify({ message: 'Email and password are required.' }));
+        }
 
         try {
-          // ** Login API Call to match the user credentials and receive user data in response along with his role
-          const res = await fetch(`${process.env.API_URL}/login`, {
+          const loginApiUrl = `${process.env.API_URL}/auth/login`;
+          const res = await fetch(loginApiUrl, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'x-client-type': 'web'
             },
             body: JSON.stringify({ email, password })
-          })
+          });
 
-          const data = await res.json()
+          const responseBody = await res.json();
+          console.log('API Login Response:', responseBody);
 
-          if (res.status === 401) {
-            throw new Error(JSON.stringify(data))
+          // --- IMPORTANT: Extract Refresh Token from Set-Cookie header ---
+          const setCookieHeader = res.headers.get('Set-Cookie');
+          let refreshToken = null;
+          let refreshTokenExpires = null;
+
+          if (setCookieHeader) {
+            const cookieStrings = setCookieHeader.split(/, (?=[^;]+; HttpOnly])/g);
+
+            for (const cookieStr of cookieStrings) {
+              if (cookieStr.startsWith('refreshToken=')) {
+                const parts = cookieStr.split(';');
+                refreshToken = parts[0].split('=')[1];
+
+                const expiresPart = parts.find(p => p.trim().startsWith('Expires='));
+                if (expiresPart) {
+                  const expiresValue = expiresPart.split('=')[1];
+                  refreshTokenExpires = new Date(expiresValue).getTime();
+                }
+                break;
+              }
+            }
           }
 
-          if (res.status === 200) {
-            /*
-             * Please unset all the sensitive information of the user either from API response or before returning
-             * user data below. Below return statement will set the user object in the token and the same is set in
-             * the session which will be accessible all over the app.
-             */
-            return data
+          if (!res.ok) {
+            const errorMessage = responseBody.message || `API error: ${res.status}`;
+            throw new Error(JSON.stringify({ message: errorMessage }));
           }
 
-          return null
+          // Check if the API response indicates success and contains the expected data structure
+          if (
+            responseBody.success &&
+            responseBody.data &&
+            responseBody.data.user &&
+            responseBody.data.user.id &&
+            responseBody.data.accessToken &&
+            responseBody.data.accessToken.token && // <--- New check for accessToken.token
+            responseBody.data.accessToken.expires // <--- New check for accessToken.expires
+          ) {
+            const user = responseBody.data.user;
+            const accessTokenData = responseBody.data.accessToken; // Access the accessToken object
+
+            // Calculate access token expiry using the provided 'expires' field
+            const accessTokenExpires = new Date(accessTokenData.expires).getTime();
+
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name || user.email,
+              roles: [user.role],
+              accessToken: accessTokenData.token, // <--- Access the token property
+              accessTokenExpires: accessTokenExpires, // <--- Use the precise expiry
+              refreshToken: refreshToken,
+              refreshTokenExpires: refreshTokenExpires,
+            };
+          }
+
+          throw new Error(
+            JSON.stringify({ message: 'Authentication successful, but API response data is incomplete or malformed.' })
+          );
         } catch (e) {
-          throw new Error(e.message)
+          console.error('Error during NextAuth authorize:', e);
+          if (typeof e.message === 'string' && e.message.startsWith('{')) {
+            throw e;
+          }
+          throw new Error(JSON.stringify({ message: e.message || 'An unexpected error occurred during login.' }));
         }
       }
     }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET
-    })
-
-    // ** ...add more providers here
   ],
 
-  // ** Please refer to https://next-auth.js.org/configuration/options#session for more `session` options
   session: {
-    /*
-     * Choose how you want to save the user session.
-     * The default is `jwt`, an encrypted JWT (JWE) stored in the session cookie.
-     * If you use an `adapter` however, NextAuth default it to `database` instead.
-     * You can still force a JWT session by explicitly defining `jwt`.
-     * When using `database`, the session cookie will only contain a `sessionToken` value,
-     * which is used to look up the session in the database.
-     * If you use a custom credentials provider, user accounts will not be persisted in a database by NextAuth.js (even if one is configured).
-     * The option to use JSON Web Tokens for session tokens must be enabled to use a custom credentials provider.
-     */
     strategy: 'jwt',
-
-    // ** Seconds - How long until an idle session expires and is no longer valid
-    maxAge: 30 * 24 * 60 * 60 // ** 30 days
+    maxAge: 30 * 24 * 60 * 60
   },
 
-  // ** Please refer to https://next-auth.js.org/configuration/options#pages for more `pages` options
   pages: {
     signIn: '/login'
   },
 
-  // ** Please refer to https://next-auth.js.org/configuration/options#callbacks for more `callbacks` options
   callbacks: {
-    /*
-     * While using `jwt` as a strategy, `jwt()` callback will be called before
-     * the `session()` callback. So we have to add custom parameters in `token`
-     * via `jwt()` callback to make them accessible in the `session()` callback
-     */
     async jwt({ token, user }) {
       if (user) {
-        /*
-         * For adding custom parameters to user in session, we first need to add those parameters
-         * in token which then will be available in the `session()` callback
-         */
-        token.name = user.name
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.roles = user.roles;
+        token.accessToken = user.accessToken;
+        token.accessTokenExpires = user.accessTokenExpires;
+        token.refreshToken = user.refreshToken;
+        token.refreshTokenExpires = user.refreshTokenExpires;
       }
 
-      return token
+      if (token.accessToken && token.accessTokenExpires && Date.now() < token.accessTokenExpires) {
+        return token;
+      }
+
+      if (token.refreshToken && token.refreshTokenExpires && Date.now() < token.refreshTokenExpires) {
+        try {
+          const refreshApiUrl = `${process.env.API_URL}/auth/refresh-token`;
+          const refreshRes = await fetch(refreshApiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-client-type': 'web'
+            },
+            body: JSON.stringify({ refreshToken: token.refreshToken })
+          });
+
+          const refreshData = await refreshRes.json();
+
+          if (!refreshRes.ok) {
+            const errorMessage = refreshData.message || `Token refresh failed: ${refreshRes.status}`;
+            console.error('Token refresh failed:', errorMessage);
+            return { ...token, error: "RefreshAccessTokenError" };
+          }
+
+          // Assuming refreshData has a similar structure for the new access token:
+          // { accessToken: { token: "...", expires: "..." } }
+          // OR if it's flat: { accessToken: "...", expires_in: ... }
+          // If your refresh API returns the new `accessToken` and `expires` in a nested object:
+          if (refreshData.accessToken && refreshData.accessToken.token && refreshData.accessToken.expires) {
+              token.accessToken = refreshData.accessToken.token;
+              token.accessTokenExpires = new Date(refreshData.accessToken.expires).getTime();
+          } else if (refreshData.accessToken && refreshData.expires_in) { // If flat with expires_in
+              token.accessToken = refreshData.accessToken;
+              token.accessTokenExpires = Date.now() + refreshData.expires_in * 1000;
+          } else { // Fallback if refresh API response structure is unexpected
+              console.warn("Refresh API response did not contain expected accessToken and expiry format.");
+              return { ...token, error: "RefreshAccessTokenError" };
+          }
+
+
+          // If your refresh API also issues a new refresh token (and its expiry), update them here:
+          // const newSetCookieHeader = refreshRes.headers.get('Set-Cookie');
+          // if (newSetCookieHeader) { /* ... parse and update token.refreshToken and token.refreshTokenExpires ... */ }
+
+          return token;
+
+        } catch (refreshError) {
+          console.error('Error refreshing token:', refreshError);
+          return { ...token, error: "RefreshAccessTokenError" };
+        }
+      }
+
+      return { ...token, error: "RefreshAccessTokenError" };
     },
+
     async session({ session, token }) {
       if (session.user) {
-        // ** Add custom params to user in session which are added in `jwt()` callback via `token` parameter
-        session.user.name = token.name
+        session.user.id = token.id;
+        session.user.email = token.email;
+        session.user.name = token.name;
+        session.user.roles = token.roles;
       }
+      session.accessToken = token.accessToken;
+      session.error = token.error;
 
-      return session
+      return session;
     }
-  }
-}
+  },
+
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
+};

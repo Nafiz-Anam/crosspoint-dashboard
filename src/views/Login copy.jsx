@@ -16,11 +16,11 @@ import InputAdornment from '@mui/material/InputAdornment'
 import Checkbox from '@mui/material/Checkbox'
 import Button from '@mui/material/Button'
 import FormControlLabel from '@mui/material/FormControlLabel'
-// import Divider from '@mui/material/Divider' // Removed as 'or' divider is no longer needed
-import Alert from '@mui/material/Alert' // Alert for error messages
+import Divider from '@mui/material/Divider'
+import Alert from '@mui/material/Alert'
 
 // Third-party Imports
-import { signIn } from 'next-auth/react' // Still needed for credentials login
+import { signIn } from 'next-auth/react'
 import { Controller, useForm } from 'react-hook-form'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 import { email, object, minLength, string, pipe, nonEmpty } from 'valibot'
@@ -101,10 +101,9 @@ const Login = ({ mode }) => {
     formState: { errors }
   } = useForm({
     resolver: valibotResolver(schema),
-    // Removed defaultValues: { email: 'admin@vuexy.com', password: 'admin' }
-    defaultValues: { // Explicitly set to empty strings for a clean start
-      email: '',
-      password: ''
+    defaultValues: {
+      email: 'admin@vuexy.com',
+      password: 'admin'
     }
   })
 
@@ -119,9 +118,6 @@ const Login = ({ mode }) => {
   const handleClickShowPassword = () => setIsPasswordShown(show => !show)
 
   const onSubmit = async data => {
-    // Clear previous error state before attempting new login
-    setErrorState(null);
-
     const res = await signIn('credentials', {
       email: data.email,
       password: data.password,
@@ -135,16 +131,9 @@ const Login = ({ mode }) => {
       router.replace(getLocalizedUrl(redirectURL, locale))
     } else {
       if (res?.error) {
-        try {
-          const error = JSON.parse(res.error)
-          setErrorState(error)
-        } catch (parseError) {
-          // Fallback for non-JSON error messages
-          setErrorState({ message: [res.error] });
-        }
-      } else {
-        // Generic error if res.error is null but login failed
-        setErrorState({ message: ["An unknown error occurred during login."] });
+        const error = JSON.parse(res.error)
+
+        setErrorState(error)
       }
     }
   }
@@ -169,18 +158,14 @@ const Login = ({ mode }) => {
         <div className='flex flex-col gap-6 is-full sm:is-auto md:is-full sm:max-is-[400px] md:max-is-[unset] mbs-8 sm:mbs-11 md:mbs-0'>
           <div className='flex flex-col gap-1'>
             <Typography variant='h4'>{`Welcome to ${themeConfig.templateName}! 👋🏻`}</Typography>
-            <Typography>Please sign-in to your account to start working</Typography>
+            <Typography>Please sign-in to your account and start the adventure</Typography>
           </div>
-          {/* Removed the default admin@vuexy.com / admin alert */}
-          {errorState && (
-            <Alert severity="error" icon={false} className='bg-[var(--mui-palette-error-lightOpacity)]'>
-              <Typography variant='body2' color='error.main'>
-                {errorState.message && Array.isArray(errorState.message)
-                  ? errorState.message.join(', ')
-                  : errorState.message || "Login failed. Please try again."}
-              </Typography>
-            </Alert>
-          )}
+          <Alert icon={false} className='bg-[var(--mui-palette-primary-lightOpacity)]'>
+            <Typography variant='body2' color='primary.main'>
+              Email: <span className='font-medium'>admin@vuexy.com</span> / Pass:{' '}
+              <span className='font-medium'>admin</span>
+            </Typography>
+          </Alert>
           <form
             noValidate
             autoComplete='off'
@@ -202,11 +187,11 @@ const Login = ({ mode }) => {
                   placeholder='Enter your email'
                   onChange={e => {
                     field.onChange(e.target.value)
-                    errorState !== null && setErrorState(null) // Clear error on input change
+                    errorState !== null && setErrorState(null)
                   }}
                   {...((errors.email || errorState !== null) && {
                     error: true,
-                    helperText: errors?.email?.message || (errorState?.message && errorState.message[0])
+                    helperText: errors?.email?.message || errorState?.message[0]
                   })}
                 />
               )}
@@ -225,7 +210,7 @@ const Login = ({ mode }) => {
                   type={isPasswordShown ? 'text' : 'password'}
                   onChange={e => {
                     field.onChange(e.target.value)
-                    errorState !== null && setErrorState(null) // Clear error on input change
+                    errorState !== null && setErrorState(null)
                   }}
                   slotProps={{
                     input: {
@@ -266,6 +251,16 @@ const Login = ({ mode }) => {
                 Create an account
               </Typography>
             </div>
+            <Divider className='gap-2'>or</Divider>
+            <Button
+              color='secondary'
+              className='self-center text-textPrimary'
+              startIcon={<img src='/images/logos/google.png' alt='Google' width={22} />}
+              sx={{ '& .MuiButton-startIcon': { marginInlineEnd: 3 } }}
+              onClick={() => signIn('google')}
+            >
+              Sign in with Google
+            </Button>
           </form>
         </div>
       </div>
