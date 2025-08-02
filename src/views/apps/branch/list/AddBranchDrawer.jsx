@@ -1,5 +1,7 @@
+'use client'
+
 // React Imports
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 // MUI Imports
 import Button from '@mui/material/Button'
@@ -8,28 +10,29 @@ import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
+import CircularProgress from '@mui/material/CircularProgress' // For loading indicator
+import Alert from '@mui/material/Alert' // For error messages
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Checkbox from '@mui/material/Checkbox'
 
 // Third-party Imports
 import { useForm, Controller } from 'react-hook-form'
+import { useSession } from 'next-auth/react' // Import useSession to get token
 
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
 
-// Vars
-const initialData = {
-  company: '',
-  country: '',
-  contact: ''
-}
-
 const AddBranchDrawer = props => {
   // Props
-  const { open, handleClose, userData, setData } = props
+  const { open, handleClose, currentBranch, onBranchAdded } = props
 
   // States
-  const [formData, setFormData] = useState(initialData)
+  const [loading, setLoading] = useState(false)
+  const [apiError, setApiError] = useState(null)
+  const [apiSuccess, setApiSuccess] = useState(false)
 
   // Hooks
+  const { data: session } = useSession()
   const {
     control,
     reset: resetForm,
@@ -37,40 +40,123 @@ const AddBranchDrawer = props => {
     formState: { errors }
   } = useForm({
     defaultValues: {
-      fullName: '',
-      username: '',
+      name: '',
+      address: '',
+      city: '',
+      postalCode: '',
+      province: '',
+      phone: '',
       email: '',
-      role: '',
-      plan: '',
-      status: ''
+      isActive: true
     }
   })
 
-  const onSubmit = data => {
-    const newUser = {
-      id: (userData?.length && userData?.length + 1) || 1,
-      avatar: `/images/avatars/${Math.floor(Math.random() * 8) + 1}.png`,
-      fullName: data.fullName,
-      username: data.username,
-      email: data.email,
-      role: data.role,
-      currentPlan: data.plan,
-      status: data.status,
-      company: formData.company,
-      country: formData.country,
-      contact: formData.contact,
-      billing: userData?.[Math.floor(Math.random() * 50) + 1].billing ?? 'Auto Debit'
+  // Effect to populate form fields when currentBranch changes (for edit mode)
+  useEffect(() => {
+    if (currentBranch) {
+      resetForm({
+        name: currentBranch.name || '',
+        address: currentBranch.address || '',
+        city: currentBranch.city || '',
+        postalCode: currentBranch.postalCode || '',
+        province: currentBranch.province || '',
+        phone: currentBranch.phone || '',
+        email: currentBranch.email || '',
+        isActive: currentBranch.isActive ?? true
+      })
+    } else {
+      // Reset form to default values when switching to add mode
+      resetForm({
+        name: '',
+        address: '',
+        city: '',
+        postalCode: '',
+        province: '',
+        phone: '',
+        email: '',
+        isActive: true
+      })
+    }
+    // Clear any previous API messages when drawer opens/mode changes
+    setApiError(null)
+    setApiSuccess(false)
+  }, [open, currentBranch, resetForm])
+
+  const onSubmit = async data => {
+    setLoading(true)
+    setApiError(null)
+    setApiSuccess(false)
+
+    if (!session?.accessToken) {
+      setApiError('Authentication token not found. Please log in again.')
+      setLoading(false)
+      return
     }
 
-    setData([...(userData ?? []), newUser])
-    handleClose()
-    setFormData(initialData)
-    resetForm({ fullName: '', username: '', email: '', role: '', plan: '', status: '' })
+    const payload = {
+      name: data.name,
+      address: data.address,
+      city: data.city,
+      postalCode: data.postalCode,
+      province: data.province,
+      phone: data.phone || null,
+      email: data.email || null,
+      isActive: data.isActive
+    }
+
+    const isEditMode = !!currentBranch
+    const apiMethod = isEditMode ? 'PUT' : 'POST'
+    const apiUrl = isEditMode
+      ? `${process.env.NEXT_PUBLIC_API_URL}/branches/${currentBranch.id}`
+      : `${process.env.NEXT_PUBLIC_API_URL}/branches`
+
+    try {
+      console.log(`Making API call to: ${apiUrl} with method: ${apiMethod}`)
+      const response = await fetch(apiUrl, {
+        method: apiMethod,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        },
+        body: JSON.stringify(payload)
+      })
+
+      const responseData = await response.json()
+
+      if (response.ok) {
+        setApiSuccess(true)
+        console.log(`Branch ${isEditMode ? 'updated' : 'created'} successfully:`, responseData)
+        onBranchAdded()
+        handleReset()
+      } else {
+        const errorMessage =
+          responseData.message || `Failed to ${isEditMode ? 'update' : 'create'} branch: ${response.status}`
+        setApiError(errorMessage)
+        console.error('API Error:', responseData)
+      }
+    } catch (error) {
+      setApiError('Network error or unexpected issue. Please try again.')
+      console.error('Fetch error:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleReset = () => {
     handleClose()
-    setFormData(initialData)
+    resetForm({
+      name: '',
+      address: '',
+      city: '',
+      postalCode: '',
+      province: '',
+      phone: '',
+      email: '',
+      isActive: true
+    })
+    setApiError(null)
+    setApiSuccess(false)
   }
 
   return (
@@ -83,156 +169,145 @@ const AddBranchDrawer = props => {
       sx={{ '& .MuiDrawer-paper': { width: { xs: 300, sm: 400 } } }}
     >
       <div className='flex items-center justify-between plb-5 pli-6'>
-        <Typography variant='h5'>Add New User</Typography>
+        <Typography variant='h5'>{currentBranch ? 'Edit Branch' : 'Add New Branch'}</Typography>
         <IconButton size='small' onClick={handleReset}>
           <i className='tabler-x text-2xl text-textPrimary' />
         </IconButton>
       </div>
       <Divider />
       <div>
-        <form onSubmit={handleSubmit(data => onSubmit(data))} className='flex flex-col gap-6 p-6'>
+        {apiError && (
+          <Alert severity='error' onClose={() => setApiError(null)} sx={{ mb: 4, mx: 6, mt: 4 }}>
+            {apiError}
+          </Alert>
+        )}
+        {apiSuccess && (
+          <Alert severity='success' onClose={() => setApiSuccess(false)} sx={{ mb: 4, mx: 6, mt: 4 }}>
+            Branch {currentBranch ? 'updated' : 'added'} successfully!
+          </Alert>
+        )}
+        <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6 p-6'>
+          {/* Branch ID field, display only if editing, and make it disabled */}
+          {currentBranch && (
+            <CustomTextField
+              fullWidth
+              label='Branch ID'
+              value={currentBranch.branchId || ''} // Display existing branchId
+              disabled={true} // <--- Made the field disabled
+              sx={{ mb: 2 }}
+            />
+          )}
+
           <Controller
-            name='fullName'
+            name='name'
             control={control}
-            rules={{ required: true }}
+            rules={{ required: 'Branch Name is required.' }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label='Full Name'
-                placeholder='John Doe'
-                {...(errors.fullName && { error: true, helperText: 'This field is required.' })}
+                label='Branch Name'
+                placeholder='Main Branch'
+                {...(errors.name && { error: true, helperText: errors.name.message })}
               />
             )}
           />
           <Controller
-            name='username'
+            name='address'
             control={control}
-            rules={{ required: true }}
+            rules={{ required: 'Address is required.' }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label='Username'
-                placeholder='johndoe'
-                {...(errors.username && { error: true, helperText: 'This field is required.' })}
+                label='Address'
+                placeholder='123 Main St'
+                {...(errors.address && { error: true, helperText: errors.address.message })}
+              />
+            )}
+          />
+          <Controller
+            name='city'
+            control={control}
+            rules={{ required: 'City is required.' }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                label='City'
+                placeholder='Rome'
+                {...(errors.city && { error: true, helperText: errors.city.message })}
+              />
+            )}
+          />
+          <Controller
+            name='postalCode'
+            control={control}
+            rules={{ required: 'Postal Code is required.' }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                label='Postal Code'
+                placeholder='00100'
+                {...(errors.postalCode && { error: true, helperText: errors.postalCode.message })}
+              />
+            )}
+          />
+          <Controller
+            name='province'
+            control={control}
+            rules={{ required: 'Province is required.' }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                label='Province (2-letter code)'
+                placeholder='RM'
+                {...(errors.province && { error: true, helperText: errors.province.message })}
+              />
+            )}
+          />
+          <Controller
+            name='phone'
+            control={control}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                type='tel'
+                label='Phone (Optional)'
+                placeholder='+39 123 456 7890'
               />
             )}
           />
           <Controller
             name='email'
             control={control}
-            rules={{ required: true }}
+            rules={{ pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address.' } }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
                 type='email'
-                label='Email'
-                placeholder='johndoe@gmail.com'
-                {...(errors.email && { error: true, helperText: 'This field is required.' })}
+                label='Email (Optional)'
+                placeholder='branch@example.com'
               />
             )}
           />
           <Controller
-            name='role'
+            name='isActive'
             control={control}
-            rules={{ required: true }}
             render={({ field }) => (
-              <CustomTextField
-                select
-                fullWidth
-                id='select-role'
-                label='Select Role'
-                {...field}
-                {...(errors.role && { error: true, helperText: 'This field is required.' })}
-              >
-                <MenuItem value='admin'>Admin</MenuItem>
-                <MenuItem value='author'>Author</MenuItem>
-                <MenuItem value='editor'>Editor</MenuItem>
-                <MenuItem value='maintainer'>Maintainer</MenuItem>
-                <MenuItem value='subscriber'>Subscriber</MenuItem>
-              </CustomTextField>
+              <FormControlLabel control={<Checkbox {...field} checked={field.value} />} label='Is Active' />
             )}
           />
-          <Controller
-            name='plan'
-            control={control}
-            rules={{ required: true }}
-            render={({ field }) => (
-              <CustomTextField
-                select
-                fullWidth
-                id='select-plan'
-                label='Select Plan'
-                {...field}
-                slotProps={{
-                  htmlInput: { placeholder: 'Select Plan' }
-                }}
-                {...(errors.plan && { error: true, helperText: 'This field is required.' })}
-              >
-                <MenuItem value='basic'>Basic</MenuItem>
-                <MenuItem value='company'>Company</MenuItem>
-                <MenuItem value='enterprise'>Enterprise</MenuItem>
-                <MenuItem value='team'>Team</MenuItem>
-              </CustomTextField>
-            )}
-          />
-          <Controller
-            name='status'
-            control={control}
-            rules={{ required: true }}
-            render={({ field }) => (
-              <CustomTextField
-                select
-                fullWidth
-                id='select-status'
-                label='Select Status'
-                {...field}
-                {...(errors.status && { error: true, helperText: 'This field is required.' })}
-              >
-                <MenuItem value='pending'>Pending</MenuItem>
-                <MenuItem value='active'>Active</MenuItem>
-                <MenuItem value='inactive'>Inactive</MenuItem>
-              </CustomTextField>
-            )}
-          />
-          <CustomTextField
-            label='Company'
-            fullWidth
-            placeholder='Company PVT LTD'
-            value={formData.company}
-            onChange={e => setFormData({ ...formData, company: e.target.value })}
-          />
-          <CustomTextField
-            select
-            fullWidth
-            id='country'
-            value={formData.country}
-            onChange={e => setFormData({ ...formData, country: e.target.value })}
-            label='Select Country'
-            slotProps={{
-              htmlInput: { placeholder: 'Country' }
-            }}
-          >
-            <MenuItem value='India'>India</MenuItem>
-            <MenuItem value='USA'>USA</MenuItem>
-            <MenuItem value='Australia'>Australia</MenuItem>
-            <MenuItem value='Germany'>Germany</MenuItem>
-          </CustomTextField>
-          <CustomTextField
-            label='Contact'
-            type='number'
-            fullWidth
-            placeholder='(397) 294-5153'
-            value={formData.contact}
-            onChange={e => setFormData({ ...formData, contact: e.target.value })}
-          />
+
           <div className='flex items-center gap-4'>
-            <Button variant='contained' type='submit'>
-              Submit
+            <Button variant='contained' type='submit' disabled={loading}>
+              {loading ? <CircularProgress size={24} /> : currentBranch ? 'Update' : 'Submit'}
             </Button>
-            <Button variant='tonal' color='error' type='reset' onClick={() => handleReset()}>
+            <Button variant='tonal' color='error' type='reset' onClick={handleReset} disabled={loading}>
               Cancel
             </Button>
           </div>
