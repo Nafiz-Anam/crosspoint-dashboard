@@ -1,6 +1,3 @@
-'use client'
-
-// React Imports
 import { useEffect, useState } from 'react'
 
 // MUI Imports
@@ -12,8 +9,12 @@ import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
 import CircularProgress from '@mui/material/CircularProgress' // For loading indicator
 import Alert from '@mui/material/Alert' // For error messages
-import FormControlLabel from '@mui/material/FormControlLabel'
 import Checkbox from '@mui/material/Checkbox'
+import Select from '@mui/material/Select'
+import InputLabel from '@mui/material/InputLabel'
+import OutlinedInput from '@mui/material/OutlinedInput'
+import Chip from '@mui/material/Chip'
+import Box from '@mui/material/Box'
 
 // Third-party Imports
 import { useForm, Controller } from 'react-hook-form'
@@ -23,10 +24,8 @@ import { useSession } from 'next-auth/react' // Import useSession to get token
 import CustomTextField from '@core/components/mui/TextField'
 
 const AddEmployeeDrawer = props => {
-  // Props
-  const { open, handleClose, currentEmployee, onEmployeeAdded } = props // currentEmployee for edit mode
+  const { open, handleClose, currentEmployee, onEmployeeAdded } = props
 
-  // States for form submission
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState(null)
   const [apiSuccess, setApiSuccess] = useState(false)
@@ -35,6 +34,10 @@ const AddEmployeeDrawer = props => {
   const [branchesList, setBranchesList] = useState([])
   const [branchesLoading, setBranchesLoading] = useState(true)
   const [branchesError, setBranchesError] = useState(null)
+
+  // Permissions
+  const [permissions, setPermissions] = useState([])
+  const [selectedPermissions, setSelectedPermissions] = useState([])
 
   // Hooks
   const { data: session, status: sessionStatus } = useSession()
@@ -46,16 +49,15 @@ const AddEmployeeDrawer = props => {
   } = useForm({
     defaultValues: {
       email: '',
-      password: '', // Password field for creation
+      password: '',
       name: '',
-      role: 'EMPLOYEE', // Default role
-      branchId: '', // Optional branchId
-      isEmailVerified: false,
+      role: 'EMPLOYEE',
+      branchId: '',
       isActive: true
     }
   })
 
-  // Function to fetch branches for the dropdown
+  // Fetch branches
   const fetchBranchesList = async () => {
     setBranchesLoading(true)
     setBranchesError(null)
@@ -93,14 +95,46 @@ const AddEmployeeDrawer = props => {
     }
   }
 
-  // Effect to fetch branches list on component mount or session change
+  // Fetch permissions
+  const fetchPermissions = async () => {
+    if (sessionStatus === 'loading') return
+    if (sessionStatus === 'unauthenticated' || !session?.accessToken) {
+      setApiError('Authentication required to load permissions.')
+      return
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/permissions/all`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+      const responseData = await response.json()
+
+      if (response.ok) {
+        setPermissions(responseData.data.permissions || [])
+      } else {
+        const errorMessage = responseData.message || `Failed to load permissions: ${response.status}`
+        setApiError(errorMessage)
+        console.error('API Error loading permissions:', responseData)
+      }
+    } catch (error) {
+      setApiError('Network error loading permissions. Please try again.')
+      console.error('Fetch error loading permissions:', error)
+    }
+  }
+
   useEffect(() => {
     if (sessionStatus === 'authenticated') {
       fetchBranchesList()
+      fetchPermissions() // Fetch permissions when authenticated
     }
   }, [sessionStatus, session?.accessToken])
 
-  // Effect to populate form fields when currentEmployee changes (for edit mode)
+  // Reset form for editing or adding
   useEffect(() => {
     if (currentEmployee) {
       resetForm({
@@ -108,12 +142,13 @@ const AddEmployeeDrawer = props => {
         password: '', // Password should never be pre-filled for security
         name: currentEmployee.name || '',
         role: currentEmployee.role || 'EMPLOYEE',
-        branchId: currentEmployee.branchId || '', // Populate branchId
+        branchId: currentEmployee.branchId || '',
         isEmailVerified: currentEmployee.isEmailVerified ?? false,
-        isActive: currentEmployee.isActive ?? true
+        isActive: currentEmployee.isActive ?? true,
+        employeeId: currentEmployee.employeeId || '' // Populate employeeId
       })
+      setSelectedPermissions(currentEmployee.permissions || [])
     } else {
-      // Reset form to default values when switching to add mode
       resetForm({
         email: '',
         password: '',
@@ -121,13 +156,15 @@ const AddEmployeeDrawer = props => {
         role: 'EMPLOYEE',
         branchId: '',
         isEmailVerified: false,
-        isActive: true
+        isActive: true,
+        employeeId: ''
       })
+      setSelectedPermissions([]) // Clear selected permissions in add mode
     }
-    // Clear any previous API messages when drawer opens/mode changes
+
     setApiError(null)
     setApiSuccess(false)
-  }, [open, currentEmployee, resetForm]) // Depend on 'open' to reset when drawer closes/opens
+  }, [open, currentEmployee, resetForm])
 
   const onSubmit = async data => {
     setLoading(true)
@@ -141,22 +178,24 @@ const AddEmployeeDrawer = props => {
     }
 
     const isEditMode = !!currentEmployee
-    const apiMethod = isEditMode ? 'PUT' : 'POST'
+    const apiMethod = isEditMode ? 'PATCH' : 'POST'
     const apiUrl = isEditMode
       ? `${process.env.NEXT_PUBLIC_API_URL}/employees/${currentEmployee.id}`
       : `${process.env.NEXT_PUBLIC_API_URL}/employees`
 
-    // Construct payload based on schema and mode
     const payload = {
-      email: data.email,
-      name: data.name || null, // Optional
+      name: data.name || null,
       role: data.role,
-      branchId: data.branchId || null, // Optional
-      isEmailVerified: data.isEmailVerified,
-      isActive: data.isActive
+      branchId: data.branchId || null,
+      isActive: data.isActive,
+      permissions: selectedPermissions // Send selected permissions
     }
 
-    // Only include password if it's a new employee or password field is explicitly filled in edit mode
+    // Only include email for new employees
+    if (!isEditMode) {
+      payload.email = data.email
+    }
+
     if (!isEditMode || (isEditMode && data.password)) {
       payload.password = data.password
     }
@@ -178,8 +217,8 @@ const AddEmployeeDrawer = props => {
       if (response.ok) {
         setApiSuccess(true)
         console.log(`Employee ${isEditMode ? 'updated' : 'created'} successfully:`, responseData)
-        onEmployeeAdded() // Trigger re-fetch in parent
-        handleReset() // Close drawer and reset form
+        onEmployeeAdded()
+        handleReset()
       } else {
         const errorMessage =
           responseData.message || `Failed to ${isEditMode ? 'update' : 'create'} employee: ${response.status}`
@@ -197,13 +236,14 @@ const AddEmployeeDrawer = props => {
   const handleReset = () => {
     handleClose()
     resetForm({
-      email: '',
+      email: currentEmployee?.email || '',
       password: '',
       name: '',
       role: 'EMPLOYEE',
       branchId: '',
       isEmailVerified: false,
-      isActive: true
+      isActive: true,
+      employeeId: ''
     })
     setApiError(null)
     setApiSuccess(false)
@@ -237,23 +277,38 @@ const AddEmployeeDrawer = props => {
           </Alert>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6 p-6'>
-          {/* Employee ID field, display only if editing, and make it read-only */}
-          {currentEmployee && (
-            <CustomTextField
-              fullWidth
-              label='Employee ID'
-              value={currentEmployee.employeeId || ''}
-              disabled={true}
-              sx={{ mb: 2 }}
-            />
-          )}
+          {/* Name */}
+          <Controller
+            name='name'
+            control={control}
+            rules={{
+              required: 'Name is required.',
+              validate: value => value.trim() !== '' || 'Name cannot be empty'
+            }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                label='Name'
+                placeholder='Jane Doe'
+                required
+                error={!!errors.name}
+                helperText={errors.name?.message}
+              />
+            )}
+          />
 
+          {/* Email */}
           <Controller
             name='email'
             control={control}
             rules={{
               required: 'Email is required.',
-              pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address.' }
+              pattern: {
+                value: /^\S+@\S+\.\S+$/,
+                message: 'Invalid email address'
+              },
+              validate: value => value.trim() !== '' || 'Email cannot be empty'
             }}
             render={({ field }) => (
               <CustomTextField
@@ -262,14 +317,30 @@ const AddEmployeeDrawer = props => {
                 type='email'
                 label='Email'
                 placeholder='employee@example.com'
-                {...(errors.email && { error: true, helperText: errors.email.message })}
+                required
+                error={!!errors.email}
+                helperText={errors.email?.message}
+                disabled={!!currentEmployee} // Disable in edit mode
+                InputProps={{
+                  readOnly: !!currentEmployee // Make read-only in edit mode
+                }}
               />
             )}
           />
+
+          {/* Password */}
           <Controller
             name='password'
             control={control}
-            rules={{ required: !currentEmployee && 'Password is required.' }} // Password required only for new employee
+            rules={{
+              required: !currentEmployee && 'Password is required.',
+              minLength: {
+                value: 8,
+                message: 'Password must be at least 8 characters'
+              },
+              validate: value =>
+                !currentEmployee || value === '' || value.length >= 8 || 'Password must be at least 8 characters'
+            }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
@@ -277,51 +348,40 @@ const AddEmployeeDrawer = props => {
                 type='password'
                 label={currentEmployee ? 'New Password (Optional)' : 'Password'}
                 placeholder='············'
-                {...(errors.password && { error: true, helperText: errors.password.message })}
+                required={!currentEmployee}
+                error={!!errors.password}
+                helperText={errors.password?.message}
               />
             )}
           />
-          <Controller
-            name='name'
-            control={control}
-            render={({ field }) => (
-              <CustomTextField {...field} fullWidth label='Name (Optional)' placeholder='Jane Doe' />
-            )}
-          />
-          <Controller
-            name='role'
-            control={control}
-            rules={{ required: 'Role is required.' }}
-            render={({ field }) => (
-              <CustomTextField
-                select
-                fullWidth
-                id='select-role'
-                label='Select Role'
-                {...field}
-                {...(errors.role && { error: true, helperText: errors.role.message })}
-              >
-                <MenuItem value='ADMIN'>Admin</MenuItem>
-                <MenuItem value='EMPLOYEE'>Employee</MenuItem>
-                <MenuItem value='MANAGER'>Manager</MenuItem>
-                {/* Add other roles from your Role enum if applicable */}
-              </CustomTextField>
-            )}
-          />
+
+          {/* Branch - Required */}
           <Controller
             name='branchId'
             control={control}
+            rules={{ required: 'Branch is required.' }}
+            defaultValue=''
             render={({ field }) => (
               <CustomTextField
                 select
                 fullWidth
-                id='select-branch'
-                label='Select Branch (Optional)'
+                label='Select Branch'
                 {...field}
-                disabled={branchesLoading} // Disable while branches are loading
-                {...(branchesError && { error: true, helperText: branchesError })}
+                value={field.value ?? ''}
+                SelectProps={{
+                  displayEmpty: true,
+                  renderValue: selected => {
+                    if (!selected) return <>Select a Branch</>
+                    const selectedBranch = branchesList.find(branch => branch.id === selected)
+                    return selectedBranch ? `${selectedBranch.name} (${selectedBranch.branchId})` : ''
+                  }
+                }}
+                required
+                error={!!errors.branchId || !!branchesError}
+                helperText={errors.branchId?.message || branchesError}
+                disabled={branchesLoading}
               >
-                <MenuItem value=''>None</MenuItem> {/* Option for no branch */}
+                <MenuItem value=''>Select a Branch</MenuItem>
                 {branchesList.map(branch => (
                   <MenuItem key={branch.id} value={branch.id}>
                     {branch.name} ({branch.branchId})
@@ -330,18 +390,111 @@ const AddEmployeeDrawer = props => {
               </CustomTextField>
             )}
           />
+
+          {/* Role - Required */}
           <Controller
-            name='isEmailVerified'
+            name='role'
             control={control}
+            rules={{ required: 'Role is required.' }}
             render={({ field }) => (
-              <FormControlLabel control={<Checkbox {...field} checked={field.value} />} label='Email Verified' />
+              <CustomTextField
+                select
+                fullWidth
+                label='Select Role'
+                {...field}
+                required
+                error={!!errors.role}
+                helperText={errors.role?.message}
+              >
+                <MenuItem value='ADMIN'>Admin</MenuItem>
+                <MenuItem value='MANAGER'>Manager</MenuItem>
+                <MenuItem value='HR'>HR</MenuItem>
+                <MenuItem value='EMPLOYEE'>Employee</MenuItem>
+              </CustomTextField>
             )}
           />
+
+          {/* Permissions - Required */}
+          <Box sx={{ width: '100%' }}>
+            <InputLabel required error={!!errors.permissions}>
+              Select Permissions
+            </InputLabel>
+            <Controller
+              name='permissions'
+              control={control}
+              rules={{
+                validate: value =>
+                  (selectedPermissions && selectedPermissions.length > 0) || 'At least one permission is required'
+              }}
+              render={({ field }) => (
+                <>
+                  <Select
+                    {...field}
+                    multiple
+                    fullWidth
+                    displayEmpty // This ensures the placeholder shows
+                    value={selectedPermissions}
+                    renderValue={selected => {
+                      if (selected.length === 0) {
+                        return <Typography variant='body1'>Select permissions</Typography>
+                      }
+                      return (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                          {selected.map(value => (
+                            <Chip key={value} label={value} size='small' />
+                          ))}
+                        </Box>
+                      )
+                    }}
+                    error={!!errors.permissions}
+                    onChange={e => setSelectedPermissions(e.target.value)}
+                    MenuProps={{
+                      PaperProps: {
+                        sx: { maxHeight: 280 }
+                      }
+                    }}
+                    input={<OutlinedInput label='Select Permissions' />}
+                  >
+                    {/* Empty state placeholder */}
+                    {permissions.length === 0 && (
+                      <MenuItem disabled>
+                        <em>No permissions available</em>
+                      </MenuItem>
+                    )}
+
+                    {permissions.map(permission => (
+                      <MenuItem key={permission} value={permission}>
+                        <Checkbox checked={selectedPermissions.includes(permission)} />
+                        <Typography>{permission}</Typography>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {errors.permissions && (
+                    <Typography variant='caption' color='error' sx={{ mt: 1, display: 'block' }}>
+                      {errors.permissions.message}
+                    </Typography>
+                  )}
+                </>
+              )}
+            />
+          </Box>
+
+          {/* Status - Active/Inactive Dropdown */}
           <Controller
             name='isActive'
             control={control}
             render={({ field }) => (
-              <FormControlLabel control={<Checkbox {...field} checked={field.value} />} label='Is Active' />
+              <CustomTextField
+                select
+                fullWidth
+                label='Status'
+                {...field}
+                value={field.value ? 'active' : 'inactive'} // Convert boolean to string for display
+                onChange={e => field.onChange(e.target.value === 'active')} // Convert back to boolean
+              >
+                <MenuItem value='active'>Active</MenuItem>
+                <MenuItem value='inactive'>Inactive</MenuItem>
+              </CustomTextField>
             )}
           />
 

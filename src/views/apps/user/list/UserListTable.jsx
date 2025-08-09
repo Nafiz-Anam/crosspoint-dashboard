@@ -90,7 +90,7 @@ const employeeRoleObj = {
 const employeeStatusObj = {
   // Mapping for isActive boolean to Chip color
   true: 'success',
-  false: 'secondary'
+  false: 'error'
 }
 
 // Column Definitions
