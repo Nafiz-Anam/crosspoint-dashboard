@@ -7,24 +7,21 @@ import { useEffect, useState } from 'react'
 import Button from '@mui/material/Button'
 import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
-import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
-import CircularProgress from '@mui/material/CircularProgress' // For loading indicator
-import Alert from '@mui/material/Alert' // For error messages
-import FormControlLabel from '@mui/material/FormControlLabel'
-import Checkbox from '@mui/material/Checkbox'
+import CircularProgress from '@mui/material/CircularProgress'
+import Alert from '@mui/material/Alert'
 
 // Third-party Imports
 import { useForm, Controller } from 'react-hook-form'
-import { useSession } from 'next-auth/react' // Import useSession to get token
+import { useSession } from 'next-auth/react'
 
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
 
 const AddServiceDrawer = props => {
   // Props
-  const { open, handleClose, currentBranch, onBranchAdded } = props
+  const { open, handleClose, currentService, onServiceAdded } = props
 
   // States
   const [loading, setLoading] = useState(false)
@@ -41,46 +38,28 @@ const AddServiceDrawer = props => {
   } = useForm({
     defaultValues: {
       name: '',
-      address: '',
-      city: '',
-      postalCode: '',
-      province: '',
-      phone: '',
-      email: '',
-      isActive: true
+      price: ''
     }
   })
 
-  // Effect to populate form fields when currentBranch changes (for edit mode)
+  // Effect to populate form fields when currentService changes (for edit mode)
   useEffect(() => {
-    if (currentBranch) {
+    if (currentService) {
       resetForm({
-        name: currentBranch.name || '',
-        address: currentBranch.address || '',
-        city: currentBranch.city || '',
-        postalCode: currentBranch.postalCode || '',
-        province: currentBranch.province || '',
-        phone: currentBranch.phone || '',
-        email: currentBranch.email || '',
-        isActive: currentBranch.isActive ?? true
+        name: currentService.name || '',
+        price: currentService.price?.toString() || ''
       })
     } else {
       // Reset form to default values when switching to add mode
       resetForm({
         name: '',
-        address: '',
-        city: '',
-        postalCode: '',
-        province: '',
-        phone: '',
-        email: '',
-        isActive: true
+        price: ''
       })
     }
     // Clear any previous API messages when drawer opens/mode changes
     setApiError(null)
     setApiSuccess(false)
-  }, [open, currentBranch, resetForm])
+  }, [open, currentService, resetForm])
 
   const onSubmit = async data => {
     setLoading(true)
@@ -93,22 +72,24 @@ const AddServiceDrawer = props => {
       return
     }
 
-    const payload = {
-      name: data.name,
-      address: data.address,
-      city: data.city,
-      postalCode: data.postalCode,
-      province: data.province,
-      phone: data.phone || null,
-      email: data.email || null,
-      isActive: data.isActive
+    // Convert price to float
+    const priceValue = parseFloat(data.price)
+    if (isNaN(priceValue) || priceValue < 0) {
+      setApiError('Please enter a valid positive price.')
+      setLoading(false)
+      return
     }
 
-    const isEditMode = !!currentBranch
+    const payload = {
+      name: data.name,
+      price: priceValue
+    }
+
+    const isEditMode = !!currentService
     const apiMethod = isEditMode ? 'PUT' : 'POST'
     const apiUrl = isEditMode
-      ? `${process.env.NEXT_PUBLIC_API_URL}/branches/${currentBranch.id}`
-      : `${process.env.NEXT_PUBLIC_API_URL}/branches`
+      ? `${process.env.NEXT_PUBLIC_API_URL}/services/${currentService.id}`
+      : `${process.env.NEXT_PUBLIC_API_URL}/services`
 
     try {
       console.log(`Making API call to: ${apiUrl} with method: ${apiMethod}`)
@@ -126,12 +107,12 @@ const AddServiceDrawer = props => {
 
       if (response.ok) {
         setApiSuccess(true)
-        console.log(`Branch ${isEditMode ? 'updated' : 'created'} successfully:`, responseData)
-        onBranchAdded()
+        console.log(`Service ${isEditMode ? 'updated' : 'created'} successfully:`, responseData)
+        onServiceAdded()
         handleReset()
       } else {
         const errorMessage =
-          responseData.message || `Failed to ${isEditMode ? 'update' : 'create'} branch: ${response.status}`
+          responseData.message || `Failed to ${isEditMode ? 'update' : 'create'} service: ${response.status}`
         setApiError(errorMessage)
         console.error('API Error:', responseData)
       }
@@ -147,13 +128,7 @@ const AddServiceDrawer = props => {
     handleClose()
     resetForm({
       name: '',
-      address: '',
-      city: '',
-      postalCode: '',
-      province: '',
-      phone: '',
-      email: '',
-      isActive: true
+      price: ''
     })
     setApiError(null)
     setApiSuccess(false)
@@ -169,7 +144,7 @@ const AddServiceDrawer = props => {
       sx={{ '& .MuiDrawer-paper': { width: { xs: 300, sm: 400 } } }}
     >
       <div className='flex items-center justify-between plb-5 pli-6'>
-        <Typography variant='h5'>{currentBranch ? 'Edit Branch' : 'Add New Branch'}</Typography>
+        <Typography variant='h5'>{currentService ? 'Edit Service' : 'Add New Service'}</Typography>
         <IconButton size='small' onClick={handleReset}>
           <i className='tabler-x text-2xl text-textPrimary' />
         </IconButton>
@@ -183,17 +158,17 @@ const AddServiceDrawer = props => {
         )}
         {apiSuccess && (
           <Alert severity='success' onClose={() => setApiSuccess(false)} sx={{ mb: 4, mx: 6, mt: 4 }}>
-            Branch {currentBranch ? 'updated' : 'added'} successfully!
+            Service {currentService ? 'updated' : 'added'} successfully!
           </Alert>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6 p-6'>
-          {/* Branch ID field, display only if editing, and make it disabled */}
-          {currentBranch && (
+          {/* Service ID field, display only if editing, and make it disabled */}
+          {currentService && (
             <CustomTextField
               fullWidth
-              label='Branch ID'
-              value={currentBranch.branchId || ''} // Display existing branchId
-              disabled={true} // <--- Made the field disabled
+              label='Service ID'
+              value={currentService.serviceId || ''}
+              disabled={true}
               sx={{ mb: 2 }}
             />
           )}
@@ -201,111 +176,73 @@ const AddServiceDrawer = props => {
           <Controller
             name='name'
             control={control}
-            rules={{ required: 'Branch Name is required.' }}
+            rules={{ required: 'Service Name is required.' }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label='Branch Name'
-                placeholder='Main Branch'
+                label='Service Name'
+                placeholder='Contract Review and Analysis'
                 {...(errors.name && { error: true, helperText: errors.name.message })}
               />
             )}
           />
+
           <Controller
-            name='address'
+            name='price'
             control={control}
-            rules={{ required: 'Address is required.' }}
+            rules={{
+              required: 'Price is required.',
+              pattern: {
+                value: /^\d+(\.\d{0,2})?$/,
+                message: 'Please enter a valid price (e.g., 150.00)'
+              },
+              validate: {
+                positive: value => {
+                  const numValue = parseFloat(value)
+                  return numValue > 0 || 'Price must be greater than 0'
+                }
+              }
+            }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label='Address'
-                placeholder='123 Main St'
-                {...(errors.address && { error: true, helperText: errors.address.message })}
+                type='text'
+                label='Price'
+                placeholder='150.00'
+                onKeyPress={e => {
+                  // Allow only numbers, decimal point, and backspace
+                  const char = String.fromCharCode(e.which)
+                  if (!/[0-9.]/.test(char)) {
+                    e.preventDefault()
+                  }
+                  // Prevent multiple decimal points
+                  if (char === '.' && field.value.includes('.')) {
+                    e.preventDefault()
+                  }
+                }}
+                sx={{
+                  '& input[type=number]': {
+                    MozAppearance: 'textfield'
+                  },
+                  '& input[type=number]::-webkit-outer-spin-button': {
+                    WebkitAppearance: 'none',
+                    margin: 0
+                  },
+                  '& input[type=number]::-webkit-inner-spin-button': {
+                    WebkitAppearance: 'none',
+                    margin: 0
+                  }
+                }}
+                {...(errors.price && { error: true, helperText: errors.price.message })}
               />
-            )}
-          />
-          <Controller
-            name='city'
-            control={control}
-            rules={{ required: 'City is required.' }}
-            render={({ field }) => (
-              <CustomTextField
-                {...field}
-                fullWidth
-                label='City'
-                placeholder='Rome'
-                {...(errors.city && { error: true, helperText: errors.city.message })}
-              />
-            )}
-          />
-          <Controller
-            name='postalCode'
-            control={control}
-            rules={{ required: 'Postal Code is required.' }}
-            render={({ field }) => (
-              <CustomTextField
-                {...field}
-                fullWidth
-                label='Postal Code'
-                placeholder='00100'
-                {...(errors.postalCode && { error: true, helperText: errors.postalCode.message })}
-              />
-            )}
-          />
-          <Controller
-            name='province'
-            control={control}
-            rules={{ required: 'Province is required.' }}
-            render={({ field }) => (
-              <CustomTextField
-                {...field}
-                fullWidth
-                label='Province (2-letter code)'
-                placeholder='RM'
-                {...(errors.province && { error: true, helperText: errors.province.message })}
-              />
-            )}
-          />
-          <Controller
-            name='phone'
-            control={control}
-            render={({ field }) => (
-              <CustomTextField
-                {...field}
-                fullWidth
-                type='tel'
-                label='Phone (Optional)'
-                placeholder='+39 123 456 7890'
-              />
-            )}
-          />
-          <Controller
-            name='email'
-            control={control}
-            rules={{ pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address.' } }}
-            render={({ field }) => (
-              <CustomTextField
-                {...field}
-                fullWidth
-                type='email'
-                label='Email (Optional)'
-                placeholder='branch@example.com'
-              />
-            )}
-          />
-          <Controller
-            name='isActive'
-            control={control}
-            render={({ field }) => (
-              <FormControlLabel control={<Checkbox {...field} checked={field.value} />} label='Is Active' />
             )}
           />
 
           <div className='flex items-center gap-4'>
             <Button variant='contained' type='submit' disabled={loading}>
-              {loading ? <CircularProgress size={24} /> : currentBranch ? 'Update' : 'Submit'}
+              {loading ? <CircularProgress size={24} /> : currentService ? 'Update' : 'Submit'}
             </Button>
             <Button variant='tonal' color='error' type='reset' onClick={handleReset} disabled={loading}>
               Cancel

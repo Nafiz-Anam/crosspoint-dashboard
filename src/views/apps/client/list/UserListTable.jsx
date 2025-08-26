@@ -1,75 +1,57 @@
 'use client'
 
-// React Imports
 import { useEffect, useState, useMemo } from 'react'
-
-// Next Imports
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-
-// MUI Imports
 import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
-import Chip from '@mui/material/Chip'
 import Checkbox from '@mui/material/Checkbox'
 import IconButton from '@mui/material/IconButton'
-import { styled } from '@mui/material/styles'
 import TablePagination from '@mui/material/TablePagination'
 import MenuItem from '@mui/material/MenuItem'
-
-// Third-party Imports
+import CircularProgress from '@mui/material/CircularProgress'
+import Alert from '@mui/material/Alert'
+import Chip from '@mui/material/Chip'
 import classnames from 'classnames'
-import { rankItem } from '@tanstack/match-sorter-utils'
+import { rankItem } from '@tanstack/match-sorter-utils' // Added missing import
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
   useReactTable,
   getFilteredRowModel,
+  getSortedRowModel,
+  getPaginationRowModel,
   getFacetedRowModel,
   getFacetedUniqueValues,
-  getFacetedMinMaxValues,
-  getPaginationRowModel,
-  getSortedRowModel
+  getFacetedMinMaxValues
 } from '@tanstack/react-table'
-
-// Component Imports
-import TableFilters from './TableFilters'
-import AddUserDrawer from './AddUserDrawer'
-import OptionMenu from '@core/components/option-menu'
-import TablePaginationComponent from '@components/TablePaginationComponent'
+import { useSession } from 'next-auth/react' // Added session import
 import CustomTextField from '@core/components/mui/TextField'
-import CustomAvatar from '@core/components/mui/Avatar'
-
-// Util Imports
-import { getInitials } from '@/utils/getInitials'
+import AddClientDrawer from './AddClientDrawer'
+import TablePaginationComponent from '@components/TablePaginationComponent'
 import { getLocalizedUrl } from '@/utils/i18n'
-
-// Style Imports
 import tableStyles from '@core/styles/table.module.css'
 
-// Styled Components
-const Icon = styled('i')({})
+const columnHelper = createColumnHelper()
+const clientStatusObj = {
+  PENDING: 'warning',
+  ACTIVE: 'success',
+  INACTIVE: 'secondary',
+  COMPLETED: 'info'
+}
 
+// Fuzzy filter for search
 const fuzzyFilter = (row, columnId, value, addMeta) => {
-  // Rank the item
   const itemRank = rankItem(row.getValue(columnId), value)
-
-  // Store the itemRank info
-  addMeta({
-    itemRank
-  })
-
-  // Return if the item should be filtered in/out
+  addMeta({ itemRank })
   return itemRank.passed
 }
 
 const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...props }) => {
-  // States
   const [value, setValue] = useState(initialValue)
-
   useEffect(() => {
     setValue(initialValue)
   }, [initialValue])
@@ -77,106 +59,236 @@ const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...prop
     const timeout = setTimeout(() => {
       onChange(value)
     }, debounce)
-
     return () => clearTimeout(timeout)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
-
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
 
-// Vars
-const userRoleObj = {
-  admin: { icon: 'tabler-crown', color: 'error' },
-  author: { icon: 'tabler-device-desktop', color: 'warning' },
-  editor: { icon: 'tabler-edit', color: 'info' },
-  maintainer: { icon: 'tabler-chart-pie', color: 'success' },
-  subscriber: { icon: 'tabler-user', color: 'primary' }
-}
+const ClientListTable = () => {
+  // States for Drawer
+  const [addClientOpen, setAddClientOpen] = useState(false)
+  const [editingClient, setEditingClient] = useState(null)
 
-const userStatusObj = {
-  active: 'success',
-  pending: 'warning',
-  inactive: 'secondary'
-}
+  // States for Table Data and API Operations
+  const [clients, setClients] = useState([])
+  const [fetchLoading, setFetchLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(null)
 
-// Column Definitions
-const columnHelper = createColumnHelper()
-
-const UserListTable = ({ tableData }) => {
-  // States
-  const [addUserOpen, setAddUserOpen] = useState(false)
-  const [rowSelection, setRowSelection] = useState({})
-  const [data, setData] = useState(...[tableData])
-  const [filteredData, setFilteredData] = useState(data)
+  // States for Filtering and Search
+  const [filteredData, setFilteredData] = useState([])
   const [globalFilter, setGlobalFilter] = useState('')
+  const [filters, setFilters] = useState({ status: '', service: '', branch: '' })
+
+  // States for row selection
+  const [rowSelection, setRowSelection] = useState({})
 
   // Hooks
   const { lang: locale } = useParams()
+  const { data: session, status: sessionStatus } = useSession()
 
+  // Function to fetch client data from API
+  const fetchClients = async () => {
+    setFetchLoading(true)
+    setFetchError(null)
+
+    if (sessionStatus === 'loading') return
+    if (sessionStatus === 'unauthenticated' || !session?.accessToken) {
+      setFetchError('Authentication required to fetch clients. Please log in.')
+      setFetchLoading(false)
+      return
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      const responseData = await response.json()
+
+      if (response.ok) {
+        setClients(responseData.data?.clients || responseData.data || [])
+      } else {
+        const errorMessage = responseData.message || `Failed to fetch clients: ${response.status}`
+        setFetchError(errorMessage)
+        console.error('API Error fetching clients:', responseData)
+      }
+    } catch (error) {
+      setFetchError('Network error or unexpected issue fetching clients. Please try again.')
+      console.error('Fetch error clients:', error)
+    } finally {
+      setFetchLoading(false)
+    }
+  }
+
+  // Effect to fetch data on component mount or when session/token changes
+  useEffect(() => {
+    if (sessionStatus === 'authenticated') {
+      fetchClients()
+    } else if (sessionStatus === 'unauthenticated') {
+      setFetchError('Not authenticated. Please log in to view clients.')
+      setFetchLoading(false)
+    }
+  }, [sessionStatus, session?.accessToken])
+
+  // Effect for client-side filtering
+  useEffect(() => {
+    let tempData = [...clients]
+
+    if (filters.status) {
+      tempData = tempData.filter(row => row.status === filters.status)
+    }
+
+    if (filters.service) {
+      tempData = tempData.filter(row => row.service?.name === filters.service)
+    }
+
+    if (filters.branch) {
+      tempData = tempData.filter(row => row.branch?.name === filters.branch)
+    }
+
+    setFilteredData(tempData)
+  }, [filters, clients])
+
+  // Function to handle client deletion
+  const handleDeleteClient = async clientId => {
+    if (!confirm('Are you sure you want to delete this client?')) {
+      return
+    }
+
+    if (!session?.accessToken) {
+      setFetchError('Authentication token not found. Cannot delete client.')
+      return
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/${clientId}`, {
+        method: 'DELETE',
+        headers: {
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        console.log(`Client ${clientId} deleted successfully.`)
+        fetchClients()
+      } else {
+        const errorData = await response.json()
+        const errorMessage = errorData.message || `Failed to delete client: ${response.status}`
+        setFetchError(errorMessage)
+        console.error('API Error deleting client:', errorData)
+      }
+    } catch (error) {
+      setFetchError('Network error or unexpected issue during deletion. Please try again.')
+      console.error('Fetch error deleting client:', error)
+    }
+  }
+
+  // Function to open drawer for editing
+  const handleEditClick = client => {
+    setEditingClient(client)
+    setAddClientOpen(true)
+  }
+
+  // Function to close drawer and clear editing state
+  const handleDrawerClose = () => {
+    setAddClientOpen(false)
+    setEditingClient(null)
+  }
+
+  // Derive unique values for filter dropdowns from the fetched data
+  const services = useMemo(
+    () => Array.from(new Set(clients.map(item => item.service?.name).filter(Boolean))),
+    [clients]
+  )
+  const branches = useMemo(() => Array.from(new Set(clients.map(item => item.branch?.name).filter(Boolean))), [clients])
+  const statuses = useMemo(() => Array.from(new Set(clients.map(item => item.status))), [clients])
+
+  // Column definitions
   const columns = useMemo(
     () => [
       {
         id: 'select',
         header: ({ table }) => (
           <Checkbox
-            {...{
-              checked: table.getIsAllRowsSelected(),
-              indeterminate: table.getIsSomeRowsSelected(),
-              onChange: table.getToggleAllRowsSelectedHandler()
-            }}
+            checked={table.getIsAllRowsSelected()}
+            indeterminate={table.getIsSomeRowsSelected()}
+            onChange={table.getToggleAllRowsSelectedHandler()}
           />
         ),
         cell: ({ row }) => (
           <Checkbox
-            {...{
-              checked: row.getIsSelected(),
-              disabled: !row.getCanSelect(),
-              indeterminate: row.getIsSomeSelected(),
-              onChange: row.getToggleSelectedHandler()
-            }}
+            checked={row.getIsSelected()}
+            disabled={!row.getCanSelect()}
+            indeterminate={row.getIsSomeSelected()}
+            onChange={row.getToggleSelectedHandler()}
           />
         )
       },
-      columnHelper.accessor('fullName', {
-        header: 'User',
+      columnHelper.accessor('clientId', {
+        header: 'Client ID',
         cell: ({ row }) => (
-          <div className='flex items-center gap-4'>
-            {getAvatar({ avatar: row.original.avatar, fullName: row.original.fullName })}
-            <div className='flex flex-col'>
-              <Typography color='text.primary' className='font-medium'>
-                {row.original.fullName}
-              </Typography>
-              <Typography variant='body2'>{row.original.username}</Typography>
-            </div>
-          </div>
-        )
-      }),
-      columnHelper.accessor('role', {
-        header: 'Role',
-        cell: ({ row }) => (
-          <div className='flex items-center gap-2'>
-            <Icon
-              className={userRoleObj[row.original.role].icon}
-              sx={{ color: `var(--mui-palette-${userRoleObj[row.original.role].color}-main)` }}
-            />
-            <Typography className='capitalize' color='text.primary'>
-              {row.original.role}
-            </Typography>
-          </div>
-        )
-      }),
-      columnHelper.accessor('currentPlan', {
-        header: 'Plan',
-        cell: ({ row }) => (
-          <Typography className='capitalize' color='text.primary'>
-            {row.original.currentPlan}
+          <Typography color='text.primary' className='font-medium'>
+            {row.original.clientId || '-'}
           </Typography>
         )
       }),
-      columnHelper.accessor('billing', {
-        header: 'Billing',
-        cell: ({ row }) => <Typography>{row.original.billing}</Typography>
+      columnHelper.accessor('name', {
+        header: 'Client',
+        cell: ({ row }) => (
+          <div className='flex flex-col'>
+            <Typography color='text.primary' className='font-medium'>
+              {row.original.name || row.original.email}
+            </Typography>
+            <Typography variant='body2'>{row.original.email}</Typography>
+          </div>
+        )
+      }),
+      columnHelper.accessor('phone', {
+        header: 'Phone',
+        cell: ({ row }) => <Typography color='text.primary'>{row.original.phone || '-'}</Typography>
+      }),
+      columnHelper.accessor('address', {
+        header: 'Address',
+        cell: ({ row }) => {
+          const address = row.original.address
+          const city = row.original.city
+          const postalCode = row.original.postalCode
+          if (!address && !city && !postalCode) return <Typography>-</Typography>
+          return (
+            <div className='flex flex-col'>
+              {address && (
+                <Typography variant='body2' color='text.primary'>
+                  {address}
+                </Typography>
+              )}
+              {(city || postalCode) && (
+                <Typography variant='caption' color='text.secondary'>
+                  {city}
+                  {city && postalCode ? ', ' : ''}
+                  {postalCode}
+                </Typography>
+              )}
+            </div>
+          )
+        }
+      }),
+      columnHelper.accessor('service', {
+        header: 'Service',
+        cell: ({ row }) => <Typography color='text.primary'>{row.original.service?.name || '-'}</Typography>
+      }),
+      columnHelper.accessor('branch', {
+        header: 'Branch',
+        cell: ({ row }) => <Typography color='text.primary'>{row.original.branch?.name || '-'}</Typography>
+      }),
+      columnHelper.accessor('assignedEmployee', {
+        header: 'Employee',
+        cell: ({ row }) => <Typography color='text.primary'>{row.original.assignedEmployee?.name || '-'}</Typography>
       }),
       columnHelper.accessor('status', {
         header: 'Status',
@@ -186,7 +298,7 @@ const UserListTable = ({ tableData }) => {
               variant='tonal'
               label={row.original.status}
               size='small'
-              color={userStatusObj[row.original.status]}
+              color={clientStatusObj[row.original.status]}
               className='capitalize'
             />
           </div>
@@ -196,56 +308,32 @@ const UserListTable = ({ tableData }) => {
         header: 'Action',
         cell: ({ row }) => (
           <div className='flex items-center'>
-            <IconButton onClick={() => setData(data?.filter(product => product.id !== row.original.id))}>
+            <IconButton onClick={() => handleDeleteClient(row.original.id)}>
               <i className='tabler-trash text-textSecondary' />
             </IconButton>
+            <IconButton onClick={() => handleEditClick(row.original)}>
+              <i className='tabler-edit text-textSecondary' />
+            </IconButton>
             <IconButton>
-              <Link href={getLocalizedUrl('/apps/user/view', locale)} className='flex'>
+              <Link href={getLocalizedUrl(`/apps/client/view/${row.original.id}`, locale)} className='flex'>
                 <i className='tabler-eye text-textSecondary' />
               </Link>
             </IconButton>
-            <OptionMenu
-              iconButtonProps={{ size: 'medium' }}
-              iconClassName='text-textSecondary'
-              options={[
-                {
-                  text: 'Download',
-                  icon: 'tabler-download',
-                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
-                },
-                {
-                  text: 'Edit',
-                  icon: 'tabler-edit',
-                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
-                }
-              ]}
-            />
           </div>
         ),
         enableSorting: false
       })
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, filteredData]
+    [handleDeleteClient, handleEditClick, locale]
   )
 
   const table = useReactTable({
     data: filteredData,
     columns,
-    filterFns: {
-      fuzzy: fuzzyFilter
-    },
-    state: {
-      rowSelection,
-      globalFilter
-    },
-    initialState: {
-      pagination: {
-        pageSize: 10
-      }
-    },
-    enableRowSelection: true, //enable row selection for all rows
-    // enableRowSelection: row => row.original.age > 18, // or enable row selection conditionally per row
+    filterFns: { fuzzy: fuzzyFilter },
+    state: { rowSelection, globalFilter },
+    initialState: { pagination: { pageSize: 10 } },
+    enableRowSelection: true,
     globalFilterFn: fuzzyFilter,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
@@ -258,66 +346,97 @@ const UserListTable = ({ tableData }) => {
     getFacetedMinMaxValues: getFacetedMinMaxValues()
   })
 
-  const getAvatar = params => {
-    const { avatar, fullName } = params
-
-    if (avatar) {
-      return <CustomAvatar src={avatar} size={34} />
-    } else {
-      return <CustomAvatar size={34}>{getInitials(fullName)}</CustomAvatar>
-    }
-  }
-
   return (
     <>
       <Card>
-        <CardHeader title='Filters' className='pbe-4' />
-        <TableFilters setData={setFilteredData} tableData={data} />
-        <div className='flex justify-between flex-col items-start md:flex-row md:items-center p-6 border-bs gap-4'>
+        <CardHeader title='Client Filters' className='pbe-4' />
+        <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
+          {/* Status Filter */}
           <CustomTextField
             select
-            value={table.getState().pagination.pageSize}
-            onChange={e => table.setPageSize(Number(e.target.value))}
-            className='max-sm:is-full sm:is-[70px]'
+            label='Status'
+            value={filters.status}
+            onChange={e => setFilters({ ...filters, status: e.target.value })}
+            className='min-w-[180px]'
           >
-            <MenuItem value='10'>10</MenuItem>
-            <MenuItem value='25'>25</MenuItem>
-            <MenuItem value='50'>50</MenuItem>
+            <MenuItem value=''>All</MenuItem>
+            {statuses.map(status => (
+              <MenuItem key={status} value={status}>
+                {status}
+              </MenuItem>
+            ))}
           </CustomTextField>
-          <div className='flex flex-col sm:flex-row max-sm:is-full items-start sm:items-center gap-4'>
-            <DebouncedInput
-              value={globalFilter ?? ''}
-              onChange={value => setGlobalFilter(String(value))}
-              placeholder='Search User'
-              className='max-sm:is-full'
-            />
-            <Button
-              color='secondary'
-              variant='tonal'
-              startIcon={<i className='tabler-upload' />}
-              className='max-sm:is-full'
-            >
-              Export
-            </Button>
-            <Button
-              variant='contained'
-              startIcon={<i className='tabler-plus' />}
-              onClick={() => setAddUserOpen(!addUserOpen)}
-              className='max-sm:is-full'
-            >
-              Add New User
-            </Button>
-          </div>
+
+          {/* Service Filter */}
+          <CustomTextField
+            select
+            label='Service'
+            value={filters.service}
+            onChange={e => setFilters({ ...filters, service: e.target.value })}
+            className='min-w-[180px]'
+          >
+            <MenuItem value=''>All</MenuItem>
+            {services.map(service => (
+              <MenuItem key={service} value={service}>
+                {service}
+              </MenuItem>
+            ))}
+          </CustomTextField>
+
+          {/* Branch Filter */}
+          <CustomTextField
+            select
+            label='Branch'
+            value={filters.branch}
+            onChange={e => setFilters({ ...filters, branch: e.target.value })}
+            className='min-w-[180px]'
+          >
+            <MenuItem value=''>All</MenuItem>
+            {branches.map(branch => (
+              <MenuItem key={branch} value={branch}>
+                {branch}
+              </MenuItem>
+            ))}
+          </CustomTextField>
+
+          <DebouncedInput
+            value={globalFilter ?? ''}
+            onChange={value => setGlobalFilter(String(value))}
+            placeholder='Search Client...'
+            className='min-w-[200px]'
+          />
+
+          <Button
+            variant='contained'
+            startIcon={<i className='tabler-plus' />}
+            onClick={() => {
+              setEditingClient(null)
+              setAddClientOpen(true)
+            }}
+            className='ml-auto h-[40px]'
+          >
+            Add New Client
+          </Button>
         </div>
-        <div className='overflow-x-auto'>
-          <table className={tableStyles.table}>
-            <thead>
-              {table.getHeaderGroups().map(headerGroup => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map(header => (
-                    <th key={header.id}>
-                      {header.isPlaceholder ? null : (
-                        <>
+
+        {fetchLoading ? (
+          <div className='flex justify-center items-center p-6'>
+            <CircularProgress />
+            <Typography className='ml-4'>Loading Clients...</Typography>
+          </div>
+        ) : fetchError ? (
+          <Alert severity='error' sx={{ m: 6 }}>
+            {fetchError}
+          </Alert>
+        ) : (
+          <div className='overflow-x-auto'>
+            <table className={tableStyles.table}>
+              <thead>
+                {table.getHeaderGroups().map(headerGroup => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map(header => (
+                      <th key={header.id}>
+                        {header.isPlaceholder ? null : (
                           <div
                             className={classnames({
                               'flex items-center': header.column.getIsSorted(),
@@ -331,39 +450,35 @@ const UserListTable = ({ tableData }) => {
                               desc: <i className='tabler-chevron-down text-xl' />
                             }[header.column.getIsSorted()] ?? null}
                           </div>
-                        </>
-                      )}
-                    </th>
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+              {table.getFilteredRowModel().rows.length === 0 ? (
+                <tbody>
+                  <tr>
+                    <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
+                      No clients available
+                    </td>
+                  </tr>
+                </tbody>
+              ) : (
+                <tbody>
+                  {table.getRowModel().rows.map(row => (
+                    <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
+                      {row.getVisibleCells().map(cell => (
+                        <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              ))}
-            </thead>
-            {table.getFilteredRowModel().rows.length === 0 ? (
-              <tbody>
-                <tr>
-                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
-                    No data available
-                  </td>
-                </tr>
-              </tbody>
-            ) : (
-              <tbody>
-                {table
-                  .getRowModel()
-                  .rows.slice(0, table.getState().pagination.pageSize)
-                  .map(row => {
-                    return (
-                      <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
-                        {row.getVisibleCells().map(cell => (
-                          <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
-                        ))}
-                      </tr>
-                    )
-                  })}
-              </tbody>
-            )}
-          </table>
-        </div>
+                </tbody>
+              )}
+            </table>
+          </div>
+        )}
+
         <TablePagination
           component={() => <TablePaginationComponent table={table} />}
           count={table.getFilteredRowModel().rows.length}
@@ -374,14 +489,14 @@ const UserListTable = ({ tableData }) => {
           }}
         />
       </Card>
-      <AddUserDrawer
-        open={addUserOpen}
-        handleClose={() => setAddUserOpen(!addUserOpen)}
-        userData={data}
-        setData={setData}
+      <AddClientDrawer
+        open={addClientOpen}
+        handleClose={handleDrawerClose}
+        currentClient={editingClient}
+        onClientAdded={fetchClients}
       />
     </>
   )
 }
 
-export default UserListTable
+export default ClientListTable

@@ -16,8 +16,8 @@ import IconButton from '@mui/material/IconButton'
 import { styled } from '@mui/material/styles'
 import TablePagination from '@mui/material/TablePagination'
 import MenuItem from '@mui/material/MenuItem'
-import CircularProgress from '@mui/material/CircularProgress' // For loading indicator
-import Alert from '@mui/material/Alert' // For error messages
+import CircularProgress from '@mui/material/CircularProgress'
+import Alert from '@mui/material/Alert'
 
 // Third-party Imports
 import classnames from 'classnames'
@@ -31,11 +31,11 @@ import {
   getPaginationRowModel,
   getSortedRowModel
 } from '@tanstack/react-table'
-import { useSession } from 'next-auth/react' // Import useSession to get token
+import { useSession } from 'next-auth/react'
 
 // Component Imports
 import TablePaginationComponent from '@components/TablePaginationComponent'
-import AddServiceDrawer from './AddServiceDrawer' // Ensure this is the updated drawer
+import AddServiceDrawer from './AddServiceDrawer'
 import CustomTextField from '@core/components/mui/TextField'
 
 // Util Imports
@@ -76,20 +76,20 @@ const columnHelper = createColumnHelper()
 const ServiceListTable = () => {
   // States for Drawer
   const [addServiceOpen, setAddServiceOpen] = useState(false)
-  const [editingService, setEditingService] = useState(null) // New state to hold service data for editing
+  const [editingService, setEditingService] = useState(null)
 
   // States for Table Data and API Operations
-  const [services, setServices] = useState([]) // Stores fetched service data
-  const [fetchLoading, setFetchLoading] = useState(true) // Loading state for data fetch
-  const [fetchError, setFetchError] = useState(null) // Error state for data fetch
+  const [services, setServices] = useState([])
+  const [fetchLoading, setFetchLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(null)
 
   // States for Filtering and Search
-  const [filteredData, setFilteredData] = useState([]) // Data after client-side filters
+  const [filteredData, setFilteredData] = useState([])
   const [globalFilter, setGlobalFilter] = useState('')
   const [filters, setFilters] = useState({ name: '', priceRange: '' })
 
   const { lang: locale } = useParams()
-  const { data: session, status } = useSession() // Get session and status
+  const { data: session, status } = useSession()
 
   // Handle deleting a service
   const handleDeleteService = async serviceId => {
@@ -121,13 +121,13 @@ const ServiceListTable = () => {
   }
 
   const handleEditClick = service => {
-    setEditingService(service) // Set the service data to be edited
-    setAddServiceOpen(true) // Open the drawer
+    setEditingService(service)
+    setAddServiceOpen(true)
   }
 
   const handleDrawerClose = () => {
-    setAddServiceOpen(false) // Close the drawer
-    setEditingService(null) // Clear editing service data, important for "Add New"
+    setAddServiceOpen(false)
+    setEditingService(null)
   }
 
   // Function to fetch service data from API
@@ -135,7 +135,7 @@ const ServiceListTable = () => {
     setFetchLoading(true)
     setFetchError(null)
 
-    if (status === 'loading') return // Wait for session to load
+    if (status === 'loading') return
     if (status === 'unauthenticated' || !session?.accessToken) {
       setFetchError('Authentication required to fetch services. Please log in.')
       setFetchLoading(false)
@@ -155,7 +155,8 @@ const ServiceListTable = () => {
       const responseData = await response.json()
 
       if (response.ok) {
-        setServices(responseData.data.services || responseData) // Adjust based on your API's GET response structure
+        // Extract services from the nested response structure
+        setServices(responseData.data || [])
       } else {
         const errorMessage = responseData.message || `Failed to fetch services: ${response.status}`
         setFetchError(errorMessage)
@@ -177,11 +178,11 @@ const ServiceListTable = () => {
       setFetchError('Not authenticated. Please log in to view services.')
       setFetchLoading(false)
     }
-  }, [status, session?.accessToken]) // Re-fetch if session status or token changes
+  }, [status, session?.accessToken])
 
   // Effect for client-side filtering
   useEffect(() => {
-    let tempData = [...services] // Start with the full fetched data
+    let tempData = [...services]
 
     // Apply additional filters if needed
     if (filters.name) {
@@ -194,42 +195,112 @@ const ServiceListTable = () => {
     }
 
     setFilteredData(tempData)
-  }, [filters, services]) // Re-filter when filters or raw service data changes
+  }, [filters, services])
 
   const columns = useMemo(
     () => [
+      columnHelper.accessor('serviceId', {
+        header: 'Service ID',
+        cell: info => (
+          <Typography color='text.primary' className='font-medium'>
+            {info.getValue()}
+          </Typography>
+        )
+      }),
       columnHelper.accessor('name', {
         header: 'Service Name',
         cell: info => <Typography color='text.primary'>{info.getValue()}</Typography>
       }),
       columnHelper.accessor('price', {
-        header: 'Price',
-        cell: info => <Typography color='text.primary'>${info.getValue()}</Typography>
+        header: 'Price (€)',
+        cell: info => (
+          <Typography color='text.primary' className='font-medium'>
+            €{parseFloat(info.getValue()).toFixed(2)}
+          </Typography>
+        )
+      }),
+      columnHelper.accessor('_count', {
+        header: 'Usage',
+        cell: info => {
+          const count = info.getValue()
+          const totalUsage = (count?.clients || 0) + (count?.invoiceItems || 0)
+          return (
+            <div className='flex flex-col gap-1'>
+              <Typography color='text.primary' variant='body2'>
+                Clients: {count?.clients || 0}
+              </Typography>
+              <Typography color='text.primary' variant='body2'>
+                Invoices: {count?.invoiceItems || 0}
+              </Typography>
+            </div>
+          )
+        },
+        enableSorting: false
       }),
       columnHelper.accessor('createdAt', {
         header: 'Created At',
-        cell: info => <Typography color='text.primary'>{new Date(info.getValue()).toLocaleDateString()}</Typography>
+        cell: info => {
+          const date = new Date(info.getValue())
+          return (
+            <div className='flex flex-col'>
+              <Typography color='text.primary' variant='body2'>
+                {date.toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </Typography>
+              <Typography color='text.secondary' variant='caption'>
+                {date.toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                })}
+              </Typography>
+            </div>
+          )
+        }
       }),
       columnHelper.accessor('updatedAt', {
         header: 'Updated At',
-        cell: info => <Typography color='text.primary'>{new Date(info.getValue()).toLocaleDateString()}</Typography>
+        cell: info => {
+          const date = new Date(info.getValue())
+          return (
+            <div className='flex flex-col'>
+              <Typography color='text.primary' variant='body2'>
+                {date.toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </Typography>
+              <Typography color='text.secondary' variant='caption'>
+                {date.toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                })}
+              </Typography>
+            </div>
+          )
+        }
       }),
       columnHelper.accessor('action', {
         header: 'Action',
         cell: ({ row }) => (
           <div className='flex items-center gap-2'>
-            <IconButton onClick={() => handleDeleteService(row.original.id)}>
-              <i className='tabler-trash text-textSecondary' />
-            </IconButton>
-            <IconButton onClick={() => handleEditClick(row.original)}>
+            <IconButton onClick={() => handleEditClick(row.original)} size='small'>
               <i className='tabler-edit text-textSecondary' />
+            </IconButton>
+            <IconButton onClick={() => handleDeleteService(row.original.id)} size='small'>
+              <i className='tabler-trash text-textSecondary' />
             </IconButton>
           </div>
         ),
         enableSorting: false
       })
     ],
-    [handleDeleteService, handleEditClick] // Depend on handleDeleteService and handleEditClick
+    []
   )
 
   const table = useReactTable({
@@ -249,13 +320,13 @@ const ServiceListTable = () => {
   return (
     <>
       <Card>
-        <CardHeader title='Service Filters' className='pbe-4' />
+        <CardHeader title='Service Management' className='pbe-4' />
 
         <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
           <DebouncedInput
             value={globalFilter ?? ''}
             onChange={value => setGlobalFilter(String(value))}
-            placeholder='Search service...'
+            placeholder='Search services...'
             className='min-w-[200px]'
           />
 
@@ -263,7 +334,7 @@ const ServiceListTable = () => {
             variant='contained'
             startIcon={<i className='tabler-plus' />}
             onClick={() => {
-              setEditingService(null) // Ensure no service is being edited when adding new
+              setEditingService(null)
               setAddServiceOpen(true)
             }}
             className='ml-auto h-[40px]'
@@ -313,7 +384,7 @@ const ServiceListTable = () => {
                 {table.getFilteredRowModel().rows.length === 0 ? (
                   <tr>
                     <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
-                      No data available
+                      No services available
                     </td>
                   </tr>
                 ) : (
@@ -343,9 +414,9 @@ const ServiceListTable = () => {
 
       <AddServiceDrawer
         open={addServiceOpen}
-        handleClose={handleDrawerClose} // Use the new handler
-        currentService={editingService} // Pass the service data for editing
-        onServiceAdded={fetchServices} // Callback to re-fetch data after adding/editing a service
+        handleClose={handleDrawerClose}
+        currentService={editingService}
+        onServiceAdded={fetchServices}
       />
     </>
   )

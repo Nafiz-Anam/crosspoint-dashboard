@@ -2,17 +2,17 @@
 import Grid from '@mui/material/Grid2'
 
 // Component Imports
-import UserListTable from './UserListTable'
-import UserListCards from './UserListCards'
+import ClientListTable from './UserListTable'
+import ClientListCards from './UserListCards'
 
 const ClientList = ({ userData }) => {
   return (
     <Grid container spacing={6}>
       <Grid size={{ xs: 12 }}>
-        <UserListCards />
+        <ClientListCards />
       </Grid>
       <Grid size={{ xs: 12 }}>
-        <UserListTable tableData={userData} />
+        <ClientListTable tableData={userData} />
       </Grid>
     </Grid>
   )
