@@ -1,3 +1,8 @@
+'use client'
+
+// React Imports
+import { useState } from 'react'
+
 // MUI Imports
 import Grid from '@mui/material/Grid2'
 
@@ -5,40 +10,89 @@ import Grid from '@mui/material/Grid2'
 import AddCard from '@views/apps/invoice/add/AddCard'
 import AddActions from '@views/apps/invoice/add/AddActions'
 
-// Data Imports
-import { getInvoiceData } from '@/app/server/actions'
+const InvoiceContainer = ({ initialData }) => {
+  // SHARED STATE - This connects AddCard and AddActions
+  const [invoiceState, setInvoiceState] = useState({
+    // Invoice form data
+    selectedClient: null,
+    selectedSalesperson: null,
+    issuedDate: null,
+    dueDate: null,
+    invoiceItems: [
+      {
+        serviceId: '',
+        description: '',
+        rate: 0,
+        discount: 0
+      }
+    ],
 
-/**
- * ! If you need data using an API call, uncomment the below API code, update the `process.env.API_URL` variable in the
- * ! `.env` file found at root of your project and also update the API endpoints like `/apps/invoice` in below example.
- * ! Also, remove the above server action import and the action itself from the `src/app/server/actions.ts` file to clean up unused code
- * ! because we've used the server action for getting our static data.
- */
-/* const getInvoiceData = async () => {
-  // Vars
-  const res = await fetch(`${process.env.API_URL}/apps/invoice`)
+    // Settings from AddActions
+    paymentMethod: 'Internet Banking',
+    paymentTerms: true,
+    clientNotes: false,
+    paymentStub: false,
 
-  if (!res.ok) {
-    throw new Error('Failed to fetch invoice data')
+    // Bank details that change based on payment method
+    bankDetails: {
+      bankName: 'American Bank',
+      country: 'United States',
+      iban: 'ETD95476213874685',
+      swiftCode: 'BR91905'
+    }
+  })
+
+  // Update function passed to both components
+  const updateInvoiceState = updates => {
+    setInvoiceState(prev => {
+      const newState = { ...prev, ...updates }
+
+      // When payment method changes, update bank details
+      if (updates.paymentMethod) {
+        switch (updates.paymentMethod) {
+          case 'Internet Banking':
+            newState.bankDetails = {
+              bankName: 'American Bank',
+              country: 'United States',
+              iban: 'ETD95476213874685',
+              swiftCode: 'BR91905'
+            }
+            break
+          case 'Credit Card':
+            newState.bankDetails = {
+              bankName: 'Chase Bank',
+              country: 'United States',
+              iban: 'CH894321098765432',
+              swiftCode: 'CHASUS33'
+            }
+            break
+          case 'Paypal':
+            newState.bankDetails = {
+              bankName: 'PayPal Holdings',
+              country: 'United States',
+              iban: 'PP123456789012345',
+              swiftCode: 'PYPLUS33'
+            }
+            break
+          default:
+            break
+        }
+      }
+
+      return newState
+    })
   }
-
-  return res.json()
-}
- */
-const InvoiceAdd = async () => {
-  // Vars
-  const data = await getInvoiceData()
 
   return (
     <Grid container spacing={6}>
       <Grid size={{ xs: 12, md: 9 }}>
-        <AddCard invoiceData={data} />
+        <AddCard invoiceData={initialData} invoiceState={invoiceState} updateInvoiceState={updateInvoiceState} />
       </Grid>
       <Grid size={{ xs: 12, md: 3 }}>
-        <AddActions />
+        <AddActions invoiceState={invoiceState} updateInvoiceState={updateInvoiceState} />
       </Grid>
     </Grid>
   )
 }
 
-export default InvoiceAdd
+export default InvoiceContainer
