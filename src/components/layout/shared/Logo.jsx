@@ -6,9 +6,6 @@ import { useEffect, useRef } from 'react'
 // Third-party Imports
 import styled from '@emotion/styled'
 
-// Component Imports
-import VuexyLogo from '@core/svg/Logo'
-
 // Config Imports
 import themeConfig from '@configs/themeConfig'
 
@@ -59,17 +56,17 @@ const Logo = ({ color }) => {
 
   return (
     <div className='flex items-center'>
-      <VuexyLogo className='text-2xl text-primary' />
-      <LogoText
-        color={color}
-        ref={logoTextRef}
-        isHovered={isHovered}
-        isCollapsed={layout === 'collapsed'}
-        transitionDuration={transitionDuration}
-        isBreakpointReached={isBreakpointReached}
-      >
-        {themeConfig.templateName}
-      </LogoText>
+      <img
+        src='/images/logos/main_logo.png'
+        alt='Crosspoint logo'
+        style={{
+          width: 'auto',
+          height: 'auto',
+          maxHeight: !isBreakpointReached && layout === 'collapsed' && !isHovered ? '32px' : '150px',
+          maxWidth: !isBreakpointReached && layout === 'collapsed' && !isHovered ? '32px' : '150px',
+          transition: `max-height ${transitionDuration}ms ease-in-out, max-width ${transitionDuration}ms ease-in-out`
+        }}
+      />
     </div>
   )
 }

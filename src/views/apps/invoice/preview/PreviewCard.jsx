@@ -6,7 +6,7 @@ import Grid from '@mui/material/Grid2'
 import Divider from '@mui/material/Divider'
 
 // Component Imports
-import Logo from '@components/layout/shared/Logo'
+// import Logo from '@components/layout/shared/Logo'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
@@ -70,7 +70,15 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
               <div className='flex justify-between gap-y-4 flex-col sm:flex-row'>
                 <div className='flex flex-col gap-6'>
                   <div className='flex items-center gap-2.5'>
-                    <Logo />
+                    <img
+                      src='/images/logos/main_logo.png'
+                      alt='Crosspoint logo'
+                      style={{
+                        width: 'auto',
+                        height: 'auto',
+                        maxHeight: '140px'
+                      }}
+                    />
                   </div>
                   <div>
                     <Typography color='text.primary'>Office 149, 450 South Brand Brooklyn</Typography>
