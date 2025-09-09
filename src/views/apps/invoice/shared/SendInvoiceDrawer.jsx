@@ -26,14 +26,38 @@ We have generated a new invoice in the amount of $95.59
 We would appreciate payment of this invoice by 05/11/2019`
 }
 
-const SendInvoiceDrawer = ({ open, handleClose }) => {
+const SendInvoiceDrawer = ({ open, handleClose, invoiceId, invoiceNumber }) => {
   // States
   const [formData, setFormData] = useState(initialData)
+  const [isSending, setIsSending] = useState(false)
 
-  const handleSubmit = e => {
+  const handleSubmit = async e => {
     e.preventDefault()
-    handleClose()
-    setFormData(initialData)
+    setIsSending(true)
+
+    try {
+      // Here you would integrate with your email service
+      // For now, we'll just simulate sending
+      console.log('Sending invoice email:', {
+        invoiceId,
+        invoiceNumber,
+        ...formData
+      })
+
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Show success message (you can add a toast notification here)
+      alert('Invoice sent successfully!')
+
+      handleClose()
+      setFormData(initialData)
+    } catch (error) {
+      console.error('Error sending invoice:', error)
+      alert('Failed to send invoice. Please try again.')
+    } finally {
+      setIsSending(false)
+    }
   }
 
   const handleReset = () => {
@@ -98,10 +122,10 @@ const SendInvoiceDrawer = ({ open, handleClose }) => {
             icon={<i className='tabler-link' />}
           />
           <div className='flex items-center gap-4'>
-            <Button variant='contained' color='primary' type='submit'>
-              Send
+            <Button variant='contained' color='primary' type='submit' disabled={isSending}>
+              {isSending ? 'Sending...' : 'Send'}
             </Button>
-            <Button variant='tonal' color='error' type='reset' onClick={handleReset}>
+            <Button variant='tonal' color='error' type='reset' onClick={handleReset} disabled={isSending}>
               Cancel
             </Button>
           </div>

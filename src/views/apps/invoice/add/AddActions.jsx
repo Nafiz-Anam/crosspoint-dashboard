@@ -27,7 +27,7 @@ import CustomTextField from '@core/components/mui/TextField'
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
 
-const AddActions = ({ invoiceState, updateInvoiceState }) => {
+const AddActions = ({ invoiceState, updateInvoiceState, bankAccounts = [], isEdit = false, invoiceId = null }) => {
   // Local states
   const [sendDrawerOpen, setSendDrawerOpen] = useState(false)
   const [saveStatus, setSaveStatus] = useState('')
@@ -43,9 +43,10 @@ const AddActions = ({ invoiceState, updateInvoiceState }) => {
 
   // Destructure from shared state
   const {
-    paymentMethod,
     paymentTerms,
+    paymentTermsText,
     clientNotes,
+    clientNotesText,
     selectedClient,
     invoiceItems,
     bankDetails,
@@ -56,7 +57,9 @@ const AddActions = ({ invoiceState, updateInvoiceState }) => {
     thanksMessage,
     taxRate,
     discountAmount,
-    selectedSalesperson
+    selectedSalesperson,
+    selectedBankAccount,
+    invoiceNumber
   } = invoiceState
 
   // Debug log to check state
@@ -69,62 +72,11 @@ const AddActions = ({ invoiceState, updateInvoiceState }) => {
     dueDate: dueDate
   })
 
-  // Payment method options with different bank details
-  const paymentMethods = [
-    {
-      value: 'Internet Banking',
-      label: 'Internet Banking',
-      bankName: 'American Bank',
-      country: 'United States',
-      iban: 'ETD95476213874685',
-      swiftCode: 'BR91905'
-    },
-    {
-      value: 'Credit Card',
-      label: 'Credit Card',
-      bankName: 'Chase Bank',
-      country: 'United States',
-      iban: 'CH894321098765432',
-      swiftCode: 'CHASUS33'
-    },
-    {
-      value: 'Paypal',
-      label: 'PayPal',
-      bankName: 'PayPal Holdings',
-      country: 'United States',
-      iban: 'PP123456789012345',
-      swiftCode: 'PYPLUS33'
-    },
-    {
-      value: 'Debit Card',
-      label: 'Debit Card',
-      bankName: 'Wells Fargo',
-      country: 'United States',
-      iban: 'WF567890123456789',
-      swiftCode: 'WFBIUS6S'
-    },
-    {
-      value: 'UPI Transfer',
-      label: 'UPI Transfer',
-      bankName: 'State Bank of India',
-      country: 'India',
-      iban: 'IN987654321098765',
-      swiftCode: 'SBININBB'
-    }
-  ]
-
   // Handlers that update shared state
-  const handlePaymentMethodChange = method => {
-    const selectedPaymentMethod = paymentMethods.find(pm => pm.value === method)
 
+  const handleBankAccountChange = bankAccountId => {
     updateInvoiceState({
-      paymentMethod: method,
-      bankDetails: {
-        bankName: selectedPaymentMethod.bankName,
-        country: selectedPaymentMethod.country,
-        iban: selectedPaymentMethod.iban,
-        swiftCode: selectedPaymentMethod.swiftCode
-      }
+      selectedBankAccount: bankAccountId
     })
   }
 
@@ -239,9 +191,11 @@ const AddActions = ({ invoiceState, updateInvoiceState }) => {
       }
 
       // Generate invoice number if not provided
-      let invoiceNumber = invoiceState.invoiceNumber
-      if (!invoiceNumber) {
-        invoiceNumber = await generateInvoiceNumber()
+      let currentInvoiceNumber = invoiceNumber
+      if (!currentInvoiceNumber) {
+        currentInvoiceNumber = await generateInvoiceNumber()
+        // Update the state with the generated invoice number
+        updateInvoiceState({ invoiceNumber: currentInvoiceNumber })
       }
 
       // Use fallbacks for required fields
@@ -253,34 +207,33 @@ const AddActions = ({ invoiceState, updateInvoiceState }) => {
         clientId: selectedClient.id,
         branchId: finalBranchId,
         employeeId: finalEmployeeId,
-        invoiceNumber: invoiceNumber,
+        invoiceNumber: currentInvoiceNumber,
         dueDate: new Date(dueDate).toISOString(),
         thanksMessage: thanksMessage || 'Thank you for your business!',
         notes: notes || null,
-        paymentTerms: paymentTerms ? invoiceState.paymentTermsText || 'Net 30 days' : null,
+        paymentTerms: paymentTerms ? paymentTermsText : null,
         taxRate: taxRate || 0,
         discountAmount: discountAmount || 0,
-        paymentMethod: paymentMethod || 'Internet Banking',
-        bankName: bankDetails?.bankName || null,
-        bankCountry: bankDetails?.country || null,
-        bankIban: bankDetails?.iban || null,
-        bankSwiftCode: bankDetails?.swiftCode || null,
+        paymentMethod: selectedBankAccount ? 'Bank Transfer' : 'Internet Banking',
+        bankAccountId: selectedBankAccount || null,
         items: invoiceItems.map(item => ({
           serviceId: item.serviceId,
           description: item.description,
-          quantity: 1, // Default quantity since removed from UI
           rate: parseFloat(item.rate),
           discount: parseFloat(item.discount || 0)
         }))
       }
 
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/invoices`
+      const apiUrl = isEdit
+        ? `${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoiceId}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/invoices`
+      const method = isEdit ? 'PATCH' : 'POST'
 
-      console.log(`Making API call to: ${apiUrl} with method: POST`)
+      console.log(`Making API call to: ${apiUrl} with method: ${method}`)
       console.log('Payload:', payload)
 
       const response = await fetch(apiUrl, {
-        method: 'POST',
+        method: method,
         headers: {
           'Content-Type': 'application/json',
           'x-client-type': 'web',
@@ -293,13 +246,14 @@ const AddActions = ({ invoiceState, updateInvoiceState }) => {
 
       if (response.ok) {
         setApiSuccess(true)
-        setSaveStatus('success')
-        setCreatedInvoiceId(responseData.data.invoice.id)
-        console.log('Invoice created successfully:', responseData)
+        setSaveStatus(isEdit ? 'updated' : 'success')
+        const invoiceId = responseData.data.invoice.id
+        setCreatedInvoiceId(invoiceId)
+        console.log(`Invoice ${isEdit ? 'updated' : 'created'} successfully:`, responseData)
 
-        // Update invoice state with created invoice data
+        // Update invoice state with created/updated invoice data
         updateInvoiceState({
-          invoiceId: responseData.data.invoice.id,
+          invoiceId: invoiceId,
           invoiceNumber: responseData.data.invoice.invoiceNumber
         })
 
@@ -309,7 +263,8 @@ const AddActions = ({ invoiceState, updateInvoiceState }) => {
           setApiSuccess(false)
         }, 3000)
       } else {
-        const errorMessage = responseData.message || `Failed to create invoice: ${response.status}`
+        const errorMessage =
+          responseData.message || `Failed to ${isEdit ? 'update' : 'create'} invoice: ${response.status}`
         setApiError(errorMessage)
         setSaveStatus('error')
         console.error('API Error:', responseData)
@@ -318,7 +273,7 @@ const AddActions = ({ invoiceState, updateInvoiceState }) => {
       const errorMessage = error.message || 'Network error or unexpected issue. Please try again.'
       setApiError(errorMessage)
       setSaveStatus('error')
-      console.error('Invoice creation error:', error)
+      console.error(`Invoice ${isEdit ? 'update' : 'creation'} error:`, error)
     } finally {
       setIsLoading(false)
 
@@ -500,13 +455,19 @@ const AddActions = ({ invoiceState, updateInvoiceState }) => {
 
             {/* Save Button */}
             <Button fullWidth {...getButtonProps('save')} className='capitalize' onClick={handleSaveInvoice}>
-              {saveStatus === 'saving' ? 'Saving...' : isSaved ? 'Saved' : 'Save'}
+              {saveStatus === 'saving' ? 'Saving...' : isSaved ? 'Saved' : isEdit ? 'Update Invoice' : 'Save'}
             </Button>
 
             {/* Status Messages */}
             {apiSuccess && saveStatus === 'success' && (
               <Alert severity='success' size='small'>
-                Invoice created successfully! Invoice #{invoiceState.invoiceNumber}
+                Invoice created successfully! Invoice #{invoiceNumber}
+              </Alert>
+            )}
+
+            {apiSuccess && saveStatus === 'updated' && (
+              <Alert severity='success' size='small'>
+                Invoice updated successfully! Invoice #{invoiceNumber}
               </Alert>
             )}
 
@@ -585,7 +546,7 @@ const AddActions = ({ invoiceState, updateInvoiceState }) => {
           open={sendDrawerOpen}
           handleClose={() => setSendDrawerOpen(false)}
           invoiceId={createdInvoiceId}
-          invoiceNumber={invoiceState.invoiceNumber}
+          invoiceNumber={invoiceNumber}
         />
       </Grid>
 
@@ -600,17 +561,17 @@ const AddActions = ({ invoiceState, updateInvoiceState }) => {
             <CustomTextField
               select
               fullWidth
-              value={paymentMethod || 'Internet Banking'}
-              onChange={e => handlePaymentMethodChange(e.target.value)}
-              label='Accept payments via'
-              helperText='Changing this will update bank details in invoice'
+              value={selectedBankAccount || ''}
+              onChange={e => handleBankAccountChange(e.target.value)}
+              label='Payment Method'
+              helperText='Select bank account for payment details'
               disabled={isSaved}
             >
-              {paymentMethods.map(method => (
-                <MenuItem key={method.value} value={method.value}>
-                  <div className='flex items-center gap-2'>
-                    <i className={`tabler-${method.value === 'Paypal' ? 'brand-paypal' : 'credit-card'} text-lg`} />
-                    {method.label}
+              {bankAccounts.map(account => (
+                <MenuItem key={account.id} value={account.id}>
+                  <div className='flex flex-col'>
+                    <span className='font-medium'>{account.bankName}</span>
+                    <span className='text-sm text-gray-500'>{account.bankIban}</span>
                   </div>
                 </MenuItem>
               ))}

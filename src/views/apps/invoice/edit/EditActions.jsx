@@ -17,7 +17,6 @@ import MenuItem from '@mui/material/MenuItem'
 import Switch from '@mui/material/Switch'
 
 // Component Imports
-import AddPaymentDrawer from '@views/apps/invoice/shared/AddPaymentDrawer'
 import SendInvoiceDrawer from '@views/apps/invoice/shared/SendInvoiceDrawer'
 import CustomTextField from '@core/components/mui/TextField'
 
@@ -26,7 +25,6 @@ import { getLocalizedUrl } from '@/utils/i18n'
 
 const EditActions = ({ id }) => {
   // States
-  const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false)
   const [sendDrawerOpen, setSendDrawerOpen] = useState(false)
 
   // Hooks
@@ -61,19 +59,8 @@ const EditActions = ({ id }) => {
                 Save
               </Button>
             </div>
-            <Button
-              fullWidth
-              color='success'
-              variant='contained'
-              className='capitalize'
-              onClick={() => setPaymentDrawerOpen(true)}
-              startIcon={<i className='tabler-currency-dollar' />}
-            >
-              Add Payment
-            </Button>
           </CardContent>
         </Card>
-        <AddPaymentDrawer open={paymentDrawerOpen} handleClose={() => setPaymentDrawerOpen(false)} />
         <SendInvoiceDrawer open={sendDrawerOpen} handleClose={() => setSendDrawerOpen(false)} />
       </Grid>
 

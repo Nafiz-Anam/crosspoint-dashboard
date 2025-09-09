@@ -1,40 +1,57 @@
+'use client'
+
 // Next Imports
-import { redirect } from 'next/navigation'
+import { useParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
 
 // Component Imports
 import Preview from '@views/apps/invoice/preview'
 
-// Data Imports
-import { getInvoiceData } from '@/app/server/actions'
+// Service Imports
+import invoiceService from '@/libs/invoiceService'
 
-/**
- * ! If you need data using an API call, uncomment the below API code, update the `process.env.API_URL` variable in the
- * ! `.env` file found at root of your project and also update the API endpoints like `/apps/invoice` in below example.
- * ! Also, remove the above server action import and the action itself from the `src/app/server/actions.ts` file to clean up unused code
- * ! because we've used the server action for getting our static data.
- */
-/* const getInvoiceData = async () => {
-  // Vars
-  const res = await fetch(`${process.env.API_URL}/apps/invoice`)
+const PreviewPage = () => {
+  const params = useParams()
+  const { data: session } = useSession()
+  const [invoiceData, setInvoiceData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  if (!res.ok) {
-    throw new Error('Failed to fetch invoice data')
+  useEffect(() => {
+    const fetchInvoiceData = async () => {
+      if (!session?.accessToken) {
+        setError('Authentication required')
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const data = await invoiceService.getInvoiceById(params.id, session.accessToken)
+        setInvoiceData(data)
+      } catch (err) {
+        console.error('Error fetching invoice:', err)
+        setError(err.message || 'Failed to fetch invoice')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (params.id) {
+      fetchInvoiceData()
+    }
+  }, [params.id, session?.accessToken])
+
+  if (loading) {
+    return <div>Loading invoice...</div>
   }
 
-  return res.json()
-} */
-const PreviewPage = async props => {
-  const params = await props.params
-
-  // Vars
-  const data = await getInvoiceData()
-  const filteredData = data?.filter(invoice => invoice.id === params.id)[0]
-
-  if (!filteredData) {
-    redirect('/not-found')
+  if (error || !invoiceData) {
+    return <div>Error: {error || 'Invoice not found'}</div>
   }
 
-  return filteredData ? <Preview invoiceData={filteredData} id={params.id} /> : null
+  return <Preview invoiceData={invoiceData} id={params.id} />
 }
 
 export default PreviewPage

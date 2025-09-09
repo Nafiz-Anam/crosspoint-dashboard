@@ -4,7 +4,6 @@
 import { useState, useEffect, useMemo } from 'react'
 
 // Next Imports
-import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 // MUI Imports
@@ -16,7 +15,6 @@ import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
-import Tooltip from '@mui/material/Tooltip'
 import TablePagination from '@mui/material/TablePagination'
 
 // Third-party Imports
@@ -37,67 +35,46 @@ import {
 
 // Component Imports
 import OptionMenu from '@core/components/option-menu'
-import CustomAvatar from '@core/components/mui/Avatar'
-import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
-
-// Util Imports
-import { getInitials } from '@/utils/getInitials'
-import { getLocalizedUrl } from '@/utils/i18n'
+import TablePaginationComponent from '@components/TablePaginationComponent'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
 
 const fuzzyFilter = (row, columnId, value, addMeta) => {
-  // Rank the item
   const itemRank = rankItem(row.getValue(columnId), value)
-
-  // Store the itemRank info
-  addMeta({
-    itemRank
-  })
-
-  // Return if the item should be filtered in/out
+  addMeta({ itemRank })
   return itemRank.passed
 }
 
 const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...props }) => {
-  // States
   const [value, setValue] = useState(initialValue)
 
   useEffect(() => {
     setValue(initialValue)
   }, [initialValue])
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       onChange(value)
     }, debounce)
 
     return () => clearTimeout(timeout)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value])
+  }, [value, onChange, debounce])
 
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
-}
-
-// Vars
-const invoiceStatusObj = {
-  UNPAID: { color: 'warning', icon: 'tabler-clock' },
-  PAID: { color: 'success', icon: 'tabler-check' },
-  OVERDUE: { color: 'error', icon: 'tabler-alert-circle' },
-  CANCELLED: { color: 'secondary', icon: 'tabler-x' }
 }
 
 // Column Definitions
 const columnHelper = createColumnHelper()
 
-const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filters }) => {
+const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAction, filters }) => {
   // States
-  const [status, setStatus] = useState('')
   const [rowSelection, setRowSelection] = useState({})
-  const [data, setData] = useState(invoiceData || [])
+  const [data, setData] = useState(bankAccountData || [])
   const [filteredData, setFilteredData] = useState(data)
   const [globalFilter, setGlobalFilter] = useState('')
+  const [isActiveFilter, setIsActiveFilter] = useState('')
 
   // Hooks
   const { lang: locale } = useParams()
@@ -126,118 +103,84 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
           />
         )
       },
-      columnHelper.accessor('invoiceNumber', {
-        header: 'Invoice #',
+      columnHelper.accessor('bankName', {
+        header: 'Bank Name',
         cell: ({ row }) => (
-          <Typography
-            component={Link}
-            href={getLocalizedUrl(`/apps/invoice/preview/${row.original.id}`, locale)}
-            color='primary.main'
-          >
-            {row.original.invoiceNumber}
+          <Typography className='font-medium' color='text.primary'>
+            {row.original.bankName}
           </Typography>
         )
       }),
-      columnHelper.accessor('status', {
+      columnHelper.accessor('bankCountry', {
+        header: 'Country',
+        cell: ({ row }) => <Typography variant='body2'>{row.original.bankCountry}</Typography>
+      }),
+      columnHelper.accessor('bankIban', {
+        header: 'IBAN',
+        cell: ({ row }) => (
+          <Typography variant='body2' fontFamily='monospace'>
+            {row.original.bankIban}
+          </Typography>
+        )
+      }),
+      columnHelper.accessor('bankSwiftCode', {
+        header: 'SWIFT Code',
+        cell: ({ row }) => (
+          <Typography variant='body2' fontFamily='monospace'>
+            {row.original.bankSwiftCode || 'N/A'}
+          </Typography>
+        )
+      }),
+      columnHelper.accessor('accountName', {
+        header: 'Account Name',
+        cell: ({ row }) => <Typography variant='body2'>{row.original.accountName || 'N/A'}</Typography>
+      }),
+      columnHelper.accessor('isActive', {
         header: 'Status',
         cell: ({ row }) => (
-          <Tooltip
-            title={
-              <div>
-                <Typography variant='body2' component='span' className='text-inherit'>
-                  {row.original.status}
-                </Typography>
-                <br />
-                <Typography variant='body2' component='span' className='text-inherit'>
-                  Due Date:
-                </Typography>{' '}
-                {new Date(row.original.dueDate).toLocaleDateString()}
-              </div>
-            }
-          >
-            <CustomAvatar skin='light' color={invoiceStatusObj[row.original.status]?.color || 'default'} size={28}>
-              <i className={classnames('bs-4 is-4', invoiceStatusObj[row.original.status]?.icon || 'tabler-file')} />
-            </CustomAvatar>
-          </Tooltip>
+          <Chip
+            label={row.original.isActive ? 'Active' : 'Inactive'}
+            color={row.original.isActive ? 'success' : 'default'}
+            size='small'
+            variant='tonal'
+          />
         )
       }),
-      columnHelper.accessor('client', {
-        header: 'Client',
+      columnHelper.accessor('createdAt', {
+        header: 'Created',
         cell: ({ row }) => (
-          <div className='flex items-center gap-3'>
-            {getAvatar({ avatar: null, name: row.original.client?.name || 'N/A' })}
-            <div className='flex flex-col'>
-              <Typography className='font-medium' color='text.primary'>
-                {row.original.client?.name || 'N/A'}
-              </Typography>
-              <Typography variant='body2'>{row.original.client?.email || ''}</Typography>
-            </div>
-          </div>
+          <Typography variant='body2'>{new Date(row.original.createdAt).toLocaleDateString()}</Typography>
         )
-      }),
-      columnHelper.accessor('totalAmount', {
-        header: 'Total',
-        cell: ({ row }) => <Typography>{`$${row.original.totalAmount?.toLocaleString() || '0'}`}</Typography>
-      }),
-      columnHelper.accessor('issuedDate', {
-        header: 'Issued Date',
-        cell: ({ row }) => <Typography>{new Date(row.original.issuedDate).toLocaleDateString()}</Typography>
-      }),
-      columnHelper.accessor('dueDate', {
-        header: 'Due Date',
-        cell: ({ row }) => {
-          const dueDate = new Date(row.original.dueDate)
-          const isOverdue = dueDate < new Date() && row.original.status === 'UNPAID'
-          return (
-            <Typography color={isOverdue ? 'error.main' : 'text.primary'}>{dueDate.toLocaleDateString()}</Typography>
-          )
-        }
       }),
       columnHelper.accessor('action', {
         header: 'Action',
         cell: ({ row }) => (
           <div className='flex items-center'>
-            <IconButton onClick={() => onInvoiceAction('delete', row.original.id)}>
+            <IconButton onClick={() => onBankAccountAction('delete', row.original.id)}>
               <i className='tabler-trash text-textSecondary' />
-            </IconButton>
-            <IconButton>
-              <Link href={getLocalizedUrl(`/apps/invoice/preview/${row.original.id}`, locale)} className='flex'>
-                <i className='tabler-eye text-textSecondary' />
-              </Link>
             </IconButton>
             <OptionMenu
               iconButtonProps={{ size: 'medium' }}
               iconClassName='text-textSecondary'
               options={[
                 {
-                  text: 'Download',
-                  icon: 'tabler-download',
-                  onClick: () => {
-                    console.log('Downloading invoice:', row.original.id)
-                    // Open preview page in new tab for download
-                    window.open(getLocalizedUrl(`/apps/invoice/preview/${row.original.id}`, locale), '_blank')
-                  },
-                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
-                },
-                {
                   text: 'Edit',
                   icon: 'tabler-pencil',
-                  href: getLocalizedUrl(`/apps/invoice/edit/${row.original.id}`, locale),
-                  linkProps: {
-                    className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
+                  menuItemProps: {
+                    className: 'flex items-center gap-2 text-textSecondary',
+                    onClick: () => onBankAccountAction('edit', row.original.id, row.original)
                   }
                 },
                 {
-                  text: 'Mark as Paid',
-                  icon: 'tabler-check',
-                  onClick: () => onInvoiceAction('updateStatus', row.original.id, { status: 'PAID' }),
-                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
-                },
-                {
-                  text: 'Mark as Unpaid',
-                  icon: 'tabler-clock',
-                  onClick: () => onInvoiceAction('updateStatus', row.original.id, { status: 'UNPAID' }),
-                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
+                  text: row.original.isActive ? 'Deactivate' : 'Activate',
+                  icon: row.original.isActive ? 'tabler-eye-off' : 'tabler-eye',
+                  menuItemProps: {
+                    className: 'flex items-center gap-2 text-textSecondary',
+                    onClick: () =>
+                      onBankAccountAction('update', row.original.id, {
+                        isActive: !row.original.isActive
+                      })
+                  }
                 }
               ]}
             />
@@ -246,8 +189,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         enableSorting: false
       })
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, filteredData]
+    [onBankAccountAction]
   )
 
   const table = useReactTable({
@@ -265,8 +207,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         pageSize: 10
       }
     },
-    enableRowSelection: true, //enable row selection for all rows
-    // enableRowSelection: row => row.original.age > 18, // or enable row selection conditionally per row
+    enableRowSelection: true,
     globalFilterFn: fuzzyFilter,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
@@ -279,39 +220,25 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
     getFacetedMinMaxValues: getFacetedMinMaxValues()
   })
 
-  const getAvatar = params => {
-    const { avatar, name } = params
-
-    if (avatar) {
-      return <CustomAvatar src={avatar} skin='light' size={34} />
-    } else {
-      return (
-        <CustomAvatar skin='light' size={34}>
-          {getInitials(name)}
-        </CustomAvatar>
-      )
-    }
-  }
-
-  // Update data when invoiceData prop changes
+  // Update data when bankAccountData prop changes
   useEffect(() => {
-    setData(invoiceData || [])
-    setFilteredData(invoiceData || [])
-  }, [invoiceData])
+    setData(bankAccountData || [])
+    setFilteredData(bankAccountData || [])
+  }, [bankAccountData])
 
   useEffect(() => {
-    const filteredData = data?.filter(invoice => {
-      if (status && invoice.status !== status) return false
+    const filteredData = data?.filter(account => {
+      if (isActiveFilter !== '' && account.isActive.toString() !== isActiveFilter) return false
       return true
     })
 
     setFilteredData(filteredData)
-  }, [status, data])
+  }, [isActiveFilter, data])
 
   // Handle status filter change
   const handleStatusChange = newStatus => {
-    setStatus(newStatus)
-    onFilterChange({ status: newStatus || undefined })
+    setIsActiveFilter(newStatus)
+    onFilterChange({ isActive: newStatus !== '' ? newStatus === 'true' : undefined })
   }
 
   return (
@@ -331,27 +258,18 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
               <MenuItem value='50'>50</MenuItem>
             </CustomTextField>
           </div>
-          <Button
-            variant='contained'
-            component={Link}
-            startIcon={<i className='tabler-plus' />}
-            href={getLocalizedUrl('apps/invoice/add', locale)}
-            className='max-sm:is-full'
-          >
-            Create Invoice
-          </Button>
         </div>
         <div className='flex max-sm:flex-col max-sm:is-full sm:items-center gap-4'>
           <DebouncedInput
             value={globalFilter ?? ''}
             onChange={value => setGlobalFilter(String(value))}
-            placeholder='Search Invoice'
+            placeholder='Search Bank Account'
             className='max-sm:is-full sm:is-[250px]'
           />
           <CustomTextField
             select
             id='select-status'
-            value={status}
+            value={isActiveFilter}
             onChange={e => handleStatusChange(e.target.value)}
             className='max-sm:is-full sm:is-[160px]'
             slotProps={{
@@ -359,10 +277,8 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
             }}
           >
             <MenuItem value=''>All Status</MenuItem>
-            <MenuItem value='UNPAID'>Unpaid</MenuItem>
-            <MenuItem value='PAID'>Paid</MenuItem>
-            <MenuItem value='OVERDUE'>Overdue</MenuItem>
-            <MenuItem value='CANCELLED'>Cancelled</MenuItem>
+            <MenuItem value='true'>Active</MenuItem>
+            <MenuItem value='false'>Inactive</MenuItem>
           </CustomTextField>
         </div>
       </CardContent>
@@ -399,7 +315,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
             <tbody>
               <tr>
                 <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
-                  No data available
+                  No bank accounts found
                 </td>
               </tr>
             </tbody>
@@ -435,4 +351,4 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
   )
 }
 
-export default InvoiceListTable
+export default BankAccountListTable

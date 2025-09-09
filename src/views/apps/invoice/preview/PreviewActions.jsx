@@ -11,7 +11,6 @@ import CardContent from '@mui/material/CardContent'
 import Button from '@mui/material/Button'
 
 // Component Imports
-import AddPaymentDrawer from '@views/apps/invoice/shared/AddPaymentDrawer'
 import SendInvoiceDrawer from '@views/apps/invoice/shared/SendInvoiceDrawer'
 
 // Util Imports
@@ -19,11 +18,27 @@ import { getLocalizedUrl } from '@/utils/i18n'
 
 const PreviewActions = ({ id, onButtonClick }) => {
   // States
-  const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false)
   const [sendDrawerOpen, setSendDrawerOpen] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
 
   // Hooks
   const { lang: locale } = useParams()
+
+  // Handle download
+  const handleDownload = async () => {
+    setIsDownloading(true)
+    try {
+      console.log('Downloading invoice:', id)
+
+      // Use the existing print functionality but trigger save as PDF
+      window.print()
+    } catch (error) {
+      console.error('Error downloading invoice:', error)
+      window.print()
+    } finally {
+      setIsDownloading(false)
+    }
+  }
 
   return (
     <>
@@ -38,8 +53,16 @@ const PreviewActions = ({ id, onButtonClick }) => {
           >
             Send Invoice
           </Button>
-          <Button fullWidth color='secondary' variant='tonal' className='capitalize'>
-            Download
+          <Button
+            fullWidth
+            color='secondary'
+            variant='tonal'
+            className='capitalize'
+            onClick={handleDownload}
+            disabled={isDownloading}
+            startIcon={<i className='tabler-download' />}
+          >
+            {isDownloading ? 'Downloading...' : 'Download'}
           </Button>
           <div className='flex items-center gap-4'>
             <Button fullWidth color='secondary' variant='tonal' className='capitalize' onClick={onButtonClick}>
@@ -56,19 +79,8 @@ const PreviewActions = ({ id, onButtonClick }) => {
               Edit
             </Button>
           </div>
-          <Button
-            fullWidth
-            color='success'
-            variant='contained'
-            className='capitalize'
-            onClick={() => setPaymentDrawerOpen(true)}
-            startIcon={<i className='tabler-currency-dollar' />}
-          >
-            Add Payment
-          </Button>
         </CardContent>
       </Card>
-      <AddPaymentDrawer open={paymentDrawerOpen} handleClose={() => setPaymentDrawerOpen(false)} />
       <SendInvoiceDrawer open={sendDrawerOpen} handleClose={() => setSendDrawerOpen(false)} />
     </>
   )

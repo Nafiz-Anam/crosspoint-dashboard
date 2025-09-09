@@ -13,20 +13,21 @@ import tableStyles from '@core/styles/table.module.css'
 import './print.css'
 
 const PreviewCard = ({ invoiceData, invoiceState, id }) => {
-  // Destructure invoice state
-  const {
-    selectedClient,
-    selectedSalesperson,
-    issuedDate,
-    dueDate,
-    invoiceItems,
-    paymentMethod,
-    paymentTerms,
-    paymentTermsText,
-    clientNotes,
-    clientNotesText,
-    bankDetails
-  } = invoiceState || {}
+  // Use invoiceData from API instead of invoiceState
+  const invoice = invoiceData?.invoice || invoiceData
+
+  // Extract data from API response
+  const selectedClient = invoice?.client
+  const selectedSalesperson = invoice?.employee
+  const issuedDate = invoice?.issuedDate
+  const dueDate = invoice?.dueDate
+  const invoiceItems = invoice?.items || []
+  const paymentMethod = invoice?.paymentMethod
+  const paymentTerms = invoice?.paymentTerms
+  const paymentTermsText = invoice?.paymentTerms
+  const clientNotes = invoice?.notes
+  const clientNotesText = invoice?.notes
+  const bankDetails = invoice?.bankAccount // This might need to be fetched separately
 
   // Calculation functions
   const calculateItemTotal = item => {
@@ -35,23 +36,23 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
   }
 
   const calculateSubtotal = () => {
-    return invoiceItems?.reduce((total, item) => total + (item.rate || 0), 0) || 0
+    return invoice?.subTotalAmount || 0
   }
 
   const calculateTotalDiscount = () => {
-    return invoiceItems?.reduce((total, item) => total + (item.rate * (item.discount || 0)) / 100, 0) || 0
+    return invoice?.discountAmount || 0
   }
 
   const calculateInvoiceTotal = () => {
-    return invoiceItems?.reduce((total, item) => total + calculateItemTotal(item), 0) || 0
+    return invoice?.totalAmount || 0
   }
 
   const calculateTax = () => {
-    return calculateInvoiceTotal() * 0.21
+    return invoice?.taxAmount || 0
   }
 
   const calculateFinalTotal = () => {
-    return calculateInvoiceTotal() + calculateTax()
+    return invoice?.totalAmount || 0
   }
 
   const formatDate = date => {
@@ -78,7 +79,7 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                   </div>
                 </div>
                 <div className='flex flex-col gap-6'>
-                  <Typography variant='h5'>{`Invoice #${id || 'INV-001'}`}</Typography>
+                  <Typography variant='h5'>{`Invoice #${invoice?.invoiceNumber || invoice?.invoiceId || id || 'INV-001'}`}</Typography>
                   <div className='flex flex-col gap-1'>
                     <Typography color='text.primary'>{`Date Issued: ${formatDate(issuedDate)}`}</Typography>
                     <Typography color='text.primary'>{`Date Due: ${formatDate(dueDate)}`}</Typography>
@@ -172,7 +173,7 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                   {invoiceItems?.map((item, index) => (
                     <tr key={index}>
                       <td>
-                        <Typography color='text.primary'>{item.serviceName || 'Service'}</Typography>
+                        <Typography color='text.primary'>{item.service?.name || 'Service'}</Typography>
                       </td>
                       <td>
                         <Typography color='text.primary'>{item.description || 'No description'}</Typography>
@@ -184,7 +185,9 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                         <Typography color='text.primary'>{item.discount || 0}%</Typography>
                       </td>
                       <td>
-                        <Typography color='text.primary'>${calculateItemTotal(item).toFixed(2)}</Typography>
+                        <Typography color='text.primary'>
+                          ${item.total || calculateItemTotal(item).toFixed(2)}
+                        </Typography>
                       </td>
                     </tr>
                   )) || (
@@ -213,21 +216,25 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                     {selectedSalesperson ? `${selectedSalesperson.name} - ${selectedSalesperson.role}` : 'Not assigned'}
                   </Typography>
                 </div>
-                <Typography>Thanks for your business</Typography>
+                <Typography>{invoice?.thanksMessage || 'Thanks for your business'}</Typography>
 
                 {/* Payment Terms */}
-                {paymentTerms && paymentTermsText && (
-                  <div className='p-3 bg-blue-50 rounded border-l-4 border-blue-400'>
-                    <Typography className='font-medium text-blue-800 mb-1'>Payment Terms:</Typography>
-                    <Typography className='text-blue-600'>{paymentTermsText}</Typography>
+                {paymentTerms && (
+                  <div className='flex flex-col gap-1'>
+                    <Typography className='font-medium' color='text.primary'>
+                      Payment Terms:
+                    </Typography>
+                    <Typography>{paymentTerms}</Typography>
                   </div>
                 )}
 
                 {/* Client Notes */}
-                {clientNotes && clientNotesText && (
-                  <div className='p-3 bg-green-50 rounded border-l-4 border-green-400'>
-                    <Typography className='font-medium text-green-800 mb-1'>Client Notes:</Typography>
-                    <Typography className='text-green-600'>{clientNotesText}</Typography>
+                {clientNotes && (
+                  <div className='flex flex-col gap-1'>
+                    <Typography className='font-medium' color='text.primary'>
+                      Notes:
+                    </Typography>
+                    <Typography className='ml-4'>{clientNotes}</Typography>
                   </div>
                 )}
               </div>
@@ -247,7 +254,7 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                   </Typography>
                 </div>
                 <div className='flex items-center justify-between'>
-                  <Typography>Tax (21%):</Typography>
+                  <Typography>Tax ({invoice?.taxRate || 0}%):</Typography>
                   <Typography className='font-medium' color='text.primary'>
                     ${calculateTax().toFixed(2)}
                   </Typography>
@@ -273,8 +280,8 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
               <Typography component='span' className='font-medium' color='text.primary'>
                 Note:
               </Typography>{' '}
-              It was a pleasure working with you and your team. We hope you will keep us in mind for future freelance
-              projects. Thank You!
+              {invoice?.notes ||
+                'It was a pleasure working with you and your team. We hope you will keep us in mind for future freelance projects. Thank You!'}
             </Typography>
           </Grid>
         </Grid>

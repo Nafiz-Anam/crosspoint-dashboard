@@ -27,7 +27,15 @@ import CustomTextField from '@core/components/mui/TextField'
 // Styled Component Imports
 import AppReactDatepicker from '@/libs/styles/AppReactDatepicker'
 
-const AddCard = ({ invoiceData, invoiceState, updateInvoiceState }) => {
+const AddCard = ({
+  invoiceData,
+  invoiceState,
+  updateInvoiceState,
+  bankAccounts = [],
+  clients = [],
+  services = [],
+  employees = []
+}) => {
   // Destructure from shared state
   const {
     selectedClient,
@@ -40,101 +48,53 @@ const AddCard = ({ invoiceData, invoiceState, updateInvoiceState }) => {
     paymentTermsText,
     clientNotes,
     clientNotesText,
-    bankDetails
+    bankDetails,
+    invoiceNumber,
+    thanksMessage,
+    notes
   } = invoiceState
 
-  // Local API states
-  const [clients, setClients] = useState([])
-  const [services, setServices] = useState([])
-  const [employees, setEmployees] = useState([])
+  // Debug logging
+  console.log('AddCard received invoiceState:', invoiceState)
+  console.log('Selected client:', selectedClient)
+  console.log('Invoice items:', invoiceItems)
+  console.log('Issued date:', issuedDate)
+  console.log('Due date:', dueDate)
+
+  // Local API states - now passed as props
+  // const [clients, setClients] = useState([])
+  // const [services, setServices] = useState([])
+  // const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(false)
 
   const { data: session } = useSession()
+
+  // Debug logging for arrays (after state declarations)
+  // console.log('=== AddCard Debug Info ===')
+  // console.log('Clients loaded:', clients.length)
+  // console.log('Services loaded:', services.length)
+  // console.log('Employees loaded:', employees.length)
+  // console.log('Selected client ID:', selectedClient?.id)
+  // console.log('Selected salesperson ID:', selectedSalesperson?.id)
+  // console.log('Invoice items:', invoiceItems)
+  // console.log('Loading state:', loading)
+  // console.log('========================')
 
   // Hooks
   const isBelowMdScreen = useMediaQuery(theme => theme.breakpoints.down('md'))
   const isBelowSmScreen = useMediaQuery(theme => theme.breakpoints.down('sm'))
 
-  // Fetch data from APIs
-  useEffect(() => {
-    const fetchClients = async () => {
-      if (!session?.accessToken) return
-
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          }
-        })
-        const data = await response.json()
-        if (response.ok) {
-          setClients(data.data?.clients || [])
-        }
-      } catch (error) {
-        console.error('Error fetching clients:', error)
-      }
-    }
-
-    const fetchEmployees = async () => {
-      if (!session?.accessToken) return
-
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          }
-        })
-        const data = await response.json()
-        if (response.ok) {
-          setEmployees(data.data || data || [])
-        }
-      } catch (error) {
-        console.error('Error fetching employees:', error)
-      }
-    }
-
-    const fetchServices = async () => {
-      if (!session?.accessToken) return
-
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          }
-        })
-        const data = await response.json()
-        if (response.ok && data.success) {
-          setServices(data.data || [])
-        } else {
-          console.error('Failed to fetch services:', data.message)
-          setServices([])
-        }
-      } catch (error) {
-        console.error('Error fetching services:', error)
-        setServices([])
-      }
-    }
-
-    if (session?.accessToken) {
-      fetchClients()
-      fetchEmployees()
-      fetchServices()
-    }
-  }, [session?.accessToken])
+  // Data is now passed as props, no need to fetch
 
   // Update handlers that call parent function
   const handleClientChange = clientId => {
+    if (!clients || clients.length === 0) return
     const client = clients.find(c => c.id === clientId)
     updateInvoiceState({ selectedClient: client, branchId: client?.branchId })
   }
 
   const handleSalespersonChange = employeeId => {
+    if (!employees || employees.length === 0) return
     const employee = employees.find(emp => emp.id === employeeId)
     updateInvoiceState({ selectedSalesperson: employee, employeeId: employeeId })
   }
@@ -148,7 +108,7 @@ const AddCard = ({ invoiceData, invoiceState, updateInvoiceState }) => {
     updatedItems[index] = { ...updatedItems[index], [field]: value }
 
     // Auto-populate rate when service is selected
-    if (field === 'serviceId') {
+    if (field === 'serviceId' && services && services.length > 0) {
       const selectedService = services.find(s => s.id === value)
       if (selectedService) {
         updatedItems[index].rate = selectedService.price
@@ -222,8 +182,29 @@ const AddCard = ({ invoiceData, invoiceState, updateInvoiceState }) => {
     return isNaN(total) ? 0 : total
   }
 
+  // Show loading if data is still being fetched
+  if (
+    loading ||
+    !clients ||
+    clients.length === 0 ||
+    !services ||
+    services.length === 0 ||
+    !employees ||
+    employees.length === 0
+  ) {
+    return (
+      <Card>
+        <CardContent className='sm:!p-12'>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+            <Typography>Loading invoice data...</Typography>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
-    <Card>
+    <Card key={invoiceState.invoiceNumber || 'new'}>
       <CardContent className='sm:!p-12'>
         <Grid container spacing={6}>
           {/* Header Section */}
@@ -247,7 +228,7 @@ const AddCard = ({ invoiceData, invoiceState, updateInvoiceState }) => {
                     </Typography>
                     <CustomTextField
                       fullWidth
-                      value='INV-001'
+                      value={invoiceNumber || 'INV-001'}
                       slotProps={{
                         input: {
                           disabled: true,
@@ -304,11 +285,12 @@ const AddCard = ({ invoiceData, invoiceState, updateInvoiceState }) => {
                   <MenuItem value=''>
                     <em>Choose a client</em>
                   </MenuItem>
-                  {clients.map(client => (
-                    <MenuItem key={client.id} value={client.id}>
-                      {client.name} - {client.email}
-                    </MenuItem>
-                  ))}
+                  {clients &&
+                    clients.map(client => (
+                      <MenuItem key={client.id} value={client.id}>
+                        {client.name} - {client.email}
+                      </MenuItem>
+                    ))}
                 </CustomTextField>
 
                 {selectedClient ? (
@@ -346,22 +328,26 @@ const AddCard = ({ invoiceData, invoiceState, updateInvoiceState }) => {
                     <Typography className='min-is-[100px]'>Total Due:</Typography>
                     <Typography className='font-medium text-primary'>${calculateFinalTotal().toFixed(2)}</Typography>
                   </div>
-                  <div className='flex items-center gap-4'>
-                    <Typography className='min-is-[100px]'>Bank name:</Typography>
-                    <Typography>{bankDetails.bankName}</Typography>
-                  </div>
-                  <div className='flex items-center gap-4'>
-                    <Typography className='min-is-[100px]'>Country:</Typography>
-                    <Typography>{bankDetails.country}</Typography>
-                  </div>
-                  <div className='flex items-center gap-4'>
-                    <Typography className='min-is-[100px]'>IBAN:</Typography>
-                    <Typography>{bankDetails.iban}</Typography>
-                  </div>
-                  <div className='flex items-center gap-4'>
-                    <Typography className='min-is-[100px]'>SWIFT code:</Typography>
-                    <Typography>{bankDetails.swiftCode}</Typography>
-                  </div>
+                  {bankDetails && (
+                    <>
+                      <div className='flex items-center gap-4'>
+                        <Typography className='min-is-[100px]'>Bank name:</Typography>
+                        <Typography>{bankDetails.bankName}</Typography>
+                      </div>
+                      <div className='flex items-center gap-4'>
+                        <Typography className='min-is-[100px]'>Country:</Typography>
+                        <Typography>{bankDetails.country}</Typography>
+                      </div>
+                      <div className='flex items-center gap-4'>
+                        <Typography className='min-is-[100px]'>IBAN:</Typography>
+                        <Typography>{bankDetails.iban}</Typography>
+                      </div>
+                      <div className='flex items-center gap-4'>
+                        <Typography className='min-is-[100px]'>SWIFT code:</Typography>
+                        <Typography>{bankDetails.swiftCode}</Typography>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -403,11 +389,12 @@ const AddCard = ({ invoiceData, invoiceState, updateInvoiceState }) => {
                       <MenuItem value=''>
                         <em>Select Service</em>
                       </MenuItem>
-                      {services.map(service => (
-                        <MenuItem key={service.id} value={service.id}>
-                          {service.name}
-                        </MenuItem>
-                      ))}
+                      {services &&
+                        services.map(service => (
+                          <MenuItem key={service.id} value={service.id}>
+                            {service.name}
+                          </MenuItem>
+                        ))}
                     </CustomTextField>
                   </Grid>
 
@@ -543,11 +530,12 @@ const AddCard = ({ invoiceData, invoiceState, updateInvoiceState }) => {
                     <MenuItem value=''>
                       <em>Select Salesperson</em>
                     </MenuItem>
-                    {employees.map(employee => (
-                      <MenuItem key={employee.id} value={employee.id}>
-                        {employee.name} - {employee.role}
-                      </MenuItem>
-                    ))}
+                    {employees &&
+                      employees.map(employee => (
+                        <MenuItem key={employee.id} value={employee.id}>
+                          {employee.name} - {employee.role}
+                        </MenuItem>
+                      ))}
                   </CustomTextField>
                 </div>
 
