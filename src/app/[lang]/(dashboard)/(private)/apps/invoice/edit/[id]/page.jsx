@@ -51,7 +51,7 @@ const EditPage = () => {
 
     // Settings from AddActions
     paymentTerms: true,
-    paymentTermsText: 'Net 30 days',
+    paymentTermsText: '',
     clientNotes: false,
     clientNotesText: '',
     paymentStub: false,
@@ -64,7 +64,7 @@ const EditPage = () => {
     employeeId: null,
     branchId: null,
     notes: '',
-    thanksMessage: 'Thank you for your business!',
+    thanksMessage: '',
     taxRate: 0,
     discountAmount: 0
   })
