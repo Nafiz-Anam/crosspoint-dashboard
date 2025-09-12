@@ -11,6 +11,9 @@ import Alert from '@mui/material/Alert'
 
 // Service Imports
 import bankAccountService from '@/libs/bankAccountService'
+import clientService from '@/libs/clientService'
+import serviceService from '@/libs/serviceService'
+import employeeService from '@/libs/employeeService'
 
 // Component Imports
 import AddCard from '@views/apps/invoice/add/AddCard'
@@ -19,6 +22,9 @@ import AddActions from '@views/apps/invoice/add/AddActions'
 const InvoiceContainer = ({ initialData }) => {
   // States
   const [bankAccounts, setBankAccounts] = useState([])
+  const [clients, setClients] = useState([])
+  const [services, setServices] = useState([])
+  const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const { data: session } = useSession()
@@ -60,26 +66,53 @@ const InvoiceContainer = ({ initialData }) => {
     discountAmount: 0
   })
 
-  // Fetch bank accounts
-  const fetchBankAccounts = async () => {
-    if (!session?.accessToken) return
+  // Fetch all required data
+  const fetchData = async () => {
+    console.log('fetchData called, session:', !!session, 'accessToken:', !!session?.accessToken)
+
+    if (!session?.accessToken) {
+      console.log('No session or access token, returning early')
+      return
+    }
 
     try {
       setLoading(true)
       setError(null)
-      const response = await bankAccountService.getActiveBankAccounts(session.accessToken)
-      setBankAccounts(response.data?.bankAccounts || [])
+      console.log('Starting to fetch data...')
+
+      // Fetch all data in parallel
+      const [bankAccountsResponse, clientsResponse, servicesResponse, employeesResponse] = await Promise.all([
+        bankAccountService.getActiveBankAccounts(session.accessToken),
+        clientService.getClients(session.accessToken),
+        serviceService.getServices(session.accessToken),
+        employeeService.getEmployees(session.accessToken)
+      ])
+
+      console.log('Responses received:', {
+        bankAccounts: bankAccountsResponse?.data?.bankAccounts?.length || 0,
+        clients: clientsResponse?.data?.clients?.length || 0,
+        services: servicesResponse?.data?.services?.length || 0,
+        employees: employeesResponse?.data?.employees?.length || 0
+      })
+
+      setBankAccounts(bankAccountsResponse.data?.bankAccounts || [])
+      setClients(clientsResponse.data?.clients || [])
+      setServices(servicesResponse.data?.services || [])
+      setEmployees(employeesResponse.data?.employees || [])
+
+      console.log('Data set successfully')
     } catch (err) {
-      console.error('Error fetching bank accounts:', err)
-      setError('Failed to fetch bank accounts')
+      console.error('Error fetching data:', err)
+      setError('Failed to fetch required data: ' + err.message)
     } finally {
       setLoading(false)
+      console.log('Loading set to false')
     }
   }
 
   useEffect(() => {
     if (session?.accessToken) {
-      fetchBankAccounts()
+      fetchData()
     }
   }, [session?.accessToken])
 
@@ -105,12 +138,28 @@ const InvoiceContainer = ({ initialData }) => {
     })
   }
 
+  console.log('Render state:', { loading, error, session: !!session, accessToken: !!session?.accessToken })
+
   if (loading) {
     return (
       <Grid container spacing={6}>
         <Grid size={{ xs: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '400px'
+            }}
+          >
             <CircularProgress />
+            <div style={{ marginTop: '16px', textAlign: 'center' }}>
+              <div>Loading invoice data...</div>
+              <div style={{ fontSize: '12px', color: '#666' }}>
+                Session: {session ? 'Yes' : 'No'} | Token: {session?.accessToken ? 'Yes' : 'No'}
+              </div>
+            </div>
           </div>
         </Grid>
       </Grid>
@@ -137,6 +186,9 @@ const InvoiceContainer = ({ initialData }) => {
           invoiceState={invoiceState}
           updateInvoiceState={updateInvoiceState}
           bankAccounts={bankAccounts}
+          clients={clients}
+          services={services}
+          employees={employees}
         />
       </Grid>
       <Grid size={{ xs: 12, md: 3 }}>

@@ -54,12 +54,9 @@ const AddCard = ({
     notes
   } = invoiceState
 
-  // Debug logging
-  console.log('AddCard received invoiceState:', invoiceState)
-  console.log('Selected client:', selectedClient)
-  console.log('Invoice items:', invoiceItems)
-  console.log('Issued date:', issuedDate)
-  console.log('Due date:', dueDate)
+  // Debug bank details
+  console.log('AddCard bankDetails:', bankDetails)
+  console.log('AddCard selectedBankAccount:', invoiceState.selectedBankAccount)
 
   // Local API states - now passed as props
   // const [clients, setClients] = useState([])
@@ -183,15 +180,7 @@ const AddCard = ({
   }
 
   // Show loading if data is still being fetched
-  if (
-    loading ||
-    !clients ||
-    clients.length === 0 ||
-    !services ||
-    services.length === 0 ||
-    !employees ||
-    employees.length === 0
-  ) {
+  if (loading) {
     return (
       <Card>
         <CardContent className='sm:!p-12'>
@@ -204,7 +193,9 @@ const AddCard = ({
   }
 
   return (
-    <Card key={invoiceState.invoiceNumber || 'new'}>
+    <Card
+      key={`${invoiceState.invoiceNumber || 'new'}-${selectedClient?.id || 'no-client'}-${invoiceItems?.length || 0}`}
+    >
       <CardContent className='sm:!p-12'>
         <Grid container spacing={6}>
           {/* Header Section */}
@@ -228,7 +219,8 @@ const AddCard = ({
                     </Typography>
                     <CustomTextField
                       fullWidth
-                      value={invoiceNumber || 'INV-001'}
+                      value={invoiceNumber || ''}
+                      placeholder='Invoice number will be generated'
                       slotProps={{
                         input: {
                           disabled: true,
@@ -243,7 +235,7 @@ const AddCard = ({
                     </Typography>
                     <AppReactDatepicker
                       boxProps={{ className: 'is-full' }}
-                      selected={issuedDate}
+                      selected={issuedDate || new Date()}
                       placeholderText='YYYY-MM-DD'
                       dateFormat={'yyyy-MM-dd'}
                       onChange={date => handleDateChange('issuedDate', date)}
@@ -286,6 +278,7 @@ const AddCard = ({
                     <em>Choose a client</em>
                   </MenuItem>
                   {clients &&
+                    clients.length > 0 &&
                     clients.map(client => (
                       <MenuItem key={client.id} value={client.id}>
                         {client.name} - {client.email}
@@ -310,25 +303,24 @@ const AddCard = ({
                 ) : (
                   <div>
                     <Typography color='textSecondary'>No client selected</Typography>
+                    <Typography color='textSecondary' variant='caption'>
+                      Debug: selectedClient = {JSON.stringify(selectedClient)}
+                    </Typography>
                   </div>
                 )}
               </div>
 
-              {/* Bill To Section - Dynamic based on payment method */}
+              {/* Bill To Section - Show bank details */}
               <div className='flex flex-col gap-4'>
                 <Typography className='font-medium' color='text.primary'>
                   Bill To:
                 </Typography>
                 <div>
                   <div className='flex items-center gap-4'>
-                    <Typography className='min-is-[100px]'>Payment Method:</Typography>
-                    <Typography className='font-medium text-primary'>{paymentMethod}</Typography>
-                  </div>
-                  <div className='flex items-center gap-4'>
                     <Typography className='min-is-[100px]'>Total Due:</Typography>
                     <Typography className='font-medium text-primary'>${calculateFinalTotal().toFixed(2)}</Typography>
                   </div>
-                  {bankDetails && (
+                  {bankDetails ? (
                     <>
                       <div className='flex items-center gap-4'>
                         <Typography className='min-is-[100px]'>Bank name:</Typography>
@@ -347,6 +339,11 @@ const AddCard = ({
                         <Typography>{bankDetails.swiftCode}</Typography>
                       </div>
                     </>
+                  ) : (
+                    <div className='flex items-center gap-4'>
+                      <Typography className='min-is-[100px]'>Bank name:</Typography>
+                      <Typography color='textSecondary'>No bank account selected</Typography>
+                    </div>
                   )}
                 </div>
               </div>
@@ -368,132 +365,142 @@ const AddCard = ({
               </Typography>
             </div>
 
-            {invoiceItems.map((item, index) => (
-              <div
-                key={index}
-                className='border rounded p-4 mb-4'
-                style={{ border: '1px solid #e0e0e0', borderRadius: 8, marginBottom: 16, padding: 16 }}
-              >
-                <Grid container spacing={2} alignItems='flex-end'>
-                  {/* Service Dropdown */}
-                  <Grid size={{ xs: 12, md: 2.5 }}>
-                    <Typography className='font-medium mb-2' color='text.primary'>
-                      Service
-                    </Typography>
-                    <CustomTextField
-                      select
-                      fullWidth
-                      value={item.serviceId}
-                      onChange={e => handleItemChange(index, 'serviceId', e.target.value)}
-                    >
-                      <MenuItem value=''>
-                        <em>Select Service</em>
-                      </MenuItem>
-                      {services &&
-                        services.map(service => (
-                          <MenuItem key={service.id} value={service.id}>
-                            {service.name}
-                          </MenuItem>
-                        ))}
-                    </CustomTextField>
-                  </Grid>
-
-                  {/* Description */}
-                  <Grid size={{ xs: 12, md: 4.5 }}>
-                    <Typography className='font-medium mb-2' color='text.primary'>
-                      Description
-                    </Typography>
-                    <CustomTextField
-                      fullWidth
-                      placeholder='Service description and notes...'
-                      value={item.description}
-                      onChange={e => handleItemChange(index, 'description', e.target.value)}
-                    />
-                  </Grid>
-
-                  {/* Rate */}
-                  <Grid size={{ xs: 6, md: 1.5 }}>
-                    <Typography className='font-medium mb-2' color='text.primary'>
-                      Rate
-                    </Typography>
-                    <div className='bg-gray-50 rounded border text-center min-h-[40px] flex items-center justify-center'>
-                      <Typography variant='body1' className='font-medium'>
-                        ${item.rate || 0}
+            {invoiceItems && invoiceItems.length > 0 ? (
+              invoiceItems.map((item, index) => (
+                <div
+                  key={index}
+                  className='border rounded p-4 mb-4'
+                  style={{ border: '1px solid #e0e0e0', borderRadius: 8, marginBottom: 16, padding: 16 }}
+                >
+                  <Grid container spacing={2} alignItems='flex-end'>
+                    {/* Service Dropdown */}
+                    <Grid size={{ xs: 12, md: 2.5 }}>
+                      <Typography className='font-medium mb-2' color='text.primary'>
+                        Service
                       </Typography>
-                    </div>
-                  </Grid>
-
-                  {/* Discount */}
-                  <Grid size={{ xs: 6, md: 1.5 }}>
-                    <Typography className='font-medium mb-2' color='text.primary'>
-                      Discount
-                    </Typography>
-                    <CustomTextField
-                      type='number'
-                      fullWidth
-                      value={item.discount}
-                      onChange={e => handleItemChange(index, 'discount', parseFloat(e.target.value) || 0)}
-                      placeholder='0'
-                      InputProps={{
-                        endAdornment: <InputAdornment position='end'>%</InputAdornment>
-                      }}
-                      inputProps={{
-                        min: 0,
-                        max: 100,
-                        style: { MozAppearance: 'textfield' }
-                      }}
-                      sx={{
-                        '& input[type=number]::-webkit-outer-spin-button': {
-                          WebkitAppearance: 'none',
-                          margin: 0
-                        },
-                        '& input[type=number]::-webkit-inner-spin-button': {
-                          WebkitAppearance: 'none',
-                          margin: 0
-                        },
-                        '& input[type=number]': {
-                          MozAppearance: 'textfield'
-                        }
-                      }}
-                    />
-                  </Grid>
-
-                  {/* Total */}
-                  <Grid size={{ xs: 6, md: 1.5 }}>
-                    <Typography className='font-medium mb-2' color='text.primary'>
-                      Total
-                    </Typography>
-                    <div className='bg-primary-50 rounded border text-center min-h-[40px] flex items-center justify-center border-primary-200'>
-                      <Typography variant='h6' color='primary' className='font-semibold'>
-                        ${calculateItemTotal(item).toFixed(2)}
-                      </Typography>
-                    </div>
-                  </Grid>
-
-                  {/* Delete Button */}
-                  <Grid size={{ xs: 6, md: 0.5 }} className='flex justify-center'>
-                    <div>
-                      <IconButton
-                        onClick={() => removeInvoiceItem(index)}
-                        className='bg-red-100 hover:bg-red-200 transition-colors duration-200'
-                        size='small'
-                        sx={{
-                          backgroundColor: '#fef2f2',
-                          '&:hover': {
-                            backgroundColor: '#fecaca'
-                          },
-                          borderRadius: '8px',
-                          width: '40px',
-                          height: '40px'
-                        }}
+                      <CustomTextField
+                        select
+                        fullWidth
+                        value={item.serviceId || ''}
+                        onChange={e => handleItemChange(index, 'serviceId', e.target.value)}
                       >
-                        <i className='tabler-x text-lg text-red-600' />
-                      </IconButton>
-                    </div>
+                        <MenuItem value=''>
+                          <em>Select Service</em>
+                        </MenuItem>
+                        {services &&
+                          services.length > 0 &&
+                          services.map(service => (
+                            <MenuItem key={service.id} value={service.id}>
+                              {service.name}
+                            </MenuItem>
+                          ))}
+                      </CustomTextField>
+                    </Grid>
+
+                    {/* Description */}
+                    <Grid size={{ xs: 12, md: 4.5 }}>
+                      <Typography className='font-medium mb-2' color='text.primary'>
+                        Description
+                      </Typography>
+                      <CustomTextField
+                        fullWidth
+                        placeholder='Service description and notes...'
+                        value={item.description}
+                        onChange={e => handleItemChange(index, 'description', e.target.value)}
+                      />
+                    </Grid>
+
+                    {/* Rate */}
+                    <Grid size={{ xs: 6, md: 1.5 }}>
+                      <Typography className='font-medium mb-2' color='text.primary'>
+                        Rate
+                      </Typography>
+                      <div className='bg-gray-50 rounded border text-center min-h-[40px] flex items-center justify-center'>
+                        <Typography variant='body1' className='font-medium'>
+                          ${item.rate || 0}
+                        </Typography>
+                      </div>
+                    </Grid>
+
+                    {/* Discount */}
+                    <Grid size={{ xs: 6, md: 1.5 }}>
+                      <Typography className='font-medium mb-2' color='text.primary'>
+                        Discount
+                      </Typography>
+                      <CustomTextField
+                        type='number'
+                        fullWidth
+                        value={item.discount}
+                        onChange={e => handleItemChange(index, 'discount', parseFloat(e.target.value) || 0)}
+                        placeholder='0'
+                        InputProps={{
+                          endAdornment: <InputAdornment position='end'>%</InputAdornment>
+                        }}
+                        inputProps={{
+                          min: 0,
+                          max: 100,
+                          style: { MozAppearance: 'textfield' }
+                        }}
+                        sx={{
+                          '& input[type=number]::-webkit-outer-spin-button': {
+                            WebkitAppearance: 'none',
+                            margin: 0
+                          },
+                          '& input[type=number]::-webkit-inner-spin-button': {
+                            WebkitAppearance: 'none',
+                            margin: 0
+                          },
+                          '& input[type=number]': {
+                            MozAppearance: 'textfield'
+                          }
+                        }}
+                      />
+                    </Grid>
+
+                    {/* Total */}
+                    <Grid size={{ xs: 6, md: 1.5 }}>
+                      <Typography className='font-medium mb-2' color='text.primary'>
+                        Total
+                      </Typography>
+                      <div className='bg-primary-50 rounded border text-center min-h-[40px] flex items-center justify-center border-primary-200'>
+                        <Typography variant='h6' color='primary' className='font-semibold'>
+                          ${calculateItemTotal(item).toFixed(2)}
+                        </Typography>
+                      </div>
+                    </Grid>
+
+                    {/* Delete Button */}
+                    <Grid size={{ xs: 6, md: 0.5 }} className='flex justify-center'>
+                      <div>
+                        <IconButton
+                          onClick={() => removeInvoiceItem(index)}
+                          className='bg-red-100 hover:bg-red-200 transition-colors duration-200'
+                          size='small'
+                          sx={{
+                            backgroundColor: '#fef2f2',
+                            '&:hover': {
+                              backgroundColor: '#fecaca'
+                            },
+                            borderRadius: '8px',
+                            width: '40px',
+                            height: '40px'
+                          }}
+                        >
+                          <i className='tabler-x text-lg text-red-600' />
+                        </IconButton>
+                      </div>
+                    </Grid>
                   </Grid>
-                </Grid>
+                </div>
+              ))
+            ) : (
+              <div className='text-center p-4'>
+                <Typography color='textSecondary'>No invoice items found</Typography>
+                <Typography color='textSecondary' variant='caption'>
+                  Debug: invoiceItems = {JSON.stringify(invoiceItems)}
+                </Typography>
               </div>
-            ))}
+            )}
 
             <Grid size={{ xs: 12 }}>
               <Button
@@ -531,6 +538,7 @@ const AddCard = ({
                       <em>Select Salesperson</em>
                     </MenuItem>
                     {employees &&
+                      employees.length > 0 &&
                       employees.map(employee => (
                         <MenuItem key={employee.id} value={employee.id}>
                           {employee.name} - {employee.role}
@@ -542,8 +550,8 @@ const AddCard = ({
                 <CustomTextField
                   fullWidth
                   placeholder='Thanks for your business'
-                  label='Thanks Message'
-                  value={invoiceState.thanksMessage || ''}
+                  label='Thanks Message *'
+                  value={thanksMessage || ''}
                   onChange={e => updateInvoiceState({ thanksMessage: e.target.value })}
                   required
                 />

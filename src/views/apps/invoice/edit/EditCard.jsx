@@ -27,12 +27,13 @@ import CustomTextField from '@core/components/mui/TextField'
 // Styled Component Imports
 import AppReactDatepicker from '@/libs/styles/AppReactDatepicker'
 
-const EditCard = ({ invoiceData, id, data }) => {
+const EditCard = ({ invoiceData, id, data, clients, services, employees }) => {
   // States
-  const [selectData, setSelectData] = useState(data?.[0] || null)
-  const [count, setCount] = useState(1)
-  const [issueDate, setIssueDate] = useState(new Date(invoiceData?.issuedDate ?? ''))
-  const [dueDate, setDueDate] = useState(new Date(invoiceData?.dueDate ?? ''))
+  const [selectData, setSelectData] = useState(invoiceData?.client || null)
+  const [count, setCount] = useState(invoiceData?.items?.length || 1)
+  const [issueDate, setIssueDate] = useState(invoiceData?.issuedDate ? new Date(invoiceData.issuedDate) : new Date())
+  const [dueDate, setDueDate] = useState(invoiceData?.dueDate ? new Date(invoiceData.dueDate) : null)
+  const [invoiceItems, setInvoiceItems] = useState(invoiceData?.items || [])
 
   // Hooks
   const isBelowMdScreen = useMediaQuery(theme => theme.breakpoints.down('md'))
@@ -115,24 +116,40 @@ const EditCard = ({ invoiceData, id, data }) => {
                   <CustomTextField
                     select
                     className='is-1/2 min-is-[220px] sm:is-auto'
-                    value={selectData?.id}
+                    value={selectData?.id || ''}
                     onChange={e => {
-                      setSelectData(data?.slice(0, 5).filter(item => item.id === e.target.value)[0] || null)
+                      const selectedClient = clients?.find(client => client.id === e.target.value)
+                      setSelectData(selectedClient || null)
                     }}
                   >
-                    {data?.slice(0, 5).map((invoice, index) => (
-                      <MenuItem key={index} value={invoice.id}>
-                        {invoice.name}
+                    <MenuItem value=''>
+                      <em>Select Client</em>
+                    </MenuItem>
+                    {clients?.map((client, index) => (
+                      <MenuItem key={index} value={client.id}>
+                        {client.name} - {client.email}
                       </MenuItem>
                     ))}
                   </CustomTextField>
-                  <div>
-                    <Typography>{selectData?.name}</Typography>
-                    <Typography>{selectData?.company}</Typography>
-                    <Typography>{selectData?.address}</Typography>
-                    <Typography>{selectData?.contact}</Typography>
-                    <Typography>{selectData?.companyEmail}</Typography>
-                  </div>
+                  {selectData ? (
+                    <div>
+                      <Typography>
+                        <strong>{selectData.name}</strong>
+                      </Typography>
+                      <Typography>{selectData.email}</Typography>
+                      {selectData.phone && <Typography>{selectData.phone}</Typography>}
+                      {selectData.address && <Typography>{selectData.address}</Typography>}
+                      {selectData.city && (
+                        <Typography>
+                          {selectData.city} {selectData.postalCode} ({selectData.province})
+                        </Typography>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <Typography color='textSecondary'>No client selected</Typography>
+                    </div>
+                  )}
                 </div>
                 <div className='flex flex-col gap-4'>
                   <Typography className='font-medium' color='text.primary'>
@@ -167,7 +184,7 @@ const EditCard = ({ invoiceData, id, data }) => {
               <Divider className='border-dashed' />
             </Grid>
             <Grid size={{ xs: 12 }}>
-              {Array.from(Array(count).keys()).map((item, index) => (
+              {invoiceItems?.map((item, index) => (
                 <div
                   key={index}
                   className={classnames('repeater-item flex relative mbe-4 border rounded', {
@@ -179,26 +196,55 @@ const EditCard = ({ invoiceData, id, data }) => {
                   <Grid container spacing={5} className='m-0 p-5'>
                     <Grid size={{ xs: 12, md: 5, lg: 6 }}>
                       <Typography className='font-medium md:absolute md:-top-8' color='text.primary'>
-                        Item
+                        Service
                       </Typography>
-                      <CustomTextField select fullWidth defaultValue='App Design' className='mbe-5'>
-                        <MenuItem value='App Design'>App Design</MenuItem>
-                        <MenuItem value='App Customization'>App Customization</MenuItem>
-                        <MenuItem value='ABC Template'>ABC Template</MenuItem>
-                        <MenuItem value='App Development'>App Development</MenuItem>
+                      <CustomTextField
+                        select
+                        fullWidth
+                        value={item.serviceId || ''}
+                        className='mbe-5'
+                        onChange={e => {
+                          const updatedItems = [...invoiceItems]
+                          updatedItems[index].serviceId = e.target.value
+                          setInvoiceItems(updatedItems)
+                        }}
+                      >
+                        <MenuItem value=''>
+                          <em>Select Service</em>
+                        </MenuItem>
+                        {services?.map((service, idx) => (
+                          <MenuItem key={idx} value={service.id}>
+                            {service.name}
+                          </MenuItem>
+                        ))}
                       </CustomTextField>
-                      <CustomTextField rows={2} fullWidth multiline defaultValue='Customization & Bug Fixes' />
+                      <CustomTextField
+                        rows={2}
+                        fullWidth
+                        multiline
+                        value={item.description || ''}
+                        onChange={e => {
+                          const updatedItems = [...invoiceItems]
+                          updatedItems[index].description = e.target.value
+                          setInvoiceItems(updatedItems)
+                        }}
+                      />
                     </Grid>
                     <Grid size={{ xs: 12, md: 3, lg: 2 }}>
                       <Typography className='font-medium md:absolute md:-top-8' color='text.primary'>
-                        Cost
+                        Rate
                       </Typography>
                       <CustomTextField
                         {...(isBelowMdScreen && { fullWidth: true })}
                         type='number'
-                        placeholder='24'
-                        defaultValue='24'
+                        placeholder='0'
+                        value={item.rate || 0}
                         className='mbe-5'
+                        onChange={e => {
+                          const updatedItems = [...invoiceItems]
+                          updatedItems[index].rate = parseFloat(e.target.value) || 0
+                          setInvoiceItems(updatedItems)
+                        }}
                         slotProps={{
                           input: {
                             inputProps: { min: 0 }
@@ -211,46 +257,47 @@ const EditCard = ({ invoiceData, id, data }) => {
                         </Typography>
                         <div className='flex gap-2'>
                           <Typography component='span' color='text.primary'>
-                            0%
+                            {item.discount || 0}%
                           </Typography>
-                          <Tooltip title='Tax 1' placement='top'>
-                            <Typography component='span' color='text.primary'>
-                              0%
-                            </Typography>
-                          </Tooltip>
-                          <Tooltip title='Tax 2' placement='top'>
-                            <Typography component='span' color='text.primary'>
-                              0%
-                            </Typography>
-                          </Tooltip>
                         </div>
                       </div>
                     </Grid>
                     <Grid size={{ xs: 12, md: 2 }}>
                       <Typography className='font-medium md:absolute md:-top-8' color='text.primary'>
-                        Hours
+                        Discount
                       </Typography>
                       <CustomTextField
                         {...(isBelowMdScreen && { fullWidth: true })}
                         type='number'
-                        placeholder='1'
-                        defaultValue='1'
+                        placeholder='0'
+                        value={item.discount || 0}
+                        onChange={e => {
+                          const updatedItems = [...invoiceItems]
+                          updatedItems[index].discount = parseFloat(e.target.value) || 0
+                          setInvoiceItems(updatedItems)
+                        }}
                         slotProps={{
                           input: {
-                            inputProps: { min: 0 }
+                            inputProps: { min: 0, max: 100 }
                           }
                         }}
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 2 }}>
                       <Typography className='font-medium md:absolute md:-top-8' color='text.primary'>
-                        Price
+                        Total
                       </Typography>
-                      <Typography>$24.00</Typography>
+                      <Typography>${item.total || 0}</Typography>
                     </Grid>
                   </Grid>
                   <div className='flex flex-col justify-start border-is'>
-                    <IconButton size='small' onClick={deleteForm}>
+                    <IconButton
+                      size='small'
+                      onClick={() => {
+                        const updatedItems = invoiceItems.filter((_, i) => i !== index)
+                        setInvoiceItems(updatedItems)
+                      }}
+                    >
                       <i className='tabler-x text-2xl text-actionActive' />
                     </IconButton>
                   </div>
@@ -260,10 +307,21 @@ const EditCard = ({ invoiceData, id, data }) => {
                 <Button
                   size='small'
                   variant='contained'
-                  onClick={() => setCount(count + 1)}
+                  onClick={() => {
+                    setInvoiceItems([
+                      ...invoiceItems,
+                      {
+                        serviceId: '',
+                        description: '',
+                        rate: 0,
+                        discount: 0,
+                        total: 0
+                      }
+                    ])
+                  }}
                   startIcon={<i className='tabler-plus' />}
                 >
-                  Add Item
+                  Add Service
                 </Button>
               </Grid>
             </Grid>
@@ -277,34 +335,46 @@ const EditCard = ({ invoiceData, id, data }) => {
                     <Typography className='font-medium' color='text.primary'>
                       Salesperson:
                     </Typography>
-                    <CustomTextField defaultValue='Tommy Shelby' />
+                    <CustomTextField select value={invoiceData?.employee?.id || ''}>
+                      <MenuItem value=''>
+                        <em>Select Salesperson</em>
+                      </MenuItem>
+                      {employees?.map((employee, idx) => (
+                        <MenuItem key={idx} value={employee.id}>
+                          {employee.name} - {employee.role}
+                        </MenuItem>
+                      ))}
+                    </CustomTextField>
                   </div>
-                  <CustomTextField defaultValue='Thanks for your business' />
+                  <CustomTextField
+                    value={invoiceData?.thanksMessage || 'Thanks for your business'}
+                    label='Thanks Message'
+                  />
                 </div>
                 <div className='min-is-[200px]'>
                   <div className='flex items-center justify-between'>
                     <Typography>Subtotal:</Typography>
                     <Typography className='font-medium' color='text.primary'>
-                      $1800
+                      ${invoiceData?.subTotalAmount || 0}
                     </Typography>
                   </div>
                   <div className='flex items-center justify-between'>
                     <Typography>Discount:</Typography>
                     <Typography className='font-medium' color='text.primary'>
-                      $28
+                      ${invoiceData?.discountAmount || 0}
                     </Typography>
                   </div>
                   <div className='flex items-center justify-between'>
-                    <Typography>Tax:</Typography>
+                    <Typography>Tax ({invoiceData?.taxRate || 21}%):</Typography>
                     <Typography className='font-medium' color='text.primary'>
-                      21%
+                      ${invoiceData?.taxAmount || 0}
                     </Typography>
                   </div>
                   <Divider className='mlb-2' />
                   <div className='flex items-center justify-between'>
                     <Typography>Total:</Typography>
                     <Typography className='font-medium' color='text.primary'>
-                      $1690
+                      ${invoiceData?.totalAmount || 0}
                     </Typography>
                   </div>
                 </div>

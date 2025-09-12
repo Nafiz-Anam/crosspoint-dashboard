@@ -202,59 +202,84 @@ const AddActions = ({ invoiceState, updateInvoiceState, bankAccounts = [], isEdi
       const finalBranchId = branchId || selectedClient?.branchId
       const finalEmployeeId = employeeId || selectedSalesperson?.id
 
-      // Prepare invoice payload
-      const payload = {
-        clientId: selectedClient.id,
-        branchId: finalBranchId,
-        employeeId: finalEmployeeId,
-        invoiceNumber: currentInvoiceNumber,
-        dueDate: new Date(dueDate).toISOString(),
-        thanksMessage: thanksMessage || 'Thank you for your business!',
-        notes: notes || null,
-        paymentTerms: paymentTerms ? paymentTermsText : null,
-        taxRate: taxRate || 0,
-        discountAmount: discountAmount || 0,
-        paymentMethod: selectedBankAccount ? 'Bank Transfer' : 'Internet Banking',
-        bankAccountId: selectedBankAccount || null,
-        items: invoiceItems.map(item => ({
-          serviceId: item.serviceId,
-          description: item.description,
-          rate: parseFloat(item.rate),
-          discount: parseFloat(item.discount || 0)
-        }))
-      }
+      if (isEdit) {
+        // For edit mode, we need to make two separate API calls
+        // 1. Update basic invoice details
+        const invoicePayload = {
+          clientId: selectedClient.id,
+          branchId: finalBranchId,
+          employeeId: finalEmployeeId,
+          invoiceNumber: currentInvoiceNumber,
+          dueDate: new Date(dueDate).toISOString(),
+          thanksMessage: thanksMessage || 'Thank you for your business!',
+          notes: notes || null,
+          paymentTerms: paymentTerms ? paymentTermsText : null,
+          taxRate: taxRate || 0,
+          discountAmount: discountAmount || 0,
+          paymentMethod: selectedBankAccount ? 'Bank Transfer' : 'Internet Banking',
+          bankName: bankDetails?.bankName || null,
+          bankCountry: bankDetails?.country || null,
+          bankIban: bankDetails?.iban || null,
+          bankSwiftCode: bankDetails?.swiftCode || null
+        }
 
-      const apiUrl = isEdit
-        ? `${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoiceId}`
-        : `${process.env.NEXT_PUBLIC_API_URL}/invoices`
-      const method = isEdit ? 'PATCH' : 'POST'
+        // 2. Update invoice items
+        const itemsPayload = {
+          items: invoiceItems.map(item => ({
+            serviceId: item.serviceId,
+            description: item.description,
+            rate: parseFloat(item.rate),
+            discount: parseFloat(item.discount || 0)
+          })),
+          taxRate: taxRate || 0,
+          discountAmount: discountAmount || 0
+        }
 
-      console.log(`Making API call to: ${apiUrl} with method: ${method}`)
-      console.log('Payload:', payload)
+        console.log('Updating invoice details:', invoicePayload)
+        console.log('Updating invoice items:', itemsPayload)
 
-      const response = await fetch(apiUrl, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        },
-        body: JSON.stringify(payload)
-      })
+        // Update invoice details
+        const invoiceResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoiceId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          },
+          body: JSON.stringify(invoicePayload)
+        })
 
-      const responseData = await response.json()
+        if (!invoiceResponse.ok) {
+          const errorData = await invoiceResponse.json()
+          throw new Error(errorData.message || `Failed to update invoice: ${invoiceResponse.status}`)
+        }
 
-      if (response.ok) {
+        // Update invoice items
+        const itemsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoiceId}/items`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          },
+          body: JSON.stringify(itemsPayload)
+        })
+
+        if (!itemsResponse.ok) {
+          const errorData = await itemsResponse.json()
+          throw new Error(errorData.message || `Failed to update invoice items: ${itemsResponse.status}`)
+        }
+
+        const responseData = await itemsResponse.json()
         setApiSuccess(true)
-        setSaveStatus(isEdit ? 'updated' : 'success')
-        const invoiceId = responseData.data.invoice.id
+        setSaveStatus('updated')
         setCreatedInvoiceId(invoiceId)
-        console.log(`Invoice ${isEdit ? 'updated' : 'created'} successfully:`, responseData)
+        console.log('Invoice updated successfully:', responseData)
 
-        // Update invoice state with created/updated invoice data
+        // Update invoice state with updated invoice data
         updateInvoiceState({
           invoiceId: invoiceId,
-          invoiceNumber: responseData.data.invoice.invoiceNumber
+          invoiceNumber: currentInvoiceNumber
         })
 
         // Clear success message after 3 seconds
@@ -263,11 +288,68 @@ const AddActions = ({ invoiceState, updateInvoiceState, bankAccounts = [], isEdi
           setApiSuccess(false)
         }, 3000)
       } else {
-        const errorMessage =
-          responseData.message || `Failed to ${isEdit ? 'update' : 'create'} invoice: ${response.status}`
-        setApiError(errorMessage)
-        setSaveStatus('error')
-        console.error('API Error:', responseData)
+        // For create mode, use the original single API call
+        const payload = {
+          clientId: selectedClient.id,
+          branchId: finalBranchId,
+          employeeId: finalEmployeeId,
+          invoiceNumber: currentInvoiceNumber,
+          dueDate: new Date(dueDate).toISOString(),
+          thanksMessage: thanksMessage || 'Thank you for your business!',
+          notes: notes || null,
+          paymentTerms: paymentTerms ? paymentTermsText : null,
+          taxRate: taxRate || 0,
+          discountAmount: discountAmount || 0,
+          paymentMethod: selectedBankAccount ? 'Bank Transfer' : 'Internet Banking',
+          bankAccountId: selectedBankAccount || null,
+          items: invoiceItems.map(item => ({
+            serviceId: item.serviceId,
+            description: item.description,
+            rate: parseFloat(item.rate),
+            discount: parseFloat(item.discount || 0)
+          }))
+        }
+
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/invoices`
+        console.log(`Making API call to: ${apiUrl}`)
+        console.log('Payload:', payload)
+
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          },
+          body: JSON.stringify(payload)
+        })
+
+        const responseData = await response.json()
+
+        if (response.ok) {
+          setApiSuccess(true)
+          setSaveStatus('success')
+          const invoiceId = responseData.data.invoice.id
+          setCreatedInvoiceId(invoiceId)
+          console.log('Invoice created successfully:', responseData)
+
+          // Update invoice state with created invoice data
+          updateInvoiceState({
+            invoiceId: invoiceId,
+            invoiceNumber: responseData.data.invoice.invoiceNumber
+          })
+
+          // Clear success message after 3 seconds
+          setTimeout(() => {
+            setSaveStatus('')
+            setApiSuccess(false)
+          }, 3000)
+        } else {
+          const errorMessage = responseData.message || `Failed to create invoice: ${response.status}`
+          setApiError(errorMessage)
+          setSaveStatus('error')
+          console.error('API Error:', responseData)
+        }
       }
     } catch (error) {
       const errorMessage = error.message || 'Network error or unexpected issue. Please try again.'
@@ -361,6 +443,9 @@ const AddActions = ({ invoiceState, updateInvoiceState, bankAccounts = [], isEdi
 
   const isSaved = createdInvoiceId && saveStatus !== 'saving'
 
+  // In edit mode, we should allow saving even if the invoice was previously saved
+  const canSave = isEdit ? isReadyToSave : isReadyToSave && !isSaved
+
   // Button styling based on state
   const getButtonProps = buttonType => {
     switch (buttonType) {
@@ -402,12 +487,12 @@ const AddActions = ({ invoiceState, updateInvoiceState, bankAccounts = [], isEdi
         return {
           variant: 'tonal',
           color: isSaved ? 'success' : 'secondary',
-          disabled: !isReadyToSave || isSaved || isLoading,
+          disabled: !canSave || isLoading,
           sx: {
-            backgroundColor: isSaved ? '#e8f5e8' : !isReadyToSave ? '#f5f5f5' : '#e3f2fd',
-            color: isSaved ? '#2e7d32' : !isReadyToSave ? '#bdbdbd' : '#1976d2',
+            backgroundColor: isSaved ? '#e8f5e8' : !canSave ? '#f5f5f5' : '#e3f2fd',
+            color: isSaved ? '#2e7d32' : !canSave ? '#bdbdbd' : '#1976d2',
             '&:hover': {
-              backgroundColor: isSaved ? '#e8f5e8' : !isReadyToSave ? '#f5f5f5' : '#bbdefb'
+              backgroundColor: isSaved ? '#e8f5e8' : !canSave ? '#f5f5f5' : '#bbdefb'
             },
             '&:disabled': {
               backgroundColor: isSaved ? '#e8f5e8' : '#f5f5f5',
@@ -455,7 +540,15 @@ const AddActions = ({ invoiceState, updateInvoiceState, bankAccounts = [], isEdi
 
             {/* Save Button */}
             <Button fullWidth {...getButtonProps('save')} className='capitalize' onClick={handleSaveInvoice}>
-              {saveStatus === 'saving' ? 'Saving...' : isSaved ? 'Saved' : isEdit ? 'Update Invoice' : 'Save'}
+              {saveStatus === 'saving'
+                ? 'Saving...'
+                : saveStatus === 'updated'
+                  ? 'Updated'
+                  : isSaved && !isEdit
+                    ? 'Saved'
+                    : isEdit
+                      ? 'Update Invoice'
+                      : 'Save'}
             </Button>
 
             {/* Status Messages */}

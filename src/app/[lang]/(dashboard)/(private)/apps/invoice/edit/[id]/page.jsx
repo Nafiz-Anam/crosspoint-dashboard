@@ -31,6 +31,7 @@ const EditPage = () => {
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [forceRender, setForceRender] = useState(0)
 
   // SHARED STATE - This connects AddCard and AddActions (same as create flow)
   const [invoiceState, setInvoiceState] = useState({
@@ -98,27 +99,38 @@ const EditPage = () => {
         setServices(servicesResponse.data || [])
         setEmployees(employeesResponse.data || employeesResponse || [])
 
-        // Populate invoice state with existing data
-        if (invoiceResponse?.invoice) {
-          const invoice = invoiceResponse.invoice
-          // console.log('Populating invoice state with data:', invoice)
-          // console.log('Invoice client:', invoice.client)
-          // console.log('Invoice items:', invoice.items)
-          // console.log('Invoice employee:', invoice.employee)
+        console.log('Fetched data:')
+        console.log('Invoice:', invoiceResponse)
+        console.log('Clients:', clientsResponse.data?.clients)
+        console.log('Services:', servicesResponse.data)
+        console.log('Employees:', employeesResponse.data)
+        console.log('Bank Accounts:', bankAccountsResponse.data?.bankAccounts)
 
+        // Populate invoice state with existing data
+        if (invoiceResponse) {
+          console.log('Invoice response bankAccount:', invoiceResponse.bankAccount)
+          console.log('Invoice response bankAccountId:', invoiceResponse.bankAccountId)
+
+          // Find bank account details from the fetched bank accounts
+          const selectedBankAccount = bankAccountsResponse.data?.bankAccounts?.find(
+            account => account.id === invoiceResponse.bankAccountId
+          )
+          console.log('Found bank account:', selectedBankAccount)
+
+          // Create the populated state
           const populatedState = {
-            selectedClient: invoice.client,
-            selectedSalesperson: invoice.employee,
-            issuedDate: invoice.issuedDate ? new Date(invoice.issuedDate) : null,
-            dueDate: invoice.dueDate ? new Date(invoice.dueDate) : null,
-            invoiceNumber: invoice.invoiceNumber,
+            selectedClient: invoiceResponse.client,
+            selectedSalesperson: invoiceResponse.employee,
+            issuedDate: invoiceResponse.issuedDate ? new Date(invoiceResponse.issuedDate) : new Date(),
+            dueDate: invoiceResponse.dueDate ? new Date(invoiceResponse.dueDate) : null,
+            invoiceNumber: invoiceResponse.invoiceNumber,
             invoiceItems:
-              invoice.items?.length > 0
-                ? invoice.items.map(item => ({
+              invoiceResponse.items?.length > 0
+                ? invoiceResponse.items.map(item => ({
                     serviceId: item.serviceId,
                     description: item.description,
                     rate: item.rate,
-                    discount: item.discount,
+                    discount: item.discount || 0,
                     total: item.total
                   }))
                 : [
@@ -129,30 +141,36 @@ const EditPage = () => {
                       discount: 0
                     }
                   ],
-            paymentTerms: !!invoice.paymentTerms,
-            paymentTermsText: invoice.paymentTerms || 'Net 30 days',
-            clientNotes: !!invoice.notes,
-            clientNotesText: invoice.notes || '',
+            paymentTerms: !!invoiceResponse.paymentTerms,
+            paymentTermsText: invoiceResponse.paymentTerms || 'Net 30 days',
+            clientNotes: !!invoiceResponse.notes,
+            clientNotesText: invoiceResponse.notes || '',
             paymentStub: false,
-            selectedBankAccount: invoice.bankAccountId,
-            bankDetails: invoice.bankAccount
+            selectedBankAccount: invoiceResponse.bankAccountId,
+            bankDetails: selectedBankAccount
               ? {
-                  bankName: invoice.bankAccount.bankName,
-                  country: invoice.bankAccount.bankCountry,
-                  iban: invoice.bankAccount.bankIban,
-                  swiftCode: invoice.bankAccount.bankSwiftCode
+                  bankName: selectedBankAccount.bankName,
+                  country: selectedBankAccount.bankCountry,
+                  iban: selectedBankAccount.bankIban,
+                  swiftCode: selectedBankAccount.bankSwiftCode
                 }
               : null,
-            employeeId: invoice.employeeId,
-            branchId: invoice.branchId,
-            notes: invoice.notes || '',
-            thanksMessage: invoice.thanksMessage || 'Thank you for your business!',
-            taxRate: invoice.taxRate || 0,
-            discountAmount: invoice.discountAmount || 0
+            employeeId: invoiceResponse.employeeId,
+            branchId: invoiceResponse.branchId,
+            notes: invoiceResponse.notes || '',
+            thanksMessage: invoiceResponse.thanksMessage || 'Thank you for your business!',
+            taxRate: invoiceResponse.taxRate || 21,
+            discountAmount: invoiceResponse.discountAmount || 0
           }
 
-          // console.log('Setting invoice state to:', populatedState)
+          console.log('Populated state bankDetails:', populatedState.bankDetails)
+          console.log('Populated state selectedBankAccount:', populatedState.selectedBankAccount)
+
+          // Set the state
           setInvoiceState(populatedState)
+
+          // Force re-render
+          setForceRender(prev => prev + 1)
         }
       } catch (err) {
         console.error('Error fetching data:', err)
@@ -169,8 +187,11 @@ const EditPage = () => {
 
   // Update function passed to both components
   const updateInvoiceState = updates => {
+    console.log('updateInvoiceState called with:', updates)
     setInvoiceState(prev => {
+      console.log('Previous state:', prev)
       const newState = { ...prev, ...updates }
+      console.log('New state:', newState)
 
       // When bank account is selected, update bank details
       if (updates.selectedBankAccount) {
@@ -190,11 +211,15 @@ const EditPage = () => {
   }
 
   // Debug: Monitor invoiceState changes
-  // useEffect(() => {
-  //   console.log('Invoice state changed:', invoiceState)
-  //   console.log('Selected client in state:', invoiceState.selectedClient)
-  //   console.log('Invoice items in state:', invoiceState.invoiceItems)
-  // }, [invoiceState])
+  useEffect(() => {
+    console.log('Invoice state changed:', invoiceState)
+    console.log('Selected client in state:', invoiceState.selectedClient)
+    console.log('Invoice items in state:', invoiceState.invoiceItems)
+    console.log('Invoice number in state:', invoiceState.invoiceNumber)
+    console.log('Thanks message in state:', invoiceState.thanksMessage)
+    console.log('Issued date in state:', invoiceState.issuedDate)
+    console.log('Due date in state:', invoiceState.dueDate)
+  }, [invoiceState])
 
   if (loading) {
     return (
@@ -207,6 +232,12 @@ const EditPage = () => {
       </Grid>
     )
   }
+
+  // Debug: Check if we have data before rendering
+  console.log('About to render AddCard with invoiceState:', invoiceState)
+  console.log('Has selectedClient:', !!invoiceState.selectedClient)
+  console.log('Has invoiceNumber:', !!invoiceState.invoiceNumber)
+  console.log('Force render count:', forceRender)
 
   if (error || !invoiceData) {
     return (

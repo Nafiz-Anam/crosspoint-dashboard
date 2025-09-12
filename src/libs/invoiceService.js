@@ -81,6 +81,8 @@ class InvoiceService {
 
       const result = await response.json()
       console.log('Invoice data received:', result)
+      console.log('Invoice data structure:', result.data)
+      console.log('Invoice object:', result.data?.invoice)
       return result.data.invoice
     } catch (error) {
       console.error('Error fetching invoice:', error)
