@@ -15,6 +15,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 import Chip from '@mui/material/Chip'
 import classnames from 'classnames'
+import OptionMenu from '@core/components/option-menu'
 import { rankItem } from '@tanstack/match-sorter-utils' // Added missing import
 import {
   createColumnHelper,
@@ -290,17 +291,37 @@ const ClientListTable = () => {
         header: 'Action',
         cell: ({ row }) => (
           <div className='flex items-center'>
-            <IconButton onClick={() => handleDeleteClient(row.original.id)}>
-              <i className='tabler-trash text-textSecondary' />
-            </IconButton>
-            <IconButton onClick={() => handleEditClick(row.original)}>
-              <i className='tabler-edit text-textSecondary' />
-            </IconButton>
-            <IconButton>
-              <Link href={getLocalizedUrl(`/apps/client/view/${row.original.id}`, locale)} className='flex'>
-                <i className='tabler-eye text-textSecondary' />
-              </Link>
-            </IconButton>
+            <OptionMenu
+              iconButtonProps={{ size: 'medium' }}
+              iconClassName='text-textSecondary'
+              options={[
+                {
+                  text: 'View',
+                  icon: 'tabler-eye',
+                  menuItemProps: {
+                    component: Link,
+                    href: getLocalizedUrl(`/apps/client/view/${row.original.id}`, locale),
+                    className: 'flex items-center gap-2 text-textSecondary'
+                  }
+                },
+                {
+                  text: 'Edit',
+                  icon: 'tabler-edit',
+                  menuItemProps: {
+                    className: 'flex items-center gap-2 text-textSecondary',
+                    onClick: () => handleEditClick(row.original)
+                  }
+                },
+                {
+                  text: 'Delete',
+                  icon: 'tabler-trash',
+                  menuItemProps: {
+                    className: 'flex items-center gap-2 text-textSecondary',
+                    onClick: () => handleDeleteClient(row.original.id)
+                  }
+                }
+              ]}
+            />
           </div>
         ),
         enableSorting: false
@@ -331,7 +352,7 @@ const ClientListTable = () => {
   return (
     <>
       <Card>
-        <CardHeader title='Client Filters' className='pbe-4' />
+        <CardHeader title='Client Management' className='pbe-4' />
         <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
           {/* Status Filter */}
           <CustomTextField

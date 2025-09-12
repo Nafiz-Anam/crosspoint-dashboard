@@ -12,35 +12,90 @@ import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Divider from '@mui/material/Divider'
 import { useTheme } from '@mui/material/styles'
+import CircularProgress from '@mui/material/CircularProgress'
+import Alert from '@mui/material/Alert'
 
 // Styled Component Imports
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'))
 
-const series = [
-  {
-    name: 'Daily Earnings',
-    data: [2800, 3200, 2950, 3800, 4200, 3650, 4500]
-  }
-]
-
-const LineAreaDailySalesChart = () => {
+const LineAreaDailySalesChart = ({ data, loading, error }) => {
   // Hook
   const theme = useTheme()
+
+  // Handle loading and error states
+  if (loading) {
+    return (
+      <Card className='h-[100%] flex flex-col justify-center items-center'>
+        <CircularProgress />
+        <Typography variant='body2' sx={{ mt: 2 }}>
+          Loading dashboard data...
+        </Typography>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card className='h-[100%] flex flex-col justify-center items-center'>
+        <Alert severity='error' sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Card>
+    )
+  }
+
+  // Prepare chart data
+  const weeklyEarnings = data?.weeklyEarnings || {}
+  const chartData = weeklyEarnings.chartData || [0, 0, 0, 0, 0, 0, 0]
+  const weeklyTotal = weeklyEarnings.weeklyTotal || 0
+  const weeklyAverage = weeklyEarnings.weeklyAverage || 0
+  const growthPercentage = weeklyEarnings.growthPercentage || 0
+
+  const series = [
+    {
+      name: 'Daily Earnings',
+      data: chartData
+    }
+  ]
 
   const options = {
     chart: {
       parentHeightOffset: 0,
       toolbar: { show: false },
-      sparkline: { enabled: true },
+      sparkline: { enabled: false },
       height: 90
     },
     tooltip: {
       enabled: true,
-      x: { show: false },
-      y: {
-        formatter: val => `$${val.toLocaleString()}`
+      shared: false,
+      intersect: false,
+      x: {
+        show: true,
+        formatter: (val, { dataPointIndex }) => {
+          const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+          return days[dataPointIndex] || `Day ${dataPointIndex + 1}`
+        }
       },
-      marker: { show: false }
+      y: {
+        formatter: val =>
+          `Daily Earnings: $${val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+      },
+      marker: { show: true },
+      style: {
+        fontSize: '12px',
+        fontFamily: theme.typography.fontFamily
+      },
+      custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        const day = days[dataPointIndex] || `Day ${dataPointIndex + 1}`
+        const value = series[seriesIndex][dataPointIndex]
+        return `
+          <div style="padding: 8px 12px; background: white; border: 1px solid #e0e0e0; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <div style="font-weight: 600; margin-bottom: 4px;">${day}</div>
+            <div style="color: #666;">Daily Earnings: $${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+          </div>
+        `
+      }
     },
     dataLabels: { enabled: false },
     stroke: {
@@ -48,12 +103,14 @@ const LineAreaDailySalesChart = () => {
       curve: 'smooth'
     },
     grid: {
-      show: false,
+      show: true,
+      strokeDashArray: 3,
+      borderColor: 'var(--mui-palette-divider)',
       padding: {
-        top: 0,
-        bottom: 0,
-        left: 5,
-        right: 5
+        top: 10,
+        bottom: 10,
+        left: 10,
+        right: 10
       }
     },
     fill: {
@@ -93,11 +150,30 @@ const LineAreaDailySalesChart = () => {
       }
     },
     xaxis: {
-      labels: { show: false },
+      categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      labels: {
+        show: true,
+        style: {
+          fontSize: '11px',
+          colors: 'var(--mui-palette-text-disabled)',
+          fontFamily: theme.typography.fontFamily
+        }
+      },
       axisTicks: { show: false },
       axisBorder: { show: false }
     },
-    yaxis: { show: false }
+    yaxis: {
+      show: true,
+      labels: {
+        show: true,
+        formatter: val => `$${val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+        style: {
+          fontSize: '11px',
+          colors: 'var(--mui-palette-text-disabled)',
+          fontFamily: theme.typography.fontFamily
+        }
+      }
+    }
   }
 
   return (
@@ -118,14 +194,14 @@ const LineAreaDailySalesChart = () => {
               mb: 1
             }}
           >
-            $3,457
+            ${weeklyAverage.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </Typography>
           <Chip
-            label='↗ +12.5% vs last month'
+            label={`↗ ${growthPercentage >= 0 ? '+' : ''}${growthPercentage.toFixed(1)}% vs last week`}
             size='small'
             sx={{
-              bgcolor: theme.palette.success.light + '20',
-              color: theme.palette.success.main,
+              bgcolor: growthPercentage >= 0 ? theme.palette.success.light + '20' : theme.palette.error.light + '20',
+              color: growthPercentage >= 0 ? theme.palette.success.main : theme.palette.error.main,
               fontWeight: 600,
               fontSize: '0.75rem'
             }}
@@ -139,41 +215,41 @@ const LineAreaDailySalesChart = () => {
 
         <Divider sx={{ mb: 2 }} />
 
-        {/* Additional Law Firm Metrics */}
+        {/* Additional Business Metrics */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant='body2' color='text.secondary'>
-              Billable Hours Today
+              Total Invoices This Week
             </Typography>
             <Typography variant='body2' fontWeight={600}>
-              32.5 hrs
+              {data?.stats?.overview?.totalInvoices || 0} invoices
             </Typography>
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant='body2' color='text.secondary'>
-              Cases Closed This Week
+              Paid Invoices
             </Typography>
-            <Typography variant='body2' fontWeight={600}>
-              7 cases
+            <Typography variant='body2' fontWeight={600} color='success.main'>
+              {data?.stats?.invoiceStatus?.paid || 0} paid
             </Typography>
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant='body2' color='text.secondary'>
-              Outstanding Invoices
+              Unpaid Invoices
             </Typography>
             <Typography variant='body2' fontWeight={600} color='warning.main'>
-              $18,950
+              {data?.stats?.invoiceStatus?.unpaid || 0} unpaid
             </Typography>
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant='body2' color='text.secondary'>
-              New Clients This Month
+              Overdue Invoices
             </Typography>
-            <Typography variant='body2' fontWeight={600} color='primary.main'>
-              12 clients
+            <Typography variant='body2' fontWeight={600} color='error.main'>
+              {data?.stats?.invoiceStatus?.overdue || 0} overdue
             </Typography>
           </Box>
         </Box>

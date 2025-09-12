@@ -15,6 +15,7 @@ import Typography from '@mui/material/Typography'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import TablePagination from '@mui/material/TablePagination'
+import Chip from '@mui/material/Chip'
 
 // Third-party Imports
 import classnames from 'classnames'
@@ -93,11 +94,13 @@ const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...prop
 
 // Vars
 const invoiceStatusObj = {
-  Sent: { color: 'secondary', icon: 'tabler-send-2' },
   Paid: { color: 'success', icon: 'tabler-check' },
+  Unpaid: { color: 'warning', icon: 'tabler-clock' },
+  'Past Due': { color: 'error', icon: 'tabler-alert-circle' },
+  Cancelled: { color: 'default', icon: 'tabler-x' },
+  Sent: { color: 'info', icon: 'tabler-send-2' },
   Draft: { color: 'primary', icon: 'tabler-mail' },
   'Partial Payment': { color: 'warning', icon: 'tabler-chart-pie-2' },
-  'Past Due': { color: 'error', icon: 'tabler-alert-circle' },
   Downloaded: { color: 'info', icon: 'tabler-arrow-down' }
 }
 
@@ -114,82 +117,71 @@ const MinimalInvoiceListTable = ({ invoiceData }) => {
 
   const columns = useMemo(
     () => [
-      columnHelper.accessor('id', {
-        header: '#',
+      columnHelper.accessor('invoiceId', {
+        header: 'Invoice ID',
         cell: ({ row }) => (
           <Typography
             component={Link}
             href={getLocalizedUrl(`apps/invoice/preview/${row.original.id}`, locale)}
             color='primary.main'
-          >{`#${row.original.id}`}</Typography>
+            className='font-medium'
+          >
+            {row.original.invoiceId || `#${row.original.id.slice(-8)}`}
+          </Typography>
         )
       }),
       columnHelper.accessor('name', {
-        header: 'Client',
+        header: 'Client Name',
         cell: ({ row }) => (
-          <div className='flex items-center gap-3'>
-            {getAvatar({ avatar: row.original.avatar, name: row.original.name })}
-            <div className='flex flex-col'>
-              <Typography className='font-medium' color='text.primary'>
-                {row.original.name}
-              </Typography>
-              <Typography variant='body2'>{row.original.companyEmail}</Typography>
-            </div>
-          </div>
+          <Typography className='font-medium' color='text.primary'>
+            {row.original.name}
+          </Typography>
         )
       }),
-      
-      columnHelper.accessor('total', {
-        header: 'Total',
-        cell: ({ row }) => <Typography>{`$${row.original.total}`}</Typography>
+      columnHelper.accessor('companyEmail', {
+        header: 'Email',
+        cell: ({ row }) => (
+          <Typography variant='body2' color='text.secondary'>
+            {row.original.companyEmail}
+          </Typography>
+        )
       }),
-      columnHelper.accessor('issuedDate', {
-        header: 'Issued Date',
-        cell: ({ row }) => <Typography>{row.original.issuedDate}</Typography>
+      columnHelper.accessor('serviceName', {
+        header: 'Service',
+        cell: ({ row }) => <Typography variant='body2'>{row.original.serviceName || 'N/A'}</Typography>
+      }),
+      columnHelper.accessor('total', {
+        header: 'Amount',
+        cell: ({ row }) => (
+          <Typography className='font-medium' color='text.primary'>
+            ${row.original.total?.toLocaleString() || '0'}
+          </Typography>
+        )
       }),
       columnHelper.accessor('invoiceStatus', {
         header: 'Status',
         cell: ({ row }) => (
-          <Tooltip
-            title={
-              <div>
-                <Typography variant='body2' component='span' className='text-inherit'>
-                  {row.original.invoiceStatus}
-                </Typography>
-                <br />
-                <Typography variant='body2' component='span' className='text-inherit'>
-                  Balance:
-                </Typography>{' '}
-                {row.original.balance}
-                <br />
-                <Typography variant='body2' component='span' className='text-inherit'>
-                  Due Date:
-                </Typography>{' '}
-                {row.original.dueDate}
-              </div>
-            }
-          >
-            <CustomAvatar skin='light' color={invoiceStatusObj[row.original.invoiceStatus].color} size={28}>
-              <i className={classnames('bs-4 is-4', invoiceStatusObj[row.original.invoiceStatus].icon)} />
-            </CustomAvatar>
-          </Tooltip>
+          <Chip
+            label={row.original.invoiceStatus}
+            color={invoiceStatusObj[row.original.invoiceStatus]?.color || 'default'}
+            variant='filled'
+            size='small'
+          />
         )
       }),
-      
+      columnHelper.accessor('dueDate', {
+        header: 'Due Date',
+        cell: ({ row }) => <Typography variant='body2'>{row.original.dueDate}</Typography>
+      }),
       columnHelper.accessor('action', {
-        header: 'Action',
+        header: 'Actions',
         cell: ({ row }) => (
-          <div className='flex items-center'>
-            <Tooltip title="View">
-              <IconButton>
+          <div className='flex items-center gap-2'>
+            <Tooltip title='View Invoice'>
+              <IconButton size='small'>
                 <Link href={getLocalizedUrl(`apps/invoice/preview/${row.original.id}`, locale)} className='flex'>
                   <i className='tabler-eye text-textSecondary' />
                 </Link>
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Download">
-              <IconButton>
-                <i className='tabler-download text-textSecondary' />
               </IconButton>
             </Tooltip>
           </div>
@@ -239,7 +231,7 @@ const MinimalInvoiceListTable = ({ invoiceData }) => {
           />
         }
       />
-      
+
       <div className='overflow-x-auto'>
         <table className={tableStyles.table}>
           <thead>
@@ -293,7 +285,7 @@ const MinimalInvoiceListTable = ({ invoiceData }) => {
           )}
         </table>
       </div>
-      
+
       <TablePagination
         rowsPerPageOptions={[5, 7, 10]}
         component={() => <TablePaginationComponent table={table} />}

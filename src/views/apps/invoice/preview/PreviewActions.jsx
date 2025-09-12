@@ -47,6 +47,7 @@ const PreviewActions = ({ id, onButtonClick }) => {
           <Button
             fullWidth
             variant='contained'
+            color='primary'
             className='capitalize'
             startIcon={<i className='tabler-send' />}
             onClick={() => setSendDrawerOpen(true)}
@@ -55,8 +56,8 @@ const PreviewActions = ({ id, onButtonClick }) => {
           </Button>
           <Button
             fullWidth
-            color='secondary'
             variant='tonal'
+            color='success'
             className='capitalize'
             onClick={handleDownload}
             disabled={isDownloading}
@@ -65,16 +66,24 @@ const PreviewActions = ({ id, onButtonClick }) => {
             {isDownloading ? 'Downloading...' : 'Download'}
           </Button>
           <div className='flex items-center gap-4'>
-            <Button fullWidth color='secondary' variant='tonal' className='capitalize' onClick={onButtonClick}>
+            <Button
+              fullWidth
+              variant='tonal'
+              color='info'
+              className='capitalize'
+              onClick={onButtonClick}
+              startIcon={<i className='tabler-printer' />}
+            >
               Print
             </Button>
             <Button
               fullWidth
               component={Link}
-              color='secondary'
               variant='tonal'
+              color='secondary'
               className='capitalize'
               href={getLocalizedUrl(`/apps/invoice/edit/${id}`, locale)}
+              startIcon={<i className='tabler-pencil' />}
             >
               Edit
             </Button>

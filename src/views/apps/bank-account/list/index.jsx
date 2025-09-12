@@ -235,31 +235,6 @@ const BankAccountList = () => {
 
   return (
     <Grid container spacing={6}>
-      {/* Header */}
-      <Grid size={{ xs: 12 }}>
-        <Card>
-          <CardContent>
-            <Box display='flex' justifyContent='space-between' alignItems='center'>
-              <Box>
-                <Typography variant='h5' sx={{ fontWeight: 600 }}>
-                  Bank Account Management
-                </Typography>
-                <Typography variant='body2' color='text.secondary'>
-                  Manage your bank accounts for invoice payments
-                </Typography>
-              </Box>
-              <Button
-                variant='contained'
-                startIcon={<i className='tabler-plus' />}
-                onClick={() => setAddDrawerOpen(true)}
-              >
-                Add Bank Account
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
-
       {/* Error Alert */}
       {error && (
         <Grid size={{ xs: 12 }}>
@@ -276,6 +251,7 @@ const BankAccountList = () => {
           onFilterChange={handleFilterChange}
           onBankAccountAction={handleBankAccountAction}
           filters={filters}
+          onAddBankAccount={() => setAddDrawerOpen(true)}
         />
       </Grid>
 

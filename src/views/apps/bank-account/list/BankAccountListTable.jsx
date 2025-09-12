@@ -8,6 +8,7 @@ import { useParams } from 'next/navigation'
 
 // MUI Imports
 import Card from '@mui/material/Card'
+import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
@@ -34,9 +35,9 @@ import {
 } from '@tanstack/react-table'
 
 // Component Imports
+import TablePaginationComponent from '@components/TablePaginationComponent'
 import OptionMenu from '@core/components/option-menu'
 import CustomTextField from '@core/components/mui/TextField'
-import TablePaginationComponent from '@components/TablePaginationComponent'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
@@ -68,7 +69,7 @@ const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...prop
 // Column Definitions
 const columnHelper = createColumnHelper()
 
-const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAction, filters }) => {
+const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAction, filters, onAddBankAccount }) => {
   // States
   const [rowSelection, setRowSelection] = useState({})
   const [data, setData] = useState(bankAccountData || [])
@@ -156,9 +157,6 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
         header: 'Action',
         cell: ({ row }) => (
           <div className='flex items-center'>
-            <IconButton onClick={() => onBankAccountAction('delete', row.original.id)}>
-              <i className='tabler-trash text-textSecondary' />
-            </IconButton>
             <OptionMenu
               iconButtonProps={{ size: 'medium' }}
               iconClassName='text-textSecondary'
@@ -180,6 +178,14 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
                       onBankAccountAction('update', row.original.id, {
                         isActive: !row.original.isActive
                       })
+                  }
+                },
+                {
+                  text: 'Delete',
+                  icon: 'tabler-trash',
+                  menuItemProps: {
+                    className: 'flex items-center gap-2 text-textSecondary',
+                    onClick: () => onBankAccountAction('delete', row.original.id)
                   }
                 }
               ]}
@@ -243,45 +249,50 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
 
   return (
     <Card>
-      <CardContent className='flex justify-between flex-col items-start md:items-center md:flex-row gap-4'>
-        <div className='flex flex-col sm:flex-row items-center justify-between gap-4 is-full sm:is-auto'>
-          <div className='flex items-center gap-2 is-full sm:is-auto'>
-            <Typography className='hidden sm:block'>Show</Typography>
-            <CustomTextField
-              select
-              value={table.getState().pagination.pageSize}
-              onChange={e => table.setPageSize(Number(e.target.value))}
-              className='is-[70px] max-sm:is-full'
-            >
-              <MenuItem value='10'>10</MenuItem>
-              <MenuItem value='25'>25</MenuItem>
-              <MenuItem value='50'>50</MenuItem>
-            </CustomTextField>
-          </div>
-        </div>
-        <div className='flex max-sm:flex-col max-sm:is-full sm:items-center gap-4'>
-          <DebouncedInput
-            value={globalFilter ?? ''}
-            onChange={value => setGlobalFilter(String(value))}
-            placeholder='Search Bank Account'
-            className='max-sm:is-full sm:is-[250px]'
-          />
-          <CustomTextField
-            select
-            id='select-status'
-            value={isActiveFilter}
-            onChange={e => handleStatusChange(e.target.value)}
-            className='max-sm:is-full sm:is-[160px]'
-            slotProps={{
-              select: { displayEmpty: true }
-            }}
-          >
-            <MenuItem value=''>All Status</MenuItem>
-            <MenuItem value='true'>Active</MenuItem>
-            <MenuItem value='false'>Inactive</MenuItem>
-          </CustomTextField>
-        </div>
-      </CardContent>
+      <CardHeader title='Bank Account Management' className='pbe-4' />
+
+      <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
+        <CustomTextField
+          select
+          label='Country'
+          value={filters.country || ''}
+          onChange={e => onFilterChange({ ...filters, country: e.target.value })}
+          className='min-w-[180px]'
+        >
+          <MenuItem value=''>All</MenuItem>
+          <MenuItem value='bangladesh'>Bangladesh</MenuItem>
+          <MenuItem value='usa'>USA</MenuItem>
+          <MenuItem value='uk'>UK</MenuItem>
+        </CustomTextField>
+
+        <CustomTextField
+          select
+          label='Status'
+          value={isActiveFilter}
+          onChange={e => handleStatusChange(e.target.value)}
+          className='min-w-[180px]'
+        >
+          <MenuItem value=''>All</MenuItem>
+          <MenuItem value='true'>Active</MenuItem>
+          <MenuItem value='false'>Inactive</MenuItem>
+        </CustomTextField>
+
+        <DebouncedInput
+          value={globalFilter ?? ''}
+          onChange={value => setGlobalFilter(String(value))}
+          placeholder='Search bank account...'
+          className='min-w-[200px]'
+        />
+
+        <Button
+          variant='contained'
+          startIcon={<i className='tabler-plus' />}
+          onClick={onAddBankAccount}
+          className='ml-auto h-[40px]'
+        >
+          Add New Bank Account
+        </Button>
+      </div>
       <div className='overflow-x-auto'>
         <table className={tableStyles.table}>
           <thead>

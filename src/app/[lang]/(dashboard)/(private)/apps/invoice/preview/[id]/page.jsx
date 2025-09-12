@@ -1,7 +1,7 @@
 'use client'
 
 // Next Imports
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 
@@ -13,6 +13,7 @@ import invoiceService from '@/libs/invoiceService'
 
 const PreviewPage = () => {
   const params = useParams()
+  const searchParams = useSearchParams()
   const { data: session } = useSession()
   const [invoiceData, setInvoiceData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -42,6 +43,16 @@ const PreviewPage = () => {
       fetchInvoiceData()
     }
   }, [params.id, session?.accessToken])
+
+  // Auto-print when print parameter is present
+  useEffect(() => {
+    if (searchParams.get('print') === 'true' && invoiceData && !loading) {
+      // Wait a bit for the component to render, then trigger print
+      setTimeout(() => {
+        window.print()
+      }, 1500)
+    }
+  }, [searchParams, invoiceData, loading])
 
   if (loading) {
     return <div>Loading invoice...</div>

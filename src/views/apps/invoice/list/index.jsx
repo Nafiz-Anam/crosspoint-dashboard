@@ -206,10 +206,14 @@ const InvoiceList = () => {
 
   return (
     <Grid container spacing={6}>
-      {/* Statistics Cards - Commented out for now */}
-      {/* <Grid size={{ xs: 12 }}>
-        <InvoiceStatsCard stats={stats} />
-      </Grid> */}
+      {/* Error Alert */}
+      {error && (
+        <Grid size={{ xs: 12 }}>
+          <Alert severity='error' onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        </Grid>
+      )}
 
       {/* Invoice List Table */}
       <Grid size={{ xs: 12 }}>

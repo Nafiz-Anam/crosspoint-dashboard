@@ -40,7 +40,17 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
   }
 
   const calculateTotalDiscount = () => {
-    return invoice?.discountAmount || 0
+    // Calculate total discount from items
+    const itemDiscounts = invoiceItems.reduce((total, item) => {
+      const discountPercent = item.discount || 0
+      const discountAmount = (item.rate * discountPercent) / 100
+      return total + discountAmount
+    }, 0)
+
+    // Add overall invoice discount if any
+    const overallDiscount = invoice?.discountAmount || 0
+
+    return itemDiscounts + overallDiscount
   }
 
   const calculateInvoiceTotal = () => {
@@ -146,15 +156,15 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                         </div>
                         <div className='flex items-center gap-4'>
                           <Typography className='min-is-[100px]'>Country:</Typography>
-                          <Typography>{bankDetails.country}</Typography>
+                          <Typography>{bankDetails.bankCountry}</Typography>
                         </div>
                         <div className='flex items-center gap-4'>
                           <Typography className='min-is-[100px]'>IBAN:</Typography>
-                          <Typography>{bankDetails.iban}</Typography>
+                          <Typography>{bankDetails.bankIban}</Typography>
                         </div>
                         <div className='flex items-center gap-4'>
                           <Typography className='min-is-[100px]'>SWIFT code:</Typography>
-                          <Typography>{bankDetails.swiftCode}</Typography>
+                          <Typography>{bankDetails.bankSwiftCode}</Typography>
                         </div>
                       </>
                     )}

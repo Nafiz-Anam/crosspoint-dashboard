@@ -8,10 +8,13 @@ import AvatarGroup from '@mui/material/AvatarGroup'
 import Typography from '@mui/material/Typography'
 import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
+import CardContent from '@mui/material/CardContent'
 import TablePagination from '@mui/material/TablePagination'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
+import CircularProgress from '@mui/material/CircularProgress'
+import Alert from '@mui/material/Alert'
 
 // Third-party Imports
 import classnames from 'classnames'
@@ -70,7 +73,7 @@ const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...prop
 }
 
 // Function to get status configuration based on percentage
-const getStatusConfig = (percentage) => {
+const getStatusConfig = percentage => {
   if (percentage === 100) {
     return {
       label: 'Completed',
@@ -113,13 +116,20 @@ const getStatusConfig = (percentage) => {
 // Column Definitions
 const columnHelper = createColumnHelper()
 
-const ProjectTables = ({ projectTable }) => {
+const ProjectTables = ({ data, loading, error }) => {
   // States
-  const [data, setData] = useState(...[projectTable])
+  const [projectData, setProjectData] = useState([])
   const [globalFilter, setGlobalFilter] = useState('')
 
+  // Update project data when props change
+  useEffect(() => {
+    if (data?.projectsOverview?.projects) {
+      setProjectData(data.projectsOverview.projects)
+    }
+  }, [data])
+
   // Handle details action
-  const handleViewDetails = (row) => {
+  const handleViewDetails = row => {
     console.log('View details for:', row.original)
     // Add your navigation logic here
     // Example: router.push(`/projects/${row.original.id}`)
@@ -155,8 +165,8 @@ const ProjectTables = ({ projectTable }) => {
               label={statusConfig.label}
               color={statusConfig.color}
               variant={statusConfig.variant}
-              size="small"
-              sx={{ 
+              size='small'
+              sx={{
                 fontWeight: 500,
                 minWidth: '100px'
               }}
@@ -167,9 +177,9 @@ const ProjectTables = ({ projectTable }) => {
       columnHelper.accessor('actions', {
         header: 'Actions',
         cell: ({ row }) => (
-          <Tooltip title="View Details" placement="top">
+          <Tooltip title='View Details' placement='top'>
             <IconButton
-              size="small"
+              size='small'
               onClick={() => handleViewDetails(row)}
               sx={{
                 color: 'text.secondary',
@@ -190,8 +200,31 @@ const ProjectTables = ({ projectTable }) => {
     []
   )
 
+  // Handle loading and error states
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader title='Project List' />
+        <CardContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
+          <CircularProgress />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader title='Project List' />
+        <CardContent>
+          <Alert severity='error'>{error}</Alert>
+        </CardContent>
+      </Card>
+    )
+  }
+
   const table = useReactTable({
-    data: data,
+    data: projectData,
     columns,
     filterFns: {
       fuzzy: fuzzyFilter

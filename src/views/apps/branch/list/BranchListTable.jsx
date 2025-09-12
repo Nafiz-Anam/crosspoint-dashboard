@@ -301,7 +301,7 @@ const BranchListTable = () => {
   return (
     <>
       <Card>
-        <CardHeader title='Branch Filters' className='pbe-4' />
+        <CardHeader title='Branch Management' className='pbe-4' />
 
         <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
           <CustomTextField

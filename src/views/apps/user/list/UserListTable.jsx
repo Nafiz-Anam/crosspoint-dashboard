@@ -293,12 +293,6 @@ const EmployeeListTable = () => {
         header: 'Action',
         cell: ({ row }) => (
           <div className='flex items-center'>
-            <IconButton onClick={() => handleDeleteEmployee(row.original.id)}>
-              <i className='tabler-trash text-textSecondary' />
-            </IconButton>
-            <IconButton onClick={() => handleEditClick(row.original)}>
-              <i className='tabler-edit text-textSecondary' />
-            </IconButton>
             <OptionMenu
               iconButtonProps={{ size: 'medium' }}
               iconClassName='text-textSecondary'
@@ -310,6 +304,22 @@ const EmployeeListTable = () => {
                     component: Link,
                     href: getLocalizedUrl(`/apps/user/view/${row.original.id}`, locale),
                     className: 'flex items-center gap-2 text-textSecondary'
+                  }
+                },
+                {
+                  text: 'Edit',
+                  icon: 'tabler-edit',
+                  menuItemProps: {
+                    className: 'flex items-center gap-2 text-textSecondary',
+                    onClick: () => handleEditClick(row.original)
+                  }
+                },
+                {
+                  text: 'Delete',
+                  icon: 'tabler-trash',
+                  menuItemProps: {
+                    className: 'flex items-center gap-2 text-textSecondary',
+                    onClick: () => handleDeleteEmployee(row.original.id)
                   }
                 }
               ]}
@@ -353,7 +363,7 @@ const EmployeeListTable = () => {
   return (
     <>
       <Card>
-        <CardHeader title='Employee Filters' className='pbe-4' />
+        <CardHeader title='Employee Management' className='pbe-4' />
         <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
           {/* Role Filter */}
           <CustomTextField

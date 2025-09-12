@@ -9,6 +9,7 @@ import { useParams } from 'next/navigation'
 
 // MUI Imports
 import Card from '@mui/material/Card'
+import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
@@ -141,24 +142,16 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
       columnHelper.accessor('status', {
         header: 'Status',
         cell: ({ row }) => (
-          <Tooltip
-            title={
-              <div>
-                <Typography variant='body2' component='span' className='text-inherit'>
-                  {row.original.status}
-                </Typography>
-                <br />
-                <Typography variant='body2' component='span' className='text-inherit'>
-                  Due Date:
-                </Typography>{' '}
-                {new Date(row.original.dueDate).toLocaleDateString()}
-              </div>
-            }
-          >
-            <CustomAvatar skin='light' color={invoiceStatusObj[row.original.status]?.color || 'default'} size={28}>
-              <i className={classnames('bs-4 is-4', invoiceStatusObj[row.original.status]?.icon || 'tabler-file')} />
-            </CustomAvatar>
-          </Tooltip>
+          <Chip
+            label={row.original.status}
+            color={invoiceStatusObj[row.original.status]?.color || 'default'}
+            variant='tonal'
+            size='small'
+            sx={{
+              fontWeight: 600,
+              textTransform: 'capitalize'
+            }}
+          />
         )
       }),
       columnHelper.accessor('client', {
@@ -174,6 +167,13 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
             </div>
           </div>
         )
+      }),
+      columnHelper.accessor('items', {
+        header: 'Service Name',
+        cell: ({ row }) => {
+          const services = row.original.items?.map(item => item.service?.name).filter(Boolean) || []
+          return <Typography variant='body2'>{services.length > 0 ? services.join(', ') : 'N/A'}</Typography>
+        }
       }),
       columnHelper.accessor('totalAmount', {
         header: 'Total',
@@ -197,36 +197,20 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         header: 'Action',
         cell: ({ row }) => (
           <div className='flex items-center'>
-            <IconButton onClick={() => onInvoiceAction('delete', row.original.id)}>
-              <i className='tabler-trash text-textSecondary' />
-            </IconButton>
             <IconButton>
               <Link href={getLocalizedUrl(`/apps/invoice/preview/${row.original.id}`, locale)} className='flex'>
                 <i className='tabler-eye text-textSecondary' />
+              </Link>
+            </IconButton>
+            <IconButton>
+              <Link href={getLocalizedUrl(`/apps/invoice/edit/${row.original.id}`, locale)} className='flex'>
+                <i className='tabler-pencil text-textSecondary' />
               </Link>
             </IconButton>
             <OptionMenu
               iconButtonProps={{ size: 'medium' }}
               iconClassName='text-textSecondary'
               options={[
-                {
-                  text: 'Download',
-                  icon: 'tabler-download',
-                  onClick: () => {
-                    console.log('Downloading invoice:', row.original.id)
-                    // Open preview page in new tab for download
-                    window.open(getLocalizedUrl(`/apps/invoice/preview/${row.original.id}`, locale), '_blank')
-                  },
-                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
-                },
-                {
-                  text: 'Edit',
-                  icon: 'tabler-pencil',
-                  href: getLocalizedUrl(`/apps/invoice/edit/${row.original.id}`, locale),
-                  linkProps: {
-                    className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
-                  }
-                },
                 {
                   text: 'Mark as Paid',
                   icon: 'tabler-check',
@@ -237,6 +221,12 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
                   text: 'Mark as Unpaid',
                   icon: 'tabler-clock',
                   onClick: () => onInvoiceAction('updateStatus', row.original.id, { status: 'UNPAID' }),
+                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
+                },
+                {
+                  text: 'Delete',
+                  icon: 'tabler-trash',
+                  onClick: () => onInvoiceAction('delete', row.original.id),
                   menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
                 }
               ]}
@@ -316,56 +306,51 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
 
   return (
     <Card>
-      <CardContent className='flex justify-between flex-col items-start md:items-center md:flex-row gap-4'>
-        <div className='flex flex-col sm:flex-row items-center justify-between gap-4 is-full sm:is-auto'>
-          <div className='flex items-center gap-2 is-full sm:is-auto'>
-            <Typography className='hidden sm:block'>Show</Typography>
-            <CustomTextField
-              select
-              value={table.getState().pagination.pageSize}
-              onChange={e => table.setPageSize(Number(e.target.value))}
-              className='is-[70px] max-sm:is-full'
-            >
-              <MenuItem value='10'>10</MenuItem>
-              <MenuItem value='25'>25</MenuItem>
-              <MenuItem value='50'>50</MenuItem>
-            </CustomTextField>
-          </div>
-          <Button
-            variant='contained'
-            component={Link}
-            startIcon={<i className='tabler-plus' />}
-            href={getLocalizedUrl('apps/invoice/add', locale)}
-            className='max-sm:is-full'
-          >
-            Create Invoice
-          </Button>
-        </div>
-        <div className='flex max-sm:flex-col max-sm:is-full sm:items-center gap-4'>
-          <DebouncedInput
-            value={globalFilter ?? ''}
-            onChange={value => setGlobalFilter(String(value))}
-            placeholder='Search Invoice'
-            className='max-sm:is-full sm:is-[250px]'
-          />
-          <CustomTextField
-            select
-            id='select-status'
-            value={status}
-            onChange={e => handleStatusChange(e.target.value)}
-            className='max-sm:is-full sm:is-[160px]'
-            slotProps={{
-              select: { displayEmpty: true }
-            }}
-          >
-            <MenuItem value=''>All Status</MenuItem>
-            <MenuItem value='UNPAID'>Unpaid</MenuItem>
-            <MenuItem value='PAID'>Paid</MenuItem>
-            <MenuItem value='OVERDUE'>Overdue</MenuItem>
-            <MenuItem value='CANCELLED'>Cancelled</MenuItem>
-          </CustomTextField>
-        </div>
-      </CardContent>
+      <CardHeader title='Invoice Management' className='pbe-4' />
+
+      <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
+        <CustomTextField
+          select
+          label='Status'
+          value={status}
+          onChange={e => handleStatusChange(e.target.value)}
+          className='min-w-[180px]'
+        >
+          <MenuItem value=''>All</MenuItem>
+          <MenuItem value='UNPAID'>Unpaid</MenuItem>
+          <MenuItem value='PAID'>Paid</MenuItem>
+          <MenuItem value='OVERDUE'>Overdue</MenuItem>
+          <MenuItem value='CANCELLED'>Cancelled</MenuItem>
+        </CustomTextField>
+
+        <CustomTextField
+          select
+          label='Client'
+          value={filters.client || ''}
+          onChange={e => onFilterChange({ ...filters, client: e.target.value })}
+          className='min-w-[180px]'
+        >
+          <MenuItem value=''>All</MenuItem>
+          {/* Add client options here if needed */}
+        </CustomTextField>
+
+        <DebouncedInput
+          value={globalFilter ?? ''}
+          onChange={value => setGlobalFilter(String(value))}
+          placeholder='Search invoice...'
+          className='min-w-[200px]'
+        />
+
+        <Button
+          variant='contained'
+          component={Link}
+          startIcon={<i className='tabler-plus' />}
+          href={getLocalizedUrl('apps/invoice/add', locale)}
+          className='ml-auto h-[40px]'
+        >
+          Create Invoice
+        </Button>
+      </div>
       <div className='overflow-x-auto'>
         <table className={tableStyles.table}>
           <thead>
