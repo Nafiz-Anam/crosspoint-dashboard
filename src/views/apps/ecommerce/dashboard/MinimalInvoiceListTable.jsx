@@ -131,31 +131,27 @@ const MinimalInvoiceListTable = ({ invoiceData }) => {
         )
       }),
       columnHelper.accessor('name', {
-        header: 'Client Name',
+        header: 'Client',
         cell: ({ row }) => (
-          <Typography className='font-medium' color='text.primary'>
-            {row.original.name}
-          </Typography>
-        )
-      }),
-      columnHelper.accessor('companyEmail', {
-        header: 'Email',
-        cell: ({ row }) => (
-          <Typography variant='body2' color='text.secondary'>
-            {row.original.companyEmail}
-          </Typography>
+          <div className='flex flex-col'>
+            <Typography className='font-medium' color='text.primary'>
+              {row.original.name}
+            </Typography>
+            <Typography variant='body2' color='text.secondary'>
+              {row.original.companyEmail}
+            </Typography>
+          </div>
         )
       }),
       columnHelper.accessor('serviceName', {
         header: 'Service',
-        cell: ({ row }) => <Typography variant='body2'>{row.original.serviceName || 'N/A'}</Typography>
-      }),
-      columnHelper.accessor('total', {
-        header: 'Amount',
         cell: ({ row }) => (
-          <Typography className='font-medium' color='text.primary'>
-            ${row.original.total?.toLocaleString() || '0'}
-          </Typography>
+          <div className='flex flex-col'>
+            <Typography variant='body2'>{row.original.serviceName || 'N/A'}</Typography>
+            <Typography className='font-medium' color='text.primary'>
+              ${row.original.total?.toLocaleString() || '0'}
+            </Typography>
+          </div>
         )
       }),
       columnHelper.accessor('invoiceStatus', {

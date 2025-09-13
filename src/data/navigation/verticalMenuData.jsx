@@ -268,12 +268,7 @@ const verticalMenuData = dictionary => [
         icon: 'tabler-file',
         children: [
           {
-            label: dictionary['navigation'].userProfile,
-            icon: 'tabler-circle',
-            href: '/pages/user-profile'
-          },
-          {
-            label: dictionary['navigation'].accountSettings,
+            label: 'Profile',
             icon: 'tabler-circle',
             href: '/pages/account-settings'
           },

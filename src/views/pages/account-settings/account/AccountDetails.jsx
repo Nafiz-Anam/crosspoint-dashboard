@@ -1,7 +1,8 @@
 'use client'
 
 // React Imports
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 
 // MUI Imports
 import Grid from '@mui/material/Grid2'
@@ -10,10 +11,14 @@ import CardContent from '@mui/material/CardContent'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import MenuItem from '@mui/material/MenuItem'
-import Chip from '@mui/material/Chip'
+import Alert from '@mui/material/Alert'
+import CircularProgress from '@mui/material/CircularProgress'
 
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
+
+// Service Imports
+import { profileService } from '@/services/profileService'
 
 // Vars
 const initialData = {
@@ -25,31 +30,90 @@ const initialData = {
   address: '123 Main St, New York, NY 10001',
   state: 'New York',
   zipCode: '634880',
-  country: 'usa',
-  language: 'english',
-  timezone: 'gmt-12',
-  currency: 'usd'
+  country: 'usa'
 }
 
-const languageData = ['English', 'Arabic', 'French', 'German', 'Portuguese']
-
 const AccountDetails = () => {
+  const { data: session } = useSession()
+
   // States
   const [formData, setFormData] = useState(initialData)
   const [fileInput, setFileInput] = useState('')
   const [imgSrc, setImgSrc] = useState('/images/avatars/1.png')
-  const [language, setLanguage] = useState(['English'])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(null)
+  const [profile, setProfile] = useState(null)
 
-  const handleDelete = value => {
-    setLanguage(current => current.filter(item => item !== value))
-  }
+  // Fetch profile data on component mount
+  useEffect(() => {
+    if (session?.accessToken) {
+      fetchProfile()
+    }
+  }, [session?.accessToken])
 
-  const handleChange = event => {
-    setLanguage(event.target.value)
+  const fetchProfile = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await profileService.getMyProfile(session.accessToken)
+      if (response.success) {
+        setProfile(response.data)
+        // Split name into first and last name
+        const nameParts = response.data.name ? response.data.name.split(' ') : ['', '']
+        setFormData({
+          firstName: nameParts[0] || '',
+          lastName: nameParts[1] || '',
+          email: response.data.email || '',
+          organization: 'Pixinvent', // Keep static for now
+          phoneNumber: '+1 (917) 543-9876', // Keep static for now
+          address: '123 Main St, New York, NY 10001', // Keep static for now
+          state: 'New York', // Keep static for now
+          zipCode: '634880', // Keep static for now
+          country: 'usa' // Keep static for now
+        })
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err)
+      setError('Failed to fetch profile data')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleFormChange = (field, value) => {
     setFormData({ ...formData, [field]: value })
+  }
+
+  const handleSave = async () => {
+    try {
+      setSaving(true)
+      setError(null)
+      setSuccess(null)
+
+      // Combine first and last name for the API
+      const fullName = `${formData.firstName} ${formData.lastName}`.trim()
+
+      const response = await profileService.updateMyProfile(
+        {
+          name: fullName,
+          email: formData.email
+        },
+        session.accessToken
+      )
+
+      if (response.success) {
+        setProfile(response.data)
+        setSuccess('Profile updated successfully!')
+        setTimeout(() => setSuccess(null), 3000)
+      }
+    } catch (err) {
+      console.error('Error updating profile:', err)
+      setError(err.message || 'Failed to update profile')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleFileInputChange = file => {
@@ -71,8 +135,28 @@ const AccountDetails = () => {
     setImgSrc('/images/avatars/1.png')
   }
 
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className='flex justify-center items-center min-h-[400px]'>
+          <CircularProgress size={60} />
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card>
+      {error && (
+        <Alert severity='error' sx={{ m: 2 }}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity='success' sx={{ m: 2 }}>
+          {success}
+        </Alert>
+      )}
       <CardContent className='mbe-4'>
         <div className='flex max-sm:flex-col items-center gap-6'>
           <img height={100} width={100} className='rounded' src={imgSrc} alt='Profile' />
@@ -187,89 +271,37 @@ const AccountDetails = () => {
                 <MenuItem value='germany'>Germany</MenuItem>
               </CustomTextField>
             </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <CustomTextField
-                select
-                fullWidth
-                label='Language'
-                value={language}
-                slotProps={{
-                  select: {
-                    multiple: true, // @ts-ignore
-                    onChange: handleChange,
-                    renderValue: selected => (
-                      <div className='flex flex-wrap gap-2'>
-                        {selected.map(value => (
-                          <Chip
-                            key={value}
-                            clickable
-                            onMouseDown={event => event.stopPropagation()}
-                            size='small'
-                            label={value}
-                            onDelete={() => handleDelete(value)}
-                          />
-                        ))}
-                      </div>
-                    )
+            <Grid size={{ xs: 12 }} className='flex gap-4 flex-wrap'>
+              <Button
+                variant='contained'
+                onClick={handleSave}
+                disabled={saving}
+                startIcon={saving ? <CircularProgress size={16} /> : null}
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
+              <Button
+                variant='tonal'
+                type='reset'
+                color='secondary'
+                onClick={() => {
+                  if (profile) {
+                    const nameParts = profile.name ? profile.name.split(' ') : ['', '']
+                    setFormData({
+                      firstName: nameParts[0] || '',
+                      lastName: nameParts[1] || '',
+                      email: profile.email || '',
+                      organization: 'Pixinvent',
+                      phoneNumber: '+1 (917) 543-9876',
+                      address: '123 Main St, New York, NY 10001',
+                      state: 'New York',
+                      zipCode: '634880',
+                      country: 'usa'
+                    })
                   }
                 }}
+                disabled={saving}
               >
-                {languageData.map(name => (
-                  <MenuItem key={name} value={name}>
-                    {name}
-                  </MenuItem>
-                ))}
-              </CustomTextField>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <CustomTextField
-                select
-                fullWidth
-                label='TimeZone'
-                value={formData.timezone}
-                onChange={e => handleFormChange('timezone', e.target.value)}
-                slotProps={{
-                  select: { MenuProps: { PaperProps: { style: { maxHeight: 250 } } } }
-                }}
-              >
-                <MenuItem value='gmt-12'>(GMT-12:00) International Date Line West</MenuItem>
-                <MenuItem value='gmt-11'>(GMT-11:00) Midway Island, Samoa</MenuItem>
-                <MenuItem value='gmt-10'>(GMT-10:00) Hawaii</MenuItem>
-                <MenuItem value='gmt-09'>(GMT-09:00) Alaska</MenuItem>
-                <MenuItem value='gmt-08'>(GMT-08:00) Pacific Time (US & Canada)</MenuItem>
-                <MenuItem value='gmt-08-baja'>(GMT-08:00) Tijuana, Baja California</MenuItem>
-                <MenuItem value='gmt-07'>(GMT-07:00) Chihuahua, La Paz, Mazatlan</MenuItem>
-                <MenuItem value='gmt-07-mt'>(GMT-07:00) Mountain Time (US & Canada)</MenuItem>
-                <MenuItem value='gmt-06'>(GMT-06:00) Central America</MenuItem>
-                <MenuItem value='gmt-06-ct'>(GMT-06:00) Central Time (US & Canada)</MenuItem>
-                <MenuItem value='gmt-06-mc'>(GMT-06:00) Guadalajara, Mexico City, Monterrey</MenuItem>
-                <MenuItem value='gmt-06-sk'>(GMT-06:00) Saskatchewan</MenuItem>
-                <MenuItem value='gmt-05'>(GMT-05:00) Bogota, Lima, Quito, Rio Branco</MenuItem>
-                <MenuItem value='gmt-05-et'>(GMT-05:00) Eastern Time (US & Canada)</MenuItem>
-                <MenuItem value='gmt-05-ind'>(GMT-05:00) Indiana (East)</MenuItem>
-                <MenuItem value='gmt-04'>(GMT-04:00) Atlantic Time (Canada)</MenuItem>
-                <MenuItem value='gmt-04-clp'>(GMT-04:00) Caracas, La Paz</MenuItem>
-              </CustomTextField>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <CustomTextField
-                select
-                fullWidth
-                label='Currency'
-                value={formData.currency}
-                onChange={e => handleFormChange('currency', e.target.value)}
-              >
-                <MenuItem value='usd'>USD</MenuItem>
-                <MenuItem value='euro'>EUR</MenuItem>
-                <MenuItem value='pound'>Pound</MenuItem>
-                <MenuItem value='bitcoin'>Bitcoin</MenuItem>
-              </CustomTextField>
-            </Grid>
-            <Grid size={{ xs: 12 }} className='flex gap-4 flex-wrap'>
-              <Button variant='contained' type='submit'>
-                Save Changes
-              </Button>
-              <Button variant='tonal' type='reset' color='secondary' onClick={() => setFormData(initialData)}>
                 Reset
               </Button>
             </Grid>

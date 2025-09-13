@@ -96,8 +96,8 @@ const TaskStatisticsCard = () => {
 
   return (
     <Card sx={{ height: '100%' }}>
-      <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <Typography variant='h6' sx={{ mb: 3 }}>
+      <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: "space-between" }}>
+        <Typography variant='h5' sx={{ mb: 3 }}>
           My Tasks Overview
         </Typography>
 
@@ -109,7 +109,7 @@ const TaskStatisticsCard = () => {
 
         <Grid container spacing={3}>
           {statsData.map((stat, index) => (
-            <Grid key={index} size={{ xs: 12 }}>
+            <Grid key={index} size={{ xs: 12, sm: 4 }}>
               <Box className='flex items-center justify-between'>
                 <Box className='flex items-center gap-3'>
                   <CustomAvatar variant='rounded' skin='light' size={40} color={stat.color}>

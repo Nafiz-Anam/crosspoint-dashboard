@@ -228,13 +228,8 @@ const horizontalMenuData = dictionary => [
     icon: 'tabler-file',
     children: [
       {
-        label: dictionary['navigation'].userProfile,
-        icon: 'tabler-user-circle',
-        href: '/pages/user-profile'
-      },
-      {
-        label: dictionary['navigation'].accountSettings,
-        icon: 'tabler-settings',
+        label: 'Profile',
+        icon: 'tabler-user',
         href: '/pages/account-settings'
       },
       {

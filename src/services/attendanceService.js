@@ -5,11 +5,6 @@ class AttendanceService {
 
   async checkIn(notes = '', token = null) {
     try {
-      const requestBody = {}
-      if (notes && notes.trim()) {
-        requestBody.notes = notes.trim()
-      }
-
       const response = await fetch(`${this.baseURL}/attendance/check-in`, {
         method: 'POST',
         headers: {
@@ -17,7 +12,7 @@ class AttendanceService {
           'x-client-type': 'web',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({ notes })
       })
 
       const data = await response.json()
@@ -35,11 +30,6 @@ class AttendanceService {
 
   async checkOut(notes = '', token = null) {
     try {
-      const requestBody = {}
-      if (notes && notes.trim()) {
-        requestBody.notes = notes.trim()
-      }
-
       const response = await fetch(`${this.baseURL}/attendance/check-out`, {
         method: 'POST',
         headers: {
@@ -47,7 +37,7 @@ class AttendanceService {
           'x-client-type': 'web',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({ notes })
       })
 
       const data = await response.json()
