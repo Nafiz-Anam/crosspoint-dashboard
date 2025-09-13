@@ -219,7 +219,7 @@ const MinimalInvoiceListTable = ({ invoiceData }) => {
   })
 
   return (
-    <Card>
+    <Card sx={{ height: '100%' }}>
       <CardHeader
         className='flex-wrap gap-x-4 gap-y-2'
         title='Invoice List'

@@ -10,6 +10,9 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 
 // Components Imports
+import ClockInOutCard from '@views/dashboards/main/ClockInOutCard'
+import TaskStatisticsCard from '@views/dashboards/main/TaskStatisticsCard'
+import TimesheetChart from '@views/dashboards/main/TimesheetChart'
 import LineAreaDailySalesChart from '@views/dashboards/analytics/LineAreaDailySalesChart'
 import EarningReports from '@views/dashboards/analytics/EarningReports'
 import MinimalInvoiceListTable from '@/views/apps/ecommerce/dashboard/MinimalInvoiceListTable'
@@ -64,13 +67,27 @@ const DashboardAnalytics = () => {
 
   return (
     <Grid container spacing={6}>
+      {/* Top Row - Clock In/Out and Task Statistics (Same Size) */}
+      <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+        <ClockInOutCard />
+      </Grid>
+      <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+        <TaskStatisticsCard />
+      </Grid>
+
+      {/* Middle Row - Existing Analytics Cards */}
       <Grid size={{ xs: 12, md: 6 }}>
         <LineAreaDailySalesChart data={data} loading={loading} error={error} />
       </Grid>
       <Grid size={{ xs: 12, md: 6 }}>
         <EarningReports data={data} loading={loading} error={error} />
       </Grid>
-      <Grid size={{ xs: 12 }}>
+
+      {/* Bottom Row - Timesheet Chart and Invoice List (50/50) */}
+      <Grid size={{ xs: 12, md: 6 }}>
+        <TimesheetChart />
+      </Grid>
+      <Grid size={{ xs: 12, md: 6 }}>
         <MinimalInvoiceListTable
           invoiceData={
             data?.invoices?.map(invoice => {
