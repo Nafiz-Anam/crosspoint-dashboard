@@ -14,10 +14,12 @@ import Typography from '@mui/material/Typography'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
 import Checkbox from '@mui/material/Checkbox'
-import Button from '@mui/material/Button'
 import FormControlLabel from '@mui/material/FormControlLabel'
 // import Divider from '@mui/material/Divider' // Removed as 'or' divider is no longer needed
 import Alert from '@mui/material/Alert' // Alert for error messages
+
+// Component Imports
+import LoadingButton from '@/components/ui/LoadingButton'
 
 // Third-party Imports
 import { signIn } from 'next-auth/react' // Still needed for credentials login
@@ -77,6 +79,7 @@ const Login = ({ mode }) => {
   // States
   const [isPasswordShown, setIsPasswordShown] = useState(false)
   const [errorState, setErrorState] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   // Vars
   const darkImg = '/images/pages/auth-mask-dark.png'
@@ -102,7 +105,8 @@ const Login = ({ mode }) => {
   } = useForm({
     resolver: valibotResolver(schema),
     // Removed defaultValues: { email: 'admin@vuexy.com', password: 'admin' }
-    defaultValues: { // Explicitly set to empty strings for a clean start
+    defaultValues: {
+      // Explicitly set to empty strings for a clean start
       email: '',
       password: ''
     }
@@ -120,32 +124,38 @@ const Login = ({ mode }) => {
 
   const onSubmit = async data => {
     // Clear previous error state before attempting new login
-    setErrorState(null);
+    setErrorState(null)
+    setIsLoading(true)
 
-    const res = await signIn('credentials', {
-      email: data.email,
-      password: data.password,
-      redirect: false
-    })
+    try {
+      const res = await signIn('credentials', {
+        email: data.email,
+        password: data.password,
+        redirect: false
+      })
 
-    if (res && res.ok && res.error === null) {
-      // Vars
-      const redirectURL = searchParams.get('redirectTo') ?? '/'
-
-      router.replace(getLocalizedUrl(redirectURL, locale))
-    } else {
-      if (res?.error) {
-        try {
-          const error = JSON.parse(res.error)
-          setErrorState(error)
-        } catch (parseError) {
-          // Fallback for non-JSON error messages
-          setErrorState({ message: [res.error] });
-        }
+      if (res && res.ok && res.error === null) {
+        // Vars
+        const redirectURL = searchParams.get('redirectTo') ?? '/'
+        router.replace(getLocalizedUrl(redirectURL, locale))
       } else {
-        // Generic error if res.error is null but login failed
-        setErrorState({ message: ["An unknown error occurred during login."] });
+        if (res?.error) {
+          try {
+            const error = JSON.parse(res.error)
+            setErrorState(error)
+          } catch (parseError) {
+            // Fallback for non-JSON error messages
+            setErrorState({ message: [res.error] })
+          }
+        } else {
+          // Generic error if res.error is null but login failed
+          setErrorState({ message: ['An unknown error occurred during login.'] })
+        }
       }
+    } catch (error) {
+      setErrorState({ message: ['An unexpected error occurred. Please try again.'] })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -173,11 +183,11 @@ const Login = ({ mode }) => {
           </div>
           {/* Removed the default admin@vuexy.com / admin alert */}
           {errorState && (
-            <Alert severity="error" icon={false} className='bg-[var(--mui-palette-error-lightOpacity)]'>
+            <Alert severity='error' icon={false} className='bg-[var(--mui-palette-error-lightOpacity)]'>
               <Typography variant='body2' color='error.main'>
                 {errorState.message && Array.isArray(errorState.message)
                   ? errorState.message.join(', ')
-                  : errorState.message || "Login failed. Please try again."}
+                  : errorState.message || 'Login failed. Please try again.'}
               </Typography>
             </Alert>
           )}
@@ -257,9 +267,16 @@ const Login = ({ mode }) => {
                 Forgot password?
               </Typography>
             </div>
-            <Button fullWidth variant='contained' type='submit'>
+            <LoadingButton
+              fullWidth
+              variant='contained'
+              type='submit'
+              loading={isLoading}
+              loadingText='Signing in...'
+              disabled={isLoading}
+            >
               Login
-            </Button>
+            </LoadingButton>
             <div className='flex justify-center items-center flex-wrap gap-2'>
               <Typography>New on our platform?</Typography>
               <Typography component={Link} href={getLocalizedUrl('/register', locale)} color='primary.main'>

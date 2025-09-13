@@ -4,16 +4,17 @@
 import { useEffect, useState } from 'react'
 
 // MUI Imports
-import Button from '@mui/material/Button'
 import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
-import CircularProgress from '@mui/material/CircularProgress' // For loading indicator
 import Alert from '@mui/material/Alert' // For error messages
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Checkbox from '@mui/material/Checkbox'
+
+// Component Imports
+import LoadingButton from '@/components/ui/LoadingButton'
 
 // Third-party Imports
 import { useForm, Controller } from 'react-hook-form'
@@ -304,12 +305,18 @@ const AddBranchDrawer = props => {
           />
 
           <div className='flex items-center gap-4'>
-            <Button variant='contained' type='submit' disabled={loading}>
-              {loading ? <CircularProgress size={24} /> : currentBranch ? 'Update' : 'Submit'}
-            </Button>
-            <Button variant='tonal' color='error' type='reset' onClick={handleReset} disabled={loading}>
+            <LoadingButton
+              variant='contained'
+              type='submit'
+              loading={loading}
+              loadingText={currentBranch ? 'Updating...' : 'Creating...'}
+              disabled={loading}
+            >
+              {currentBranch ? 'Update' : 'Submit'}
+            </LoadingButton>
+            <LoadingButton variant='tonal' color='error' type='reset' onClick={handleReset} disabled={loading}>
               Cancel
-            </Button>
+            </LoadingButton>
           </div>
         </form>
       </div>

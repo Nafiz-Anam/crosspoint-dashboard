@@ -4,13 +4,14 @@
 import { useEffect, useState } from 'react'
 
 // MUI Imports
-import Button from '@mui/material/Button'
 import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
-import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
+
+// Component Imports
+import LoadingButton from '@/components/ui/LoadingButton'
 
 // Third-party Imports
 import { useForm, Controller } from 'react-hook-form'
@@ -241,12 +242,18 @@ const AddServiceDrawer = props => {
           />
 
           <div className='flex items-center gap-4'>
-            <Button variant='contained' type='submit' disabled={loading}>
-              {loading ? <CircularProgress size={24} /> : currentService ? 'Update' : 'Submit'}
-            </Button>
-            <Button variant='tonal' color='error' type='reset' onClick={handleReset} disabled={loading}>
+            <LoadingButton
+              variant='contained'
+              type='submit'
+              loading={loading}
+              loadingText={currentService ? 'Updating...' : 'Creating...'}
+              disabled={loading}
+            >
+              {currentService ? 'Update' : 'Submit'}
+            </LoadingButton>
+            <LoadingButton variant='tonal' color='error' type='reset' onClick={handleReset} disabled={loading}>
               Cancel
-            </Button>
+            </LoadingButton>
           </div>
         </form>
       </div>
