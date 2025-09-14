@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 
 // MUI Imports
@@ -67,7 +67,7 @@ const InvoiceContainer = ({ initialData }) => {
   })
 
   // Fetch all required data
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     console.log('fetchData called, session:', !!session, 'accessToken:', !!session?.accessToken)
 
     if (!session?.accessToken) {
@@ -108,7 +108,7 @@ const InvoiceContainer = ({ initialData }) => {
       setLoading(false)
       console.log('Loading set to false')
     }
-  }
+  }, [session?.accessToken])
 
   useEffect(() => {
     if (session?.accessToken) {

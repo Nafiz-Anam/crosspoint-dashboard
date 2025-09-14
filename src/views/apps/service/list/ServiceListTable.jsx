@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 
 // Next Imports
 import { useParams } from 'next/navigation'
@@ -66,7 +66,7 @@ const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...prop
     }, debounce)
 
     return () => clearTimeout(timeout)
-  }, [value])
+  }, [value, debounce, onChange])
 
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
@@ -91,47 +91,8 @@ const ServiceListTable = () => {
   const { lang: locale } = useParams()
   const { data: session, status } = useSession()
 
-  // Handle deleting a service
-  const handleDeleteService = async serviceId => {
-    if (!confirm('Are you sure you want to delete this service?')) return
-
-    if (!session?.accessToken) {
-      setFetchError('Authentication token not found. Cannot delete service.')
-      return
-    }
-
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services/${serviceId}`, {
-        method: 'DELETE',
-        headers: {
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        fetchServices() // Re-fetch data to update the table
-      } else {
-        const errorData = await response.json()
-        setFetchError(errorData.message || 'Failed to delete service.')
-      }
-    } catch (error) {
-      setFetchError('Network error or unexpected issue during deletion. Please try again.')
-    }
-  }
-
-  const handleEditClick = service => {
-    setEditingService(service)
-    setAddServiceOpen(true)
-  }
-
-  const handleDrawerClose = () => {
-    setAddServiceOpen(false)
-    setEditingService(null)
-  }
-
   // Function to fetch service data from API
-  const fetchServices = async () => {
+  const fetchServices = useCallback(async () => {
     setFetchLoading(true)
     setFetchError(null)
 
@@ -168,6 +129,48 @@ const ServiceListTable = () => {
     } finally {
       setFetchLoading(false)
     }
+  }, [status, session?.accessToken])
+
+  // Handle deleting a service
+  const handleDeleteService = useCallback(
+    async serviceId => {
+      if (!confirm('Are you sure you want to delete this service?')) return
+
+      if (!session?.accessToken) {
+        setFetchError('Authentication token not found. Cannot delete service.')
+        return
+      }
+
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services/${serviceId}`, {
+          method: 'DELETE',
+          headers: {
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        })
+
+        if (response.ok) {
+          fetchServices() // Re-fetch data to update the table
+        } else {
+          const errorData = await response.json()
+          setFetchError(errorData.message || 'Failed to delete service.')
+        }
+      } catch (error) {
+        setFetchError('Network error or unexpected issue during deletion. Please try again.')
+      }
+    },
+    [session?.accessToken, fetchServices]
+  )
+
+  const handleEditClick = service => {
+    setEditingService(service)
+    setAddServiceOpen(true)
+  }
+
+  const handleDrawerClose = () => {
+    setAddServiceOpen(false)
+    setEditingService(null)
   }
 
   // Effect to fetch data on component mount or when session/token changes
@@ -201,11 +204,16 @@ const ServiceListTable = () => {
     () => [
       columnHelper.accessor('serviceId', {
         header: 'Service ID',
-        cell: info => (
-          <Typography color='text.primary' className='font-medium'>
-            {info.getValue()}
-          </Typography>
-        )
+        cell: info => {
+          const serviceId = info.getValue()
+          // Handle cases where serviceId might be invalid or NaN
+          const displayId = serviceId && serviceId !== 'SRV-NaN' ? serviceId : 'SRV-000'
+          return (
+            <Typography color='text.primary' className='font-medium'>
+              {displayId}
+            </Typography>
+          )
+        }
       }),
       columnHelper.accessor('name', {
         header: 'Service Name',
@@ -300,7 +308,7 @@ const ServiceListTable = () => {
         enableSorting: false
       })
     ],
-    []
+    [handleDeleteService]
   )
 
   const table = useReactTable({

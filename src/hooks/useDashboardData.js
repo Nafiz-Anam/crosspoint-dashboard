@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { dashboardService } from '../services/dashboardService'
 
@@ -13,7 +13,7 @@ export const useDashboardData = (params = {}) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -46,7 +46,7 @@ export const useDashboardData = (params = {}) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params, session?.accessToken])
 
   useEffect(() => {
     // Only fetch data if we have a valid session

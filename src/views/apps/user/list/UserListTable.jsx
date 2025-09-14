@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 
 // Next Imports
 import Link from 'next/link'
@@ -74,7 +74,7 @@ const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...prop
     }, debounce)
 
     return () => clearTimeout(timeout)
-  }, [value])
+  }, [value, debounce, onChange])
 
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
@@ -119,7 +119,7 @@ const EmployeeListTable = () => {
   const { data: session, status: sessionStatus } = useSession()
 
   // Function to fetch employee data from API
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
     setFetchLoading(true)
     setFetchError(null)
 
@@ -155,7 +155,7 @@ const EmployeeListTable = () => {
     } finally {
       setFetchLoading(false)
     }
-  }
+  }, [sessionStatus, session?.accessToken])
 
   // Effect to fetch data on component mount or when session/token changes
   useEffect(() => {
@@ -187,45 +187,48 @@ const EmployeeListTable = () => {
   const roles = useMemo(() => Array.from(new Set(employees.map(item => item.role))), [employees])
 
   // Function to handle employee deletion
-  const handleDeleteEmployee = async employeeId => {
-    if (!confirm('Are you sure you want to delete this employee?')) {
-      return
-    }
-
-    if (!session?.accessToken) {
-      setFetchError('Authentication token not found. Cannot delete employee.')
-      return
-    }
-
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/${employeeId}`, {
-        method: 'DELETE',
-        headers: {
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        console.log(`Employee ${employeeId} deleted successfully.`)
-        fetchEmployees()
-      } else {
-        const errorData = await response.json()
-        const errorMessage = errorData.message || `Failed to delete employee: ${response.status}`
-        setFetchError(errorMessage)
-        console.error('API Error deleting employee:', errorData)
+  const handleDeleteEmployee = useCallback(
+    async employeeId => {
+      if (!confirm('Are you sure you want to delete this employee?')) {
+        return
       }
-    } catch (error) {
-      setFetchError('Network error or unexpected issue during deletion. Please try again.')
-      console.error('Fetch error deleting employee:', error)
-    }
-  }
+
+      if (!session?.accessToken) {
+        setFetchError('Authentication token not found. Cannot delete employee.')
+        return
+      }
+
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/${employeeId}`, {
+          method: 'DELETE',
+          headers: {
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        })
+
+        if (response.ok) {
+          console.log(`Employee ${employeeId} deleted successfully.`)
+          fetchEmployees()
+        } else {
+          const errorData = await response.json()
+          const errorMessage = errorData.message || `Failed to delete employee: ${response.status}`
+          setFetchError(errorMessage)
+          console.error('API Error deleting employee:', errorData)
+        }
+      } catch (error) {
+        setFetchError('Network error or unexpected issue during deletion. Please try again.')
+        console.error('Fetch error deleting employee:', error)
+      }
+    },
+    [session?.accessToken, fetchEmployees]
+  )
 
   // Function to open drawer for editing
-  const handleEditClick = employee => {
+  const handleEditClick = useCallback(employee => {
     setEditingEmployee(employee)
     setAddEmployeeOpen(true)
-  }
+  }, [])
 
   // Function to close drawer and clear editing state
   const handleDrawerClose = () => {
@@ -249,6 +252,11 @@ const EmployeeListTable = () => {
                 {row.original.name || row.original.email}
               </Typography>
               <Typography variant='body2'>{row.original.email}</Typography>
+              {row.original.nationalIdentificationNumber && (
+                <Typography variant='caption' color='text.secondary'>
+                  ID: {row.original.nationalIdentificationNumber}
+                </Typography>
+              )}
             </div>
           </div>
         )

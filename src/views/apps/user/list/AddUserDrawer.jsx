@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 
 // MUI Imports
 import Drawer from '@mui/material/Drawer'
@@ -52,6 +52,7 @@ const AddEmployeeDrawer = props => {
       email: '',
       password: '',
       name: '',
+      nationalIdentificationNumber: '',
       role: 'EMPLOYEE',
       branchId: '',
       isActive: true
@@ -59,7 +60,7 @@ const AddEmployeeDrawer = props => {
   })
 
   // Fetch branches
-  const fetchBranchesList = async () => {
+  const fetchBranchesList = useCallback(async () => {
     setBranchesLoading(true)
     setBranchesError(null)
 
@@ -94,10 +95,10 @@ const AddEmployeeDrawer = props => {
     } finally {
       setBranchesLoading(false)
     }
-  }
+  }, [sessionStatus, session?.accessToken])
 
   // Fetch permissions
-  const fetchPermissions = async () => {
+  const fetchPermissions = useCallback(async () => {
     if (sessionStatus === 'loading') return
     if (sessionStatus === 'unauthenticated' || !session?.accessToken) {
       setApiError('Authentication required to load permissions.')
@@ -126,7 +127,7 @@ const AddEmployeeDrawer = props => {
       setApiError('Network error loading permissions. Please try again.')
       console.error('Fetch error loading permissions:', error)
     }
-  }
+  }, [sessionStatus, session?.accessToken])
 
   useEffect(() => {
     if (sessionStatus === 'authenticated') {
@@ -142,6 +143,7 @@ const AddEmployeeDrawer = props => {
         email: currentEmployee.email || '',
         password: '', // Password should never be pre-filled for security
         name: currentEmployee.name || '',
+        nationalIdentificationNumber: currentEmployee.nationalIdentificationNumber || '',
         role: currentEmployee.role || 'EMPLOYEE',
         branchId: currentEmployee.branchId || '',
         isEmailVerified: currentEmployee.isEmailVerified ?? false,
@@ -154,6 +156,7 @@ const AddEmployeeDrawer = props => {
         email: '',
         password: '',
         name: '',
+        nationalIdentificationNumber: '',
         role: 'EMPLOYEE',
         branchId: '',
         isEmailVerified: false,
@@ -186,6 +189,7 @@ const AddEmployeeDrawer = props => {
 
     const payload = {
       name: data.name || null,
+      nationalIdentificationNumber: data.nationalIdentificationNumber || null,
       role: data.role,
       branchId: data.branchId || null,
       isActive: data.isActive,
@@ -240,6 +244,7 @@ const AddEmployeeDrawer = props => {
       email: currentEmployee?.email || '',
       password: '',
       name: '',
+      nationalIdentificationNumber: '',
       role: 'EMPLOYEE',
       branchId: '',
       isEmailVerified: false,
@@ -295,6 +300,26 @@ const AddEmployeeDrawer = props => {
                 required
                 error={!!errors.name}
                 helperText={errors.name?.message}
+              />
+            )}
+          />
+
+          {/* National Identification Number */}
+          <Controller
+            name='nationalIdentificationNumber'
+            control={control}
+            rules={{
+              minLength: { value: 5, message: 'National ID must be at least 5 characters' },
+              maxLength: { value: 20, message: 'National ID must be at most 20 characters' }
+            }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                label='National Identification Number'
+                placeholder='Enter national ID number'
+                error={!!errors.nationalIdentificationNumber}
+                helperText={errors.nationalIdentificationNumber?.message}
               />
             )}
           />

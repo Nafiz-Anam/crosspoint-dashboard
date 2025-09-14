@@ -1,5 +1,8 @@
 'use client'
 
+// React Imports
+import { useState, useEffect, useCallback } from 'react'
+
 // MUI Imports
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -8,7 +11,6 @@ import Box from '@mui/material/Box'
 import Grid from '@mui/material/Grid2'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
-import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 
 // Component Imports
@@ -27,14 +29,7 @@ const TaskStatisticsCard = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // Fetch task statistics on component mount
-  useEffect(() => {
-    if (session?.accessToken) {
-      fetchTaskStats()
-    }
-  }, [session?.accessToken])
-
-  const fetchTaskStats = async () => {
+  const fetchTaskStats = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -50,7 +45,14 @@ const TaskStatisticsCard = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.accessToken])
+
+  // Fetch task statistics on component mount
+  useEffect(() => {
+    if (session?.accessToken) {
+      fetchTaskStats()
+    }
+  }, [session?.accessToken])
 
   const statsData = [
     {
@@ -96,7 +98,7 @@ const TaskStatisticsCard = () => {
 
   return (
     <Card sx={{ height: '100%' }}>
-      <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: "space-between" }}>
+      <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
         <Typography variant='h5' sx={{ mb: 3 }}>
           My Tasks Overview
         </Typography>

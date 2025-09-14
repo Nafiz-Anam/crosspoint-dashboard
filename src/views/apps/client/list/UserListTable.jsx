@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import Card from '@mui/material/Card'
@@ -38,10 +38,11 @@ import tableStyles from '@core/styles/table.module.css'
 
 const columnHelper = createColumnHelper()
 const clientStatusObj = {
-  PENDING: 'warning',
   ACTIVE: 'success',
-  INACTIVE: 'secondary',
-  COMPLETED: 'info'
+  PENDING: 'warning',
+  PROCESSING: 'info',
+  CANCELLED: 'error',
+  COMPLETED: 'success'
 }
 
 // Fuzzy filter for search
@@ -61,7 +62,7 @@ const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...prop
       onChange(value)
     }, debounce)
     return () => clearTimeout(timeout)
-  }, [value])
+  }, [value, debounce, onChange])
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
 
@@ -88,7 +89,7 @@ const ClientListTable = () => {
   const { data: session, status: sessionStatus } = useSession()
 
   // Function to fetch client data from API
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     setFetchLoading(true)
     setFetchError(null)
 
@@ -124,7 +125,7 @@ const ClientListTable = () => {
     } finally {
       setFetchLoading(false)
     }
-  }
+  }, [sessionStatus, session?.accessToken])
 
   // Effect to fetch data on component mount or when session/token changes
   useEffect(() => {
@@ -156,45 +157,48 @@ const ClientListTable = () => {
   }, [filters, clients])
 
   // Function to handle client deletion
-  const handleDeleteClient = async clientId => {
-    if (!confirm('Are you sure you want to delete this client?')) {
-      return
-    }
-
-    if (!session?.accessToken) {
-      setFetchError('Authentication token not found. Cannot delete client.')
-      return
-    }
-
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/${clientId}`, {
-        method: 'DELETE',
-        headers: {
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        console.log(`Client ${clientId} deleted successfully.`)
-        fetchClients()
-      } else {
-        const errorData = await response.json()
-        const errorMessage = errorData.message || `Failed to delete client: ${response.status}`
-        setFetchError(errorMessage)
-        console.error('API Error deleting client:', errorData)
+  const handleDeleteClient = useCallback(
+    async clientId => {
+      if (!confirm('Are you sure you want to delete this client?')) {
+        return
       }
-    } catch (error) {
-      setFetchError('Network error or unexpected issue during deletion. Please try again.')
-      console.error('Fetch error deleting client:', error)
-    }
-  }
+
+      if (!session?.accessToken) {
+        setFetchError('Authentication token not found. Cannot delete client.')
+        return
+      }
+
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/${clientId}`, {
+          method: 'DELETE',
+          headers: {
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        })
+
+        if (response.ok) {
+          console.log(`Client ${clientId} deleted successfully.`)
+          fetchClients()
+        } else {
+          const errorData = await response.json()
+          const errorMessage = errorData.message || `Failed to delete client: ${response.status}`
+          setFetchError(errorMessage)
+          console.error('API Error deleting client:', errorData)
+        }
+      } catch (error) {
+        setFetchError('Network error or unexpected issue during deletion. Please try again.')
+        console.error('Fetch error deleting client:', error)
+      }
+    },
+    [session?.accessToken, fetchClients]
+  )
 
   // Function to open drawer for editing
-  const handleEditClick = client => {
+  const handleEditClick = useCallback(client => {
     setEditingClient(client)
     setAddClientOpen(true)
-  }
+  }, [])
 
   // Function to close drawer and clear editing state
   const handleDrawerClose = () => {
@@ -229,6 +233,11 @@ const ClientListTable = () => {
               {row.original.name || row.original.email}
             </Typography>
             <Typography variant='body2'>{row.original.email}</Typography>
+            {row.original.nationalIdentificationNumber && (
+              <Typography variant='caption' color='text.secondary'>
+                ID: {row.original.nationalIdentificationNumber}
+              </Typography>
+            )}
           </div>
         )
       }),

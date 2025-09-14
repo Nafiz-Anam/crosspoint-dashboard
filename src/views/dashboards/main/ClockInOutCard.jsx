@@ -1,5 +1,8 @@
 'use client'
 
+// React Imports
+import { useState, useEffect, useCallback } from 'react'
+
 // MUI Imports
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -8,7 +11,6 @@ import Button from '@mui/material/Button'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
-import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 
 // Component Imports
@@ -25,14 +27,7 @@ const ClockInOutCard = () => {
   const [error, setError] = useState(null)
   const [attendanceData, setAttendanceData] = useState(null)
 
-  // Fetch today's attendance on component mount
-  useEffect(() => {
-    if (session?.accessToken) {
-      fetchTodayAttendance()
-    }
-  }, [session?.accessToken])
-
-  const fetchTodayAttendance = async () => {
+  const fetchTodayAttendance = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -52,7 +47,14 @@ const ClockInOutCard = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.accessToken])
+
+  // Fetch today's attendance on component mount
+  useEffect(() => {
+    if (session?.accessToken) {
+      fetchTodayAttendance()
+    }
+  }, [session?.accessToken])
 
   const handleClockInOut = async () => {
     if (!session?.accessToken) {

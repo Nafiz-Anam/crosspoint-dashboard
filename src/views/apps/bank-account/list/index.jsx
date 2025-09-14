@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 // Next Imports
 import { useParams } from 'next/navigation'
@@ -43,7 +43,7 @@ const BankAccountList = () => {
   const { data: session, status } = useSession()
 
   // Fetch bank accounts
-  const fetchBankAccounts = async () => {
+  const fetchBankAccounts = useCallback(async () => {
     if (status === 'loading') return
     if (status === 'unauthenticated' || !session?.accessToken) {
       setError('Authentication required to fetch bank accounts. Please log in.')
@@ -85,7 +85,7 @@ const BankAccountList = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [status, session?.accessToken, filters])
 
   useEffect(() => {
     if (status === 'authenticated') {

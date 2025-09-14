@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 
 // Next Imports
 import Link from 'next/link'
@@ -70,7 +70,7 @@ const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...prop
     }, debounce)
 
     return () => clearTimeout(timeout)
-  }, [value])
+  }, [value, debounce, onChange])
 
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
@@ -96,7 +96,7 @@ const BranchListTable = () => {
   const { data: session, status } = useSession() // Get session and status
 
   // Function to fetch branch data from API
-  const fetchBranches = async () => {
+  const fetchBranches = useCallback(async () => {
     setFetchLoading(true)
     setFetchError(null)
 
@@ -133,7 +133,7 @@ const BranchListTable = () => {
     } finally {
       setFetchLoading(false)
     }
-  }
+  }, [status, session?.accessToken])
 
   // Effect to fetch data on component mount or when session/token changes
   useEffect(() => {
@@ -170,45 +170,48 @@ const BranchListTable = () => {
   const provinces = useMemo(() => Array.from(new Set(branches.map(item => item.province))), [branches])
 
   // Function to handle branch deletion
-  const handleDeleteBranch = async branchId => {
-    if (!confirm('Are you sure you want to delete this branch?')) {
-      return
-    }
-
-    if (!session?.accessToken) {
-      setFetchError('Authentication token not found. Cannot delete branch.')
-      return
-    }
-
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/${branchId}`, {
-        method: 'DELETE',
-        headers: {
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        console.log(`Branch ${branchId} deleted successfully.`)
-        fetchBranches() // Re-fetch data to update the table
-      } else {
-        const errorData = await response.json()
-        const errorMessage = errorData.message || `Failed to delete branch: ${response.status}`
-        setFetchError(errorMessage)
-        console.error('API Error deleting branch:', errorData)
+  const handleDeleteBranch = useCallback(
+    async branchId => {
+      if (!confirm('Are you sure you want to delete this branch?')) {
+        return
       }
-    } catch (error) {
-      setFetchError('Network error or unexpected issue during deletion. Please try again.')
-      console.error('Fetch error deleting branch:', error)
-    }
-  }
+
+      if (!session?.accessToken) {
+        setFetchError('Authentication token not found. Cannot delete branch.')
+        return
+      }
+
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/${branchId}`, {
+          method: 'DELETE',
+          headers: {
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        })
+
+        if (response.ok) {
+          console.log(`Branch ${branchId} deleted successfully.`)
+          fetchBranches() // Re-fetch data to update the table
+        } else {
+          const errorData = await response.json()
+          const errorMessage = errorData.message || `Failed to delete branch: ${response.status}`
+          setFetchError(errorMessage)
+          console.error('API Error deleting branch:', errorData)
+        }
+      } catch (error) {
+        setFetchError('Network error or unexpected issue during deletion. Please try again.')
+        console.error('Fetch error deleting branch:', error)
+      }
+    },
+    [session?.accessToken, fetchBranches]
+  )
 
   // Function to open drawer for editing
-  const handleEditClick = branch => {
+  const handleEditClick = useCallback(branch => {
     setEditingBranch(branch) // Set the branch data to be edited
     setAddBranchOpen(true) // Open the drawer
-  }
+  }, [])
 
   // Function to close drawer and clear editing state
   const handleDrawerClose = () => {

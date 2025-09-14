@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 
 // MUI Imports
@@ -53,7 +53,7 @@ const AccountDetails = () => {
     }
   }, [session?.accessToken])
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -80,7 +80,7 @@ const AccountDetails = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.accessToken])
 
   const handleFormChange = (field, value) => {
     setFormData({ ...formData, [field]: value })

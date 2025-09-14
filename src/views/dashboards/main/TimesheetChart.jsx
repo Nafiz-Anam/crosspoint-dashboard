@@ -1,5 +1,8 @@
 'use client'
 
+// React Imports
+import { useState, useEffect, useCallback } from 'react'
+
 // Next Imports
 import dynamic from 'next/dynamic'
 
@@ -11,7 +14,6 @@ import Typography from '@mui/material/Typography'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 import { useTheme } from '@mui/material/styles'
-import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 
 // Styled Component Imports
@@ -28,14 +30,7 @@ const TimesheetChart = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // Fetch timesheet data on component mount
-  useEffect(() => {
-    if (session?.accessToken) {
-      fetchTimesheetData()
-    }
-  }, [session?.accessToken])
-
-  const fetchTimesheetData = async () => {
+  const fetchTimesheetData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -58,7 +53,14 @@ const TimesheetChart = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.accessToken])
+
+  // Fetch timesheet data on component mount
+  useEffect(() => {
+    if (session?.accessToken) {
+      fetchTimesheetData()
+    }
+  }, [session?.accessToken])
 
   const getDaysInCurrentMonth = () => {
     const now = new Date()

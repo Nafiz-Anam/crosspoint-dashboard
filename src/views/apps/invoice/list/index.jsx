@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 // Next Imports
 import { useParams } from 'next/navigation'
@@ -40,7 +40,7 @@ const InvoiceList = () => {
   const { data: session, status } = useSession()
 
   // Fetch invoices and stats
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (status === 'loading') return
     if (status === 'unauthenticated' || !session?.accessToken) {
       setError('Authentication required to fetch invoices. Please log in.')
@@ -119,7 +119,7 @@ const InvoiceList = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [status, session?.accessToken, filters])
 
   useEffect(() => {
     if (status === 'authenticated') {

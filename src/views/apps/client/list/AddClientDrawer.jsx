@@ -10,6 +10,7 @@ import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
 import Alert from '@mui/material/Alert'
+import CircularProgress from '@mui/material/CircularProgress'
 
 // Component Imports
 import LoadingButton from '@/components/ui/LoadingButton'
@@ -48,6 +49,7 @@ const AddClientDrawer = props => {
   } = useForm({
     defaultValues: {
       name: '',
+      nationalIdentificationNumber: '',
       email: '',
       phone: '',
       address: '',
@@ -136,11 +138,18 @@ const AddClientDrawer = props => {
     }
   }
 
+  // Valid status values
+  const validStatuses = ['ACTIVE', 'PENDING', 'PROCESSING', 'CANCELLED', 'COMPLETED']
+
   // Effect to populate form fields when currentClient changes (for edit mode)
   useEffect(() => {
     if (currentClient) {
+      // Ensure status is valid, fallback to PENDING if invalid
+      const validStatus = validStatuses.includes(currentClient.status) ? currentClient.status : 'PENDING'
+
       resetForm({
         name: currentClient.name || '',
+        nationalIdentificationNumber: currentClient.nationalIdentificationNumber || '',
         email: currentClient.email || '',
         phone: currentClient.phone || '',
         address: currentClient.address || '',
@@ -150,11 +159,12 @@ const AddClientDrawer = props => {
         serviceId: currentClient.serviceId || '',
         branchId: currentClient.branchId || '',
         assignedEmployeeId: currentClient.assignedEmployeeId || '',
-        status: currentClient.status || 'PENDING'
+        status: validStatus
       })
     } else {
       resetForm({
         name: '',
+        nationalIdentificationNumber: '',
         email: '',
         phone: '',
         address: '',
@@ -193,6 +203,7 @@ const AddClientDrawer = props => {
 
     const payload = {
       name: data.name,
+      nationalIdentificationNumber: data.nationalIdentificationNumber || null,
       email: data.email,
       phone: data.phone || null,
       address: data.address || null,
@@ -204,6 +215,17 @@ const AddClientDrawer = props => {
       assignedEmployeeId: data.assignedEmployeeId || null,
       status: data.status
     }
+
+    // Validate status before sending
+    if (!validStatuses.includes(data.status)) {
+      setApiError(`Invalid status: ${data.status}. Please select a valid status.`)
+      setLoading(false)
+      return
+    }
+
+    // Debug: Log the payload being sent
+    console.log('Client creation payload:', payload)
+    console.log('Status value:', data.status, 'Type:', typeof data.status)
 
     const isEditMode = !!currentClient
     const apiMethod = isEditMode ? 'PUT' : 'POST'
@@ -310,6 +332,27 @@ const AddClientDrawer = props => {
                 label='Client Name'
                 placeholder='Mario Rossi'
                 {...(errors.name && { error: true, helperText: errors.name.message })}
+              />
+            )}
+          />
+
+          <Controller
+            name='nationalIdentificationNumber'
+            control={control}
+            rules={{
+              minLength: { value: 5, message: 'National ID must be at least 5 characters' },
+              maxLength: { value: 20, message: 'National ID must be at most 20 characters' }
+            }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                label='National Identification Number'
+                placeholder='1234567890'
+                {...(errors.nationalIdentificationNumber && {
+                  error: true,
+                  helperText: errors.nationalIdentificationNumber.message
+                })}
               />
             )}
           />
@@ -479,9 +522,10 @@ const AddClientDrawer = props => {
                 {...field}
                 {...(errors.status && { error: true, helperText: errors.status.message })}
               >
-                <MenuItem value='PENDING'>Pending</MenuItem>
                 <MenuItem value='ACTIVE'>Active</MenuItem>
-                <MenuItem value='INACTIVE'>Inactive</MenuItem>
+                <MenuItem value='PENDING'>Pending</MenuItem>
+                <MenuItem value='PROCESSING'>Processing</MenuItem>
+                <MenuItem value='CANCELLED'>Cancelled</MenuItem>
                 <MenuItem value='COMPLETED'>Completed</MenuItem>
               </CustomTextField>
             )}

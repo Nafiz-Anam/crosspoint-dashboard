@@ -200,29 +200,6 @@ const ProjectTables = ({ data, loading, error }) => {
     []
   )
 
-  // Handle loading and error states
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader title='Project List' />
-        <CardContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
-          <CircularProgress />
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardHeader title='Project List' />
-        <CardContent>
-          <Alert severity='error'>{error}</Alert>
-        </CardContent>
-      </Card>
-    )
-  }
-
   const table = useReactTable({
     data: projectData,
     columns,
@@ -247,6 +224,29 @@ const ProjectTables = ({ data, loading, error }) => {
     getFacetedUniqueValues: getFacetedUniqueValues(),
     getFacetedMinMaxValues: getFacetedMinMaxValues()
   })
+
+  // Handle loading and error states
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader title='Project List' />
+        <CardContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
+          <CircularProgress />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader title='Project List' />
+        <CardContent>
+          <Alert severity='error'>{error}</Alert>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card>
