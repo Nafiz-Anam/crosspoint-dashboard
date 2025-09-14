@@ -7,14 +7,12 @@ import { useState } from 'react'
 import Drawer from '@mui/material/Drawer'
 import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
 import FormControl from '@mui/material/FormControl'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Switch from '@mui/material/Switch'
 import Divider from '@mui/material/Divider'
-
-// Component Imports
-import LoadingButton from '@/components/ui/LoadingButton'
 
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
@@ -123,9 +121,9 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
           <Typography variant='h5' sx={{ fontWeight: 600 }}>
             Add Bank Account
           </Typography>
-          <LoadingButton variant='text' onClick={handleClose} startIcon={<i className='tabler-x' />}>
+          <Button variant='text' onClick={handleClose} startIcon={<i className='tabler-x' />}>
             Close
-          </LoadingButton>
+          </Button>
         </Box>
 
         {/* Form */}
@@ -196,20 +194,18 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
 
         {/* Footer */}
         <Box className='flex items-center justify-end gap-3 p-6 border-t'>
-          <LoadingButton variant='outlined' onClick={handleClose} disabled={loading}>
+          <Button variant='outlined' onClick={handleClose} disabled={loading}>
             Cancel
-          </LoadingButton>
-          <LoadingButton
+          </Button>
+          <Button
             type='submit'
             variant='contained'
             onClick={handleSubmit}
-            loading={loading}
-            loadingText='Adding...'
             disabled={loading}
-            startIcon={<i className='tabler-plus' />}
+            startIcon={loading ? <i className='tabler-loader-2 animate-spin' /> : <i className='tabler-plus' />}
           >
-            Add Bank Account
-          </LoadingButton>
+            {loading ? 'Adding...' : 'Add Bank Account'}
+          </Button>
         </Box>
       </Box>
     </Drawer>
