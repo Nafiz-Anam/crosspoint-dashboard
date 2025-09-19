@@ -43,7 +43,7 @@ const AddInvoice = () => {
       ])
 
       setClients(clientsRes.data?.clients || [])
-      setServices(servicesRes.data?.services || [])
+      setServices(servicesRes.data || [])
       setBranches(branchesRes.data?.branches || [])
     } catch (err) {
       console.error('Error fetching data:', err)

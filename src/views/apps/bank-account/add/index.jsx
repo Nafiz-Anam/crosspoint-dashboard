@@ -33,7 +33,7 @@ const AddBankAccount = () => {
   const router = useRouter()
 
   // Handle form submission
-  const handleSubmit = async (bankAccountData) => {
+  const handleSubmit = async bankAccountData => {
     if (!session?.accessToken) {
       setError('Authentication required to add bank account.')
       return
@@ -86,11 +86,7 @@ const AddBankAccount = () => {
   }
 
   if (status === 'unauthenticated') {
-    return (
-      <Alert severity='error'>
-        Authentication required. Please log in to add bank accounts.
-      </Alert>
-    )
+    return <Alert severity='error'>Authentication required. Please log in to add payment method.</Alert>
   }
 
   return (
@@ -102,17 +98,13 @@ const AddBankAccount = () => {
             <Box display='flex' justifyContent='space-between' alignItems='center'>
               <Box>
                 <Typography variant='h5' sx={{ fontWeight: 600 }}>
-                  Add Bank Account
+                  Add Payment Method
                 </Typography>
                 <Typography variant='body2' color='text.secondary'>
-                  Add a new bank account for invoice payments
+                  Add a new payment method for invoice payments
                 </Typography>
               </Box>
-              <Button
-                variant='outlined'
-                onClick={handleCancel}
-                disabled={loading}
-              >
+              <Button variant='outlined' onClick={handleCancel} disabled={loading}>
                 Cancel
               </Button>
             </Box>
@@ -132,9 +124,7 @@ const AddBankAccount = () => {
       {/* Success Alert */}
       {success && (
         <Grid size={{ xs: 12 }}>
-          <Alert severity='success'>
-            Bank account added successfully! Redirecting to bank account list...
-          </Alert>
+          <Alert severity='success'>Payment method added successfully! Redirecting to list page...</Alert>
         </Grid>
       )}
 
@@ -147,4 +137,3 @@ const AddBankAccount = () => {
 }
 
 export default AddBankAccount
-

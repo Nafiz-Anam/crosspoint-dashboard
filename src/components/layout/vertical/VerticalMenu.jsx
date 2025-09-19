@@ -74,7 +74,7 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
           {dictionary['navigation'].branch}
         </MenuItem>
         <MenuItem href={`/${locale}/apps/bank-account/list`} icon={<i className='tabler-credit-card' />}>
-          Bank Accounts
+          Payment Methods
         </MenuItem>
         <MenuItem href={`/${locale}/apps/service/list`} icon={<i className='tabler-tools' />}>
           {dictionary['navigation'].service}

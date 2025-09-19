@@ -91,14 +91,14 @@ const InvoiceContainer = ({ initialData }) => {
       console.log('Responses received:', {
         bankAccounts: bankAccountsResponse?.data?.bankAccounts?.length || 0,
         clients: clientsResponse?.data?.clients?.length || 0,
-        services: servicesResponse?.data?.services?.length || 0,
-        employees: employeesResponse?.data?.employees?.length || 0
+        services: servicesResponse?.data?.length || 0,
+        employees: employeesResponse?.data?.length || 0
       })
 
       setBankAccounts(bankAccountsResponse.data?.bankAccounts || [])
       setClients(clientsResponse.data?.clients || [])
-      setServices(servicesResponse.data?.services || [])
-      setEmployees(employeesResponse.data?.employees || [])
+      setServices(servicesResponse.data || [])
+      setEmployees(employeesResponse.data || [])
 
       console.log('Data set successfully')
     } catch (err) {

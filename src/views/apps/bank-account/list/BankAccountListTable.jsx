@@ -249,7 +249,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
 
   return (
     <Card>
-      <CardHeader title='Bank Account Management' className='pbe-4' />
+      <CardHeader title='Payment Method Management' className='pbe-4' />
 
       <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
         <CustomTextField

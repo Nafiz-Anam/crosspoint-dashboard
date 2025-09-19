@@ -68,7 +68,7 @@ const ClockInOutCard = () => {
 
       if (isClockedIn) {
         // Clock out
-        const response = await attendanceService.checkOut('', session.accessToken)
+        const response = await attendanceService.checkOut(session.accessToken)
         if (response.success) {
           setIsClockedIn(false)
           setClockInTime(null)
@@ -76,7 +76,7 @@ const ClockInOutCard = () => {
         }
       } else {
         // Clock in
-        const response = await attendanceService.checkIn('', session.accessToken)
+        const response = await attendanceService.checkIn(session.accessToken)
         if (response.success) {
           setIsClockedIn(true)
           setClockInTime(new Date(response.data.checkIn))

@@ -3,7 +3,7 @@ class AttendanceService {
     this.baseURL = process.env.NEXT_PUBLIC_API_URL
   }
 
-  async checkIn(notes = '', token = null) {
+  async checkIn(token = null) {
     try {
       const response = await fetch(`${this.baseURL}/attendance/check-in`, {
         method: 'POST',
@@ -11,8 +11,8 @@ class AttendanceService {
           'Content-Type': 'application/json',
           'x-client-type': 'web',
           Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ notes })
+        }
+        // body: JSON.stringify({ notes })
       })
 
       const data = await response.json()
@@ -28,7 +28,7 @@ class AttendanceService {
     }
   }
 
-  async checkOut(notes = '', token = null) {
+  async checkOut(token = null) {
     try {
       const response = await fetch(`${this.baseURL}/attendance/check-out`, {
         method: 'POST',
@@ -36,8 +36,8 @@ class AttendanceService {
           'Content-Type': 'application/json',
           'x-client-type': 'web',
           Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ notes })
+        }
+        // body: JSON.stringify({ notes })
       })
 
       const data = await response.json()
