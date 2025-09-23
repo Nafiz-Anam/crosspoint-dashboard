@@ -44,10 +44,14 @@ import OptionMenu from '@core/components/option-menu'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
 import CustomAvatar from '@core/components/mui/Avatar'
+import AttendanceReportDialog from '@/components/AttendanceReportDialog'
 
 // Util Imports
 import { getInitials } from '@/utils/getInitials'
 import { getLocalizedUrl } from '@/utils/i18n'
+
+// Service Imports
+import { attendanceReportService } from '@/services/attendanceReportService'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
@@ -100,6 +104,11 @@ const EmployeeListTable = () => {
   // States for Drawer
   const [addEmployeeOpen, setAddEmployeeOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState(null)
+
+  // States for Attendance Report
+  const [reportDialogOpen, setReportDialogOpen] = useState(false)
+  const [selectedEmployee, setSelectedEmployee] = useState(null)
+  const [reportLoading, setReportLoading] = useState(false)
 
   // States for Table Data and API Operations
   const [employees, setEmployees] = useState([])
@@ -236,6 +245,46 @@ const EmployeeListTable = () => {
     setEditingEmployee(null)
   }
 
+  // Function to handle attendance report download
+  const handleDownloadReport = useCallback(employee => {
+    setSelectedEmployee(employee)
+    setReportDialogOpen(true)
+  }, [])
+
+  // Function to generate attendance report
+  const handleGenerateReport = useCallback(
+    async reportData => {
+      if (!selectedEmployee || !session?.accessToken) {
+        setFetchError('Authentication required or employee not selected')
+        return
+      }
+
+      try {
+        setReportLoading(true)
+        setFetchError(null)
+
+        await attendanceReportService.downloadAttendanceReport(selectedEmployee.id, reportData, session.accessToken)
+
+        setReportDialogOpen(false)
+        setSelectedEmployee(null)
+      } catch (error) {
+        console.error('Error generating report:', error)
+        setFetchError(error.message || 'Failed to generate attendance report')
+      } finally {
+        setReportLoading(false)
+      }
+    },
+    [selectedEmployee, session?.accessToken]
+  )
+
+  // Function to close report dialog
+  const handleCloseReportDialog = useCallback(() => {
+    if (!reportLoading) {
+      setReportDialogOpen(false)
+      setSelectedEmployee(null)
+    }
+  }, [reportLoading])
+
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
@@ -312,6 +361,14 @@ const EmployeeListTable = () => {
                     component: Link,
                     href: getLocalizedUrl(`/apps/user/view/${row.original.id}`, locale),
                     className: 'flex items-center gap-2 text-textSecondary'
+                  }
+                },
+                {
+                  text: 'Download Report',
+                  icon: 'tabler-file-download',
+                  menuItemProps: {
+                    className: 'flex items-center gap-2 text-textSecondary',
+                    onClick: () => handleDownloadReport(row.original)
                   }
                 },
                 {
@@ -502,6 +559,15 @@ const EmployeeListTable = () => {
         handleClose={handleDrawerClose}
         currentEmployee={editingEmployee}
         onEmployeeAdded={fetchEmployees}
+      />
+
+      {/* Attendance Report Dialog */}
+      <AttendanceReportDialog
+        open={reportDialogOpen}
+        onClose={handleCloseReportDialog}
+        onGenerate={handleGenerateReport}
+        loading={reportLoading}
+        employeeName={selectedEmployee?.name || ''}
       />
     </>
   )

@@ -36,6 +36,7 @@
         "edit": "Edit",
         "employee": "Employees",
         "client": "Clients",
+        "task": "Tasks",
         "view": "View",
         "rolesPermissions": "Roles & Permissions",
         "roles": "Assign Roles",

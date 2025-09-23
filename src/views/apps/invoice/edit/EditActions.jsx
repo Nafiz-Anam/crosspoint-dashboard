@@ -17,7 +17,7 @@ import MenuItem from '@mui/material/MenuItem'
 import Switch from '@mui/material/Switch'
 
 // Component Imports
-import SendInvoiceDrawer from '@views/apps/invoice/shared/SendInvoiceDrawer'
+// import SendInvoiceDrawer from '@views/apps/invoice/shared/SendInvoiceDrawer' // Removed email functionality
 import CustomTextField from '@core/components/mui/TextField'
 
 // Util Imports
@@ -25,7 +25,7 @@ import { getLocalizedUrl } from '@/utils/i18n'
 
 const EditActions = ({ id }) => {
   // States
-  const [sendDrawerOpen, setSendDrawerOpen] = useState(false)
+  // const [sendDrawerOpen, setSendDrawerOpen] = useState(false) // Removed email functionality
 
   // Hooks
   const { lang: locale } = useParams()
@@ -35,7 +35,8 @@ const EditActions = ({ id }) => {
       <Grid size={{ xs: 12 }}>
         <Card>
           <CardContent className='flex flex-col gap-4'>
-            <Button
+            {/* Send Invoice Button - Removed email functionality */}
+            {/* <Button
               fullWidth
               variant='contained'
               className='capitalize'
@@ -43,7 +44,7 @@ const EditActions = ({ id }) => {
               onClick={() => setSendDrawerOpen(true)}
             >
               Send Invoice
-            </Button>
+            </Button> */}
             <div className='flex items-center gap-4'>
               <Button
                 fullWidth
@@ -61,7 +62,8 @@ const EditActions = ({ id }) => {
             </div>
           </CardContent>
         </Card>
-        <SendInvoiceDrawer open={sendDrawerOpen} handleClose={() => setSendDrawerOpen(false)} />
+        {/* SendInvoiceDrawer - Removed email functionality */}
+        {/* <SendInvoiceDrawer open={sendDrawerOpen} handleClose={() => setSendDrawerOpen(false)} /> */}
       </Grid>
 
       <Grid size={{ xs: 12 }}>

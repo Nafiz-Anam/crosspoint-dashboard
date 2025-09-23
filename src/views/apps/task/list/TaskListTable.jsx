@@ -16,7 +16,7 @@ import Alert from '@mui/material/Alert'
 import Chip from '@mui/material/Chip'
 import classnames from 'classnames'
 import OptionMenu from '@core/components/option-menu'
-import { rankItem } from '@tanstack/match-sorter-utils' // Added missing import
+import { rankItem } from '@tanstack/match-sorter-utils'
 import {
   createColumnHelper,
   flexRender,
@@ -29,20 +29,29 @@ import {
   getFacetedUniqueValues,
   getFacetedMinMaxValues
 } from '@tanstack/react-table'
-import { useSession } from 'next-auth/react' // Added session import
+import { useSession } from 'next-auth/react'
 import CustomTextField from '@core/components/mui/TextField'
-import AddClientDrawer from './AddClientDrawer'
+import AddTaskDrawer from './AddTaskDrawer'
+import GenerateInvoiceDrawer from './GenerateInvoiceDrawer'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import { getLocalizedUrl } from '@/utils/i18n'
 import tableStyles from '@core/styles/table.module.css'
 
 const columnHelper = createColumnHelper()
-const clientStatusObj = {
-  ACTIVE: 'success',
+
+const taskStatusObj = {
   PENDING: 'warning',
-  PROCESSING: 'info',
+  IN_PROGRESS: 'info',
+  COMPLETED: 'success',
   CANCELLED: 'error',
-  COMPLETED: 'success'
+  ON_HOLD: 'secondary'
+}
+
+const taskPriorityObj = {
+  LOW: 'success',
+  MEDIUM: 'warning',
+  HIGH: 'error',
+  URGENT: 'error'
 }
 
 // Fuzzy filter for search
@@ -66,20 +75,22 @@ const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...prop
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
 
-const ClientListTable = () => {
+const TaskListTable = () => {
   // States for Drawer
-  const [addClientOpen, setAddClientOpen] = useState(false)
-  const [editingClient, setEditingClient] = useState(null)
+  const [addTaskOpen, setAddTaskOpen] = useState(false)
+  const [editingTask, setEditingTask] = useState(null)
+  const [generateInvoiceOpen, setGenerateInvoiceOpen] = useState(false)
+  const [selectedTaskForInvoice, setSelectedTaskForInvoice] = useState(null)
 
   // States for Table Data and API Operations
-  const [clients, setClients] = useState([])
+  const [tasks, setTasks] = useState([])
   const [fetchLoading, setFetchLoading] = useState(true)
   const [fetchError, setFetchError] = useState(null)
 
   // States for Filtering and Search
   const [filteredData, setFilteredData] = useState([])
   const [globalFilter, setGlobalFilter] = useState('')
-  const [filters, setFilters] = useState({ status: '', service: '', branch: '' })
+  const [filters, setFilters] = useState({ status: '', priority: '', assignedEmployee: '' })
 
   // States for row selection
   const [rowSelection, setRowSelection] = useState({})
@@ -88,20 +99,20 @@ const ClientListTable = () => {
   const { lang: locale } = useParams()
   const { data: session, status: sessionStatus } = useSession()
 
-  // Function to fetch client data from API
-  const fetchClients = useCallback(async () => {
+  // Function to fetch task data from API
+  const fetchTasks = useCallback(async () => {
     setFetchLoading(true)
     setFetchError(null)
 
     if (sessionStatus === 'loading') return
     if (sessionStatus === 'unauthenticated' || !session?.accessToken) {
-      setFetchError('Authentication required to fetch clients. Please log in.')
+      setFetchError('Authentication required to fetch tasks. Please log in.')
       setFetchLoading(false)
       return
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -113,15 +124,15 @@ const ClientListTable = () => {
       const responseData = await response.json()
 
       if (response.ok) {
-        setClients(responseData.data?.clients || responseData.data || [])
+        setTasks(responseData.data?.results || responseData.data || [])
       } else {
-        const errorMessage = responseData.message || `Failed to fetch clients: ${response.status}`
+        const errorMessage = responseData.message || `Failed to fetch tasks: ${response.status}`
         setFetchError(errorMessage)
-        console.error('API Error fetching clients:', responseData)
+        console.error('API Error fetching tasks:', responseData)
       }
     } catch (error) {
-      setFetchError('Network error or unexpected issue fetching clients. Please try again.')
-      console.error('Fetch error clients:', error)
+      setFetchError('Network error or unexpected issue fetching tasks. Please try again.')
+      console.error('Fetch error tasks:', error)
     } finally {
       setFetchLoading(false)
     }
@@ -130,46 +141,46 @@ const ClientListTable = () => {
   // Effect to fetch data on component mount or when session/token changes
   useEffect(() => {
     if (sessionStatus === 'authenticated') {
-      fetchClients()
+      fetchTasks()
     } else if (sessionStatus === 'unauthenticated') {
-      setFetchError('Not authenticated. Please log in to view clients.')
+      setFetchError('Not authenticated. Please log in to view tasks.')
       setFetchLoading(false)
     }
   }, [sessionStatus, session?.accessToken])
 
   // Effect for client-side filtering
   useEffect(() => {
-    let tempData = [...clients]
+    let tempData = [...tasks]
 
     if (filters.status) {
       tempData = tempData.filter(row => row.status === filters.status)
     }
 
-    if (filters.service) {
-      tempData = tempData.filter(row => row.service?.name === filters.service)
+    if (filters.priority) {
+      tempData = tempData.filter(row => row.priority === filters.priority)
     }
 
-    if (filters.branch) {
-      tempData = tempData.filter(row => row.branch?.name === filters.branch)
+    if (filters.assignedEmployee) {
+      tempData = tempData.filter(row => row.assignedEmployee?.name === filters.assignedEmployee)
     }
 
     setFilteredData(tempData)
-  }, [filters, clients])
+  }, [filters, tasks])
 
-  // Function to handle client deletion
-  const handleDeleteClient = useCallback(
-    async clientId => {
-      if (!confirm('Are you sure you want to delete this client?')) {
+  // Function to handle task deletion
+  const handleDeleteTask = useCallback(
+    async taskId => {
+      if (!confirm('Are you sure you want to delete this task?')) {
         return
       }
 
       if (!session?.accessToken) {
-        setFetchError('Authentication token not found. Cannot delete client.')
+        setFetchError('Authentication token not found. Cannot delete task.')
         return
       }
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/${clientId}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${taskId}`, {
           method: 'DELETE',
           headers: {
             'x-client-type': 'web',
@@ -178,109 +189,115 @@ const ClientListTable = () => {
         })
 
         if (response.ok) {
-          console.log(`Client ${clientId} deleted successfully.`)
-          fetchClients()
+          console.log(`Task ${taskId} deleted successfully.`)
+          fetchTasks()
         } else {
           const errorData = await response.json()
-          const errorMessage = errorData.message || `Failed to delete client: ${response.status}`
+          const errorMessage = errorData.message || `Failed to delete task: ${response.status}`
           setFetchError(errorMessage)
-          console.error('API Error deleting client:', errorData)
+          console.error('API Error deleting task:', errorData)
         }
       } catch (error) {
         setFetchError('Network error or unexpected issue during deletion. Please try again.')
-        console.error('Fetch error deleting client:', error)
+        console.error('Fetch error deleting task:', error)
       }
     },
-    [session?.accessToken, fetchClients]
+    [session?.accessToken, fetchTasks]
   )
 
   // Function to open drawer for editing
-  const handleEditClick = useCallback(client => {
-    setEditingClient(client)
-    setAddClientOpen(true)
+  const handleEditClick = useCallback(task => {
+    setEditingTask(task)
+    setAddTaskOpen(true)
   }, [])
 
   // Function to close drawer and clear editing state
   const handleDrawerClose = () => {
-    setAddClientOpen(false)
-    setEditingClient(null)
+    setAddTaskOpen(false)
+    setEditingTask(null)
+  }
+
+  // Function to handle generate invoice
+  const handleGenerateInvoiceClick = useCallback(task => {
+    setSelectedTaskForInvoice(task)
+    setGenerateInvoiceOpen(true)
+  }, [])
+
+  // Function to close generate invoice drawer
+  const handleGenerateInvoiceClose = () => {
+    setGenerateInvoiceOpen(false)
+    setSelectedTaskForInvoice(null)
   }
 
   // Derive unique values for filter dropdowns from the fetched data
-  const services = useMemo(
-    () => Array.from(new Set(clients.map(item => item.service?.name).filter(Boolean))),
-    [clients]
+  const assignedEmployees = useMemo(
+    () => Array.from(new Set(tasks.map(item => item.assignedEmployee?.name).filter(Boolean))),
+    [tasks]
   )
-  const branches = useMemo(() => Array.from(new Set(clients.map(item => item.branch?.name).filter(Boolean))), [clients])
-  const statuses = useMemo(() => Array.from(new Set(clients.map(item => item.status))), [clients])
+  const statuses = useMemo(() => Array.from(new Set(tasks.map(item => item.status))), [tasks])
+  const priorities = useMemo(() => Array.from(new Set(tasks.map(item => item.priority))), [tasks])
+
+  // Function to format date
+  const formatDate = dateString => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleDateString()
+  }
 
   // Column definitions
   const columns = useMemo(
     () => [
-      columnHelper.accessor('clientId', {
-        header: 'Client ID',
+      columnHelper.accessor('taskId', {
+        header: 'Task ID',
         cell: ({ row }) => (
           <Typography color='text.primary' className='font-medium'>
-            {row.original.clientId || '-'}
+            {row.original.taskId || '-'}
           </Typography>
         )
       }),
-      columnHelper.accessor('name', {
-        header: 'Client',
+      columnHelper.accessor('title', {
+        header: 'Title',
         cell: ({ row }) => (
           <div className='flex flex-col'>
             <Typography color='text.primary' className='font-medium'>
-              {row.original.name || row.original.email}
+              {row.original.title}
             </Typography>
-            <Typography variant='body2'>{row.original.email}</Typography>
-            {row.original.nationalIdentificationNumber && (
-              <Typography variant='caption' color='text.secondary'>
-                ID: {row.original.nationalIdentificationNumber}
+            {row.original.description && (
+              <Typography variant='body2' color='text.secondary' className='truncate max-w-xs'>
+                {row.original.description}
               </Typography>
             )}
           </div>
         )
       }),
-      columnHelper.accessor('phone', {
-        header: 'Phone',
-        cell: ({ row }) => <Typography color='text.primary'>{row.original.phone || '-'}</Typography>
-      }),
-      columnHelper.accessor('address', {
-        header: 'Address',
-        cell: ({ row }) => {
-          const address = row.original.address
-          const city = row.original.city
-          const postalCode = row.original.postalCode
-          if (!address && !city && !postalCode) return <Typography>-</Typography>
-          return (
-            <div className='flex flex-col'>
-              {address && (
-                <Typography variant='body2' color='text.primary'>
-                  {address}
-                </Typography>
-              )}
-              {(city || postalCode) && (
-                <Typography variant='caption' color='text.secondary'>
-                  {city}
-                  {city && postalCode ? ', ' : ''}
-                  {postalCode}
-                </Typography>
-              )}
-            </div>
-          )
-        }
+      columnHelper.accessor('client', {
+        header: 'Client',
+        cell: ({ row }) => (
+          <div className='flex flex-col'>
+            <Typography color='text.primary' className='font-medium'>
+              {row.original.client?.name || '-'}
+            </Typography>
+            <Typography variant='body2' color='text.secondary'>
+              {row.original.client?.email || ''}
+            </Typography>
+          </div>
+        )
       }),
       columnHelper.accessor('service', {
         header: 'Service',
         cell: ({ row }) => <Typography color='text.primary'>{row.original.service?.name || '-'}</Typography>
       }),
-      columnHelper.accessor('branch', {
-        header: 'Branch',
-        cell: ({ row }) => <Typography color='text.primary'>{row.original.branch?.name || '-'}</Typography>
-      }),
       columnHelper.accessor('assignedEmployee', {
-        header: 'Employee',
-        cell: ({ row }) => <Typography color='text.primary'>{row.original.assignedEmployee?.name || '-'}</Typography>
+        header: 'Assigned To',
+        cell: ({ row }) => (
+          <div className='flex flex-col'>
+            <Typography color='text.primary' className='font-medium'>
+              {row.original.assignedEmployee?.name || '-'}
+            </Typography>
+            <Typography variant='body2' color='text.secondary'>
+              {row.original.assignedEmployee?.role || ''}
+            </Typography>
+          </div>
+        )
       }),
       columnHelper.accessor('status', {
         header: 'Status',
@@ -290,11 +307,29 @@ const ClientListTable = () => {
               variant='tonal'
               label={row.original.status}
               size='small'
-              color={clientStatusObj[row.original.status]}
+              color={taskStatusObj[row.original.status]}
               className='capitalize'
             />
           </div>
         )
+      }),
+      columnHelper.accessor('priority', {
+        header: 'Priority',
+        cell: ({ row }) => (
+          <div className='flex items-center gap-3'>
+            <Chip
+              variant='tonal'
+              label={row.original.priority}
+              size='small'
+              color={taskPriorityObj[row.original.priority]}
+              className='capitalize'
+            />
+          </div>
+        )
+      }),
+      columnHelper.accessor('dueDate', {
+        header: 'Due Date',
+        cell: ({ row }) => <Typography color='text.primary'>{formatDate(row.original.dueDate)}</Typography>
       }),
       columnHelper.accessor('action', {
         header: 'Action',
@@ -305,37 +340,33 @@ const ClientListTable = () => {
               iconClassName='text-textSecondary'
               options={[
                 {
-                  text: 'View',
-                  icon: 'tabler-eye',
-                  menuItemProps: {
-                    component: Link,
-                    href: getLocalizedUrl(`/apps/client/view/${row.original.id}`, locale),
-                    className: 'flex items-center gap-2 text-textSecondary'
-                  }
-                },
-                {
-                  text: 'Create Task',
-                  icon: 'tabler-plus',
-                  menuItemProps: {
-                    component: Link,
-                    href: getLocalizedUrl(`/apps/task/add?clientId=${row.original.id}`, locale),
-                    className: 'flex items-center gap-2 text-textSecondary'
-                  }
-                },
-                {
                   text: 'Edit',
                   icon: 'tabler-edit',
                   menuItemProps: {
-                    className: 'flex items-center gap-2 text-textSecondary',
-                    onClick: () => handleEditClick(row.original)
+                    component: Link,
+                    href: getLocalizedUrl(`/apps/task/edit/${row.original.id}`, locale),
+                    className: 'flex items-center gap-2 text-textSecondary'
                   }
                 },
+                ...(row.original.status === 'COMPLETED' &&
+                (!row.original.invoices || row.original.invoices.length === 0)
+                  ? [
+                      {
+                        text: 'Generate Invoice',
+                        icon: 'tabler-file-invoice',
+                        menuItemProps: {
+                          className: 'flex items-center gap-2 text-textSecondary',
+                          onClick: () => handleGenerateInvoiceClick(row.original)
+                        }
+                      }
+                    ]
+                  : []),
                 {
                   text: 'Delete',
                   icon: 'tabler-trash',
                   menuItemProps: {
                     className: 'flex items-center gap-2 text-textSecondary',
-                    onClick: () => handleDeleteClient(row.original.id)
+                    onClick: () => handleDeleteTask(row.original.id)
                   }
                 }
               ]}
@@ -345,7 +376,7 @@ const ClientListTable = () => {
         enableSorting: false
       })
     ],
-    [handleDeleteClient, handleEditClick, locale]
+    [handleDeleteTask, handleGenerateInvoiceClick, locale]
   )
 
   const table = useReactTable({
@@ -370,7 +401,7 @@ const ClientListTable = () => {
   return (
     <>
       <Card>
-        <CardHeader title='Client Management' className='pbe-4' />
+        <CardHeader title='Task Management' className='pbe-4' />
         <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
           {/* Status Filter */}
           <CustomTextField
@@ -388,34 +419,34 @@ const ClientListTable = () => {
             ))}
           </CustomTextField>
 
-          {/* Service Filter */}
+          {/* Priority Filter */}
           <CustomTextField
             select
-            label='Service'
-            value={filters.service}
-            onChange={e => setFilters({ ...filters, service: e.target.value })}
+            label='Priority'
+            value={filters.priority}
+            onChange={e => setFilters({ ...filters, priority: e.target.value })}
             className='min-w-[180px]'
           >
             <MenuItem value=''>All</MenuItem>
-            {services.map(service => (
-              <MenuItem key={service} value={service}>
-                {service}
+            {priorities.map(priority => (
+              <MenuItem key={priority} value={priority}>
+                {priority}
               </MenuItem>
             ))}
           </CustomTextField>
 
-          {/* Branch Filter */}
+          {/* Assigned Employee Filter */}
           <CustomTextField
             select
-            label='Branch'
-            value={filters.branch}
-            onChange={e => setFilters({ ...filters, branch: e.target.value })}
+            label='Assigned To'
+            value={filters.assignedEmployee}
+            onChange={e => setFilters({ ...filters, assignedEmployee: e.target.value })}
             className='min-w-[180px]'
           >
             <MenuItem value=''>All</MenuItem>
-            {branches.map(branch => (
-              <MenuItem key={branch} value={branch}>
-                {branch}
+            {assignedEmployees.map(employee => (
+              <MenuItem key={employee} value={employee}>
+                {employee}
               </MenuItem>
             ))}
           </CustomTextField>
@@ -423,27 +454,25 @@ const ClientListTable = () => {
           <DebouncedInput
             value={globalFilter ?? ''}
             onChange={value => setGlobalFilter(String(value))}
-            placeholder='Search Client...'
+            placeholder='Search Task...'
             className='min-w-[200px]'
           />
 
           <Button
             variant='contained'
             startIcon={<i className='tabler-plus' />}
-            onClick={() => {
-              setEditingClient(null)
-              setAddClientOpen(true)
-            }}
+            component={Link}
+            href={getLocalizedUrl('/apps/task/add', locale)}
             className='ml-auto h-[40px]'
           >
-            Add New Client
+            Add New Task
           </Button>
         </div>
 
         {fetchLoading ? (
           <div className='flex justify-center items-center p-6'>
             <CircularProgress />
-            <Typography className='ml-4'>Loading Clients...</Typography>
+            <Typography className='ml-4'>Loading Tasks...</Typography>
           </div>
         ) : fetchError ? (
           <Alert severity='error' sx={{ m: 6 }}>
@@ -481,7 +510,7 @@ const ClientListTable = () => {
                 <tbody>
                   <tr>
                     <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
-                      No clients available
+                      No tasks available
                     </td>
                   </tr>
                 </tbody>
@@ -510,14 +539,20 @@ const ClientListTable = () => {
           }}
         />
       </Card>
-      <AddClientDrawer
-        open={addClientOpen}
+      <AddTaskDrawer
+        open={addTaskOpen}
         handleClose={handleDrawerClose}
-        currentClient={editingClient}
-        onClientAdded={fetchClients}
+        currentTask={editingTask}
+        onTaskAdded={fetchTasks}
+      />
+      <GenerateInvoiceDrawer
+        open={generateInvoiceOpen}
+        handleClose={handleGenerateInvoiceClose}
+        task={selectedTaskForInvoice}
+        onInvoiceGenerated={fetchTasks}
       />
     </>
   )
 }
 
-export default ClientListTable
+export default TaskListTable

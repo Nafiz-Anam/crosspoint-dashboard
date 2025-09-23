@@ -7,6 +7,7 @@ import Divider from '@mui/material/Divider'
 
 // Component Imports
 // import Logo from '@components/layout/shared/Logo'
+import CompanyInfoSection from '@/components/CompanyInfoSection'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
@@ -25,9 +26,26 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
   const paymentMethod = invoice?.paymentMethod
   const paymentTerms = invoice?.paymentTerms
   const paymentTermsText = invoice?.paymentTerms
-  const clientNotes = invoice?.notes
-  const clientNotesText = invoice?.notes
   const bankDetails = invoice?.bankAccount // This might need to be fetched separately
+
+  // Extract company info from invoice data
+  const invoiceCompanyInfo = {
+    companyName: invoice?.companyName,
+    tagline: invoice?.companyTagline,
+    address: invoice?.companyAddress,
+    city: invoice?.companyCity,
+    phone: invoice?.companyPhone,
+    email: invoice?.companyEmail,
+    website: invoice?.companyWebsite,
+    logo: invoice?.companyLogo
+  }
+
+  // Debug logging
+  console.log('PreviewCard - Invoice data:', invoice)
+  console.log('PreviewCard - Extracted company info:', invoiceCompanyInfo)
+  console.log('PreviewCard - Notes:', invoice?.notes)
+  console.log('PreviewCard - Thanks Message:', invoice?.thanksMessage)
+  console.log('PreviewCard - Payment Terms:', invoice?.paymentTerms)
 
   // Calculation functions
   const calculateItemTotal = item => {
@@ -79,22 +97,7 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
             <div className='p-6 bg-actionHover rounded'>
               <div className='flex justify-between gap-y-4 flex-col sm:flex-row'>
                 <div className='flex flex-col gap-6'>
-                  <div className='flex items-center gap-2.5'>
-                    <img
-                      src='/images/logos/main_logo.png'
-                      alt='Crosspoint logo'
-                      style={{
-                        width: 'auto',
-                        height: 'auto',
-                        maxHeight: '140px'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <Typography color='text.primary'>Office 149, 450 South Brand Brooklyn</Typography>
-                    <Typography color='text.primary'>San Diego County, CA 91905, USA</Typography>
-                    <Typography color='text.primary'>+1 (123) 456 7891, +44 (876) 543 2198</Typography>
-                  </div>
+                  <CompanyInfoSection companyInfo={invoiceCompanyInfo} isEditable={false} showEditButton={false} />
                 </div>
                 <div className='flex flex-col gap-6'>
                   <Typography variant='h5'>{`Invoice #${invoice?.invoiceNumber || invoice?.invoiceId || id || 'INV-001'}`}</Typography>
@@ -191,10 +194,12 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                   {invoiceItems?.map((item, index) => (
                     <tr key={index}>
                       <td>
-                        <Typography color='text.primary'>{item.service?.name || 'Service'}</Typography>
+                        <Typography color='text.primary'>
+                          {item.service?.name || item.serviceName || 'Service'}
+                        </Typography>
                       </td>
                       <td>
-                        <Typography color='text.primary'>{item.description || 'No description'}</Typography>
+                        <Typography color='text.primary'>{item.description || ''}</Typography>
                       </td>
                       <td>
                         <Typography color='text.primary'>${item.rate || 0}</Typography>
@@ -234,7 +239,7 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                     {selectedSalesperson ? `${selectedSalesperson.name} - ${selectedSalesperson.role}` : 'Not assigned'}
                   </Typography>
                 </div>
-                <Typography>{invoice?.thanksMessage || 'Thanks for your business'}</Typography>
+                {invoice?.thanksMessage && <Typography>{invoice.thanksMessage}</Typography>}
 
                 {/* Payment Terms */}
                 {paymentTerms && (
@@ -243,16 +248,6 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                       Payment Terms:
                     </Typography>
                     <Typography>{paymentTerms}</Typography>
-                  </div>
-                )}
-
-                {/* Client Notes */}
-                {clientNotes && (
-                  <div className='flex flex-col gap-1'>
-                    <Typography className='font-medium' color='text.primary'>
-                      Notes:
-                    </Typography>
-                    <Typography className='ml-4'>{clientNotes}</Typography>
                   </div>
                 )}
               </div>
@@ -292,16 +287,17 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
             <Divider className='border-dashed' />
           </Grid>
 
-          {/* Note Section */}
-          <Grid size={{ xs: 12 }}>
-            <Typography>
-              <Typography component='span' className='font-medium' color='text.primary'>
-                Note:
-              </Typography>{' '}
-              {invoice?.notes ||
-                'It was a pleasure working with you and your team. We hope you will keep us in mind for future freelance projects. Thank You!'}
-            </Typography>
-          </Grid>
+          {/* Note Section - Only show if note exists */}
+          {invoice?.notes && (
+            <Grid size={{ xs: 12 }}>
+              <Typography>
+                <Typography component='span' className='font-medium' color='text.primary'>
+                  Note:
+                </Typography>{' '}
+                {invoice.notes}
+              </Typography>
+            </Grid>
+          )}
         </Grid>
       </CardContent>
     </Card>

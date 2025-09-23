@@ -15,6 +15,7 @@ import { useSession } from 'next-auth/react'
 
 // Component Imports
 import CustomAvatar from '@core/components/mui/Avatar'
+import ClockOutNoteDialog from '@/components/ClockOutNoteDialog'
 
 // Service Imports
 import { attendanceService } from '@/services/attendanceService'
@@ -26,6 +27,8 @@ const ClockInOutCard = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [attendanceData, setAttendanceData] = useState(null)
+  const [showNoteDialog, setShowNoteDialog] = useState(false)
+  const [clockOutLoading, setClockOutLoading] = useState(false)
 
   const fetchTodayAttendance = useCallback(async () => {
     try {
@@ -62,32 +65,58 @@ const ClockInOutCard = () => {
       return
     }
 
-    try {
-      setLoading(true)
-      setError(null)
+    if (isClockedIn) {
+      // Show note dialog for clock out
+      setShowNoteDialog(true)
+    } else {
+      // Clock in directly
+      try {
+        setLoading(true)
+        setError(null)
 
-      if (isClockedIn) {
-        // Clock out
-        const response = await attendanceService.checkOut(session.accessToken)
-        if (response.success) {
-          setIsClockedIn(false)
-          setClockInTime(null)
-          setAttendanceData(response.data)
-        }
-      } else {
-        // Clock in
         const response = await attendanceService.checkIn(session.accessToken)
         if (response.success) {
           setIsClockedIn(true)
           setClockInTime(new Date(response.data.checkIn))
           setAttendanceData(response.data)
         }
+      } catch (err) {
+        console.error('Clock in error:', err)
+        setError(err.message || 'Failed to clock in')
+      } finally {
+        setLoading(false)
+      }
+    }
+  }
+
+  const handleClockOutWithNote = async note => {
+    if (!session?.accessToken) {
+      setError('Authentication required')
+      return
+    }
+
+    try {
+      setClockOutLoading(true)
+      setError(null)
+
+      const response = await attendanceService.checkOut(session.accessToken, note)
+      if (response.success) {
+        setIsClockedIn(false)
+        setClockInTime(null)
+        setAttendanceData(response.data)
+        setShowNoteDialog(false)
       }
     } catch (err) {
-      console.error('Clock in/out error:', err)
-      setError(err.message || 'Failed to clock in/out')
+      console.error('Clock out error:', err)
+      setError(err.message || 'Failed to clock out')
     } finally {
-      setLoading(false)
+      setClockOutLoading(false)
+    }
+  }
+
+  const handleCloseNoteDialog = () => {
+    if (!clockOutLoading) {
+      setShowNoteDialog(false)
     }
   }
 
@@ -153,6 +182,14 @@ const ClockInOutCard = () => {
         >
           {loading ? 'Processing...' : isClockedIn ? 'Clock Out' : 'Clock In'}
         </Button>
+
+        {/* Clock Out Note Dialog */}
+        <ClockOutNoteDialog
+          open={showNoteDialog}
+          onClose={handleCloseNoteDialog}
+          onConfirm={handleClockOutWithNote}
+          loading={clockOutLoading}
+        />
       </CardContent>
     </Card>
   )

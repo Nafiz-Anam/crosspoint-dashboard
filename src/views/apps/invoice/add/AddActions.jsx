@@ -21,15 +21,20 @@ import Alert from '@mui/material/Alert'
 import Divider from '@mui/material/Divider'
 
 // Component Imports
-import SendInvoiceDrawer from '@views/apps/invoice/shared/SendInvoiceDrawer'
 import CustomTextField from '@core/components/mui/TextField'
 
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
 
-const AddActions = ({ invoiceState, updateInvoiceState, bankAccounts = [], isEdit = false, invoiceId = null }) => {
+const AddActions = ({
+  invoiceState,
+  updateInvoiceState,
+  bankAccounts = [],
+  isEdit = false,
+  invoiceId = null,
+  companyInfo = null
+}) => {
   // Local states
-  const [sendDrawerOpen, setSendDrawerOpen] = useState(false)
   const [saveStatus, setSaveStatus] = useState('')
   const [createdInvoiceId, setCreatedInvoiceId] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -212,7 +217,7 @@ const AddActions = ({ invoiceState, updateInvoiceState, bankAccounts = [], isEdi
           invoiceNumber: currentInvoiceNumber,
           dueDate: new Date(dueDate).toISOString(),
           thanksMessage: thanksMessage || 'Thank you for your business!',
-          notes: notes || null,
+          notes: clientNotesText || null,
           paymentTerms: paymentTerms ? paymentTermsText : null,
           taxRate: taxRate || 0,
           discountAmount: discountAmount || 0,
@@ -220,7 +225,16 @@ const AddActions = ({ invoiceState, updateInvoiceState, bankAccounts = [], isEdi
           bankName: bankDetails?.bankName || null,
           bankCountry: bankDetails?.country || null,
           bankIban: bankDetails?.iban || null,
-          bankSwiftCode: bankDetails?.swiftCode || null
+          bankSwiftCode: bankDetails?.swiftCode || null,
+          // Company Information
+          companyName: companyInfo?.companyName || null,
+          companyTagline: companyInfo?.tagline || null,
+          companyAddress: companyInfo?.address || null,
+          companyCity: companyInfo?.city || null,
+          companyPhone: companyInfo?.phone || null,
+          companyEmail: companyInfo?.email || null,
+          companyWebsite: companyInfo?.website || null,
+          companyLogo: companyInfo?.logo || null
         }
 
         // 2. Update invoice items
@@ -296,12 +310,21 @@ const AddActions = ({ invoiceState, updateInvoiceState, bankAccounts = [], isEdi
           invoiceNumber: currentInvoiceNumber,
           dueDate: new Date(dueDate).toISOString(),
           thanksMessage: thanksMessage || 'Thank you for your business!',
-          notes: notes || null,
+          notes: clientNotesText || null,
           paymentTerms: paymentTerms ? paymentTermsText : null,
           taxRate: taxRate || 0,
           discountAmount: discountAmount || 0,
           paymentMethod: selectedBankAccount ? 'Bank Transfer' : 'Internet Banking',
           bankAccountId: selectedBankAccount || null,
+          // Company Information
+          companyName: companyInfo?.companyName || null,
+          companyTagline: companyInfo?.tagline || null,
+          companyAddress: companyInfo?.address || null,
+          companyCity: companyInfo?.city || null,
+          companyPhone: companyInfo?.phone || null,
+          companyEmail: companyInfo?.email || null,
+          companyWebsite: companyInfo?.website || null,
+          companyLogo: companyInfo?.logo || null,
           items: invoiceItems.map(item => ({
             serviceId: item.serviceId,
             description: item.description,
@@ -376,12 +399,12 @@ const AddActions = ({ invoiceState, updateInvoiceState, bankAccounts = [], isEdi
     }
   }
 
-  // Handle send invoice
-  const handleSendInvoice = () => {
-    if (createdInvoiceId) {
-      setSendDrawerOpen(true)
-    }
-  }
+  // Handle send invoice - removed email functionality
+  // const handleSendInvoice = () => {
+  //   if (createdInvoiceId) {
+  //     setSendDrawerOpen(true)
+  //   }
+  // }
 
   // Calculate totals for display (NO QUANTITY)
   const calculateItemTotal = item => {
@@ -515,8 +538,8 @@ const AddActions = ({ invoiceState, updateInvoiceState, bankAccounts = [], isEdi
               Invoice Actions
             </Typography>
 
-            {/* Send Invoice Button */}
-            <Button
+            {/* Send Invoice Button - Removed email functionality */}
+            {/* <Button
               fullWidth
               {...getButtonProps('send')}
               className='capitalize'
@@ -524,7 +547,7 @@ const AddActions = ({ invoiceState, updateInvoiceState, bankAccounts = [], isEdi
               onClick={handleSendInvoice}
             >
               Send Invoice
-            </Button>
+            </Button> */}
 
             {/* Preview Button */}
             <Button
@@ -634,13 +657,13 @@ const AddActions = ({ invoiceState, updateInvoiceState, bankAccounts = [], isEdi
           </CardContent>
         </Card>
 
-        {/* Send Invoice Drawer */}
-        <SendInvoiceDrawer
+        {/* Send Invoice Drawer - Removed email functionality */}
+        {/* <SendInvoiceDrawer
           open={sendDrawerOpen}
           handleClose={() => setSendDrawerOpen(false)}
           invoiceId={createdInvoiceId}
           invoiceNumber={invoiceNumber}
-        />
+        /> */}
       </Grid>
 
       {/* Invoice Settings */}

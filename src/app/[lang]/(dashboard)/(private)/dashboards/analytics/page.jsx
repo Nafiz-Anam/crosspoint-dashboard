@@ -16,6 +16,7 @@ import TimesheetChart from '@views/dashboards/main/TimesheetChart'
 import LineAreaDailySalesChart from '@views/dashboards/analytics/LineAreaDailySalesChart'
 import EarningReports from '@views/dashboards/analytics/EarningReports'
 import MinimalInvoiceListTable from '@/views/apps/ecommerce/dashboard/MinimalInvoiceListTable'
+import ItalianCalendar from '@views/dashboards/main/ItalianCalendar'
 
 // Hooks Imports
 import { useDashboardData } from '@/hooks/useDashboardData'
@@ -67,7 +68,7 @@ const DashboardAnalytics = () => {
 
   return (
     <Grid container spacing={6}>
-      {/* Top Row - Clock In/Out and Task Statistics (Same Size) */}
+      {/* Top Row - Clock In/Out and Task Statistics */}
       <Grid size={{ xs: 12, sm: 6, md: 6 }}>
         <ClockInOutCard />
       </Grid>
@@ -119,6 +120,11 @@ const DashboardAnalytics = () => {
             }) || []
           }
         />
+      </Grid>
+
+      {/* Italian Calendar Row */}
+      <Grid size={{ xs: 12 }}>
+        <ItalianCalendar height='500px' showTitle={true} />
       </Grid>
     </Grid>
   )

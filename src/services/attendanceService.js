@@ -28,7 +28,7 @@ class AttendanceService {
     }
   }
 
-  async checkOut(token = null) {
+  async checkOut(token = null, notes = '') {
     try {
       const response = await fetch(`${this.baseURL}/attendance/check-out`, {
         method: 'POST',
@@ -36,8 +36,8 @@ class AttendanceService {
           'Content-Type': 'application/json',
           'x-client-type': 'web',
           Authorization: `Bearer ${token}`
-        }
-        // body: JSON.stringify({ notes })
+        },
+        body: JSON.stringify({ notes })
       })
 
       const data = await response.json()

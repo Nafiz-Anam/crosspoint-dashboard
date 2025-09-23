@@ -29,11 +29,16 @@ const PreviewPage = () => {
 
       try {
         setLoading(true)
-        const data = await invoiceService.getInvoiceById(params.id, session.accessToken)
-        setInvoiceData(data)
+        // Fetch only invoice data - company info is now stored in the invoice
+        const invoiceResponse = await invoiceService.getInvoiceById(params.id, session.accessToken)
+
+        console.log('Preview - Invoice response:', invoiceResponse)
+
+        setInvoiceData(invoiceResponse)
+        // Company info is now extracted from invoice data in PreviewCard component
       } catch (err) {
-        console.error('Error fetching invoice:', err)
-        setError(err.message || 'Failed to fetch invoice')
+        console.error('Error fetching data:', err)
+        setError(err.message || 'Failed to fetch data')
       } finally {
         setLoading(false)
       }

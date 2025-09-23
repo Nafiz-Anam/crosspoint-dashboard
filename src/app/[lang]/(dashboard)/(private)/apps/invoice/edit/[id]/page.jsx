@@ -16,6 +16,7 @@ import bankAccountService from '@/libs/bankAccountService'
 import clientService from '@/libs/clientService'
 import serviceService from '@/libs/serviceService'
 import employeeService from '@/libs/employeeService'
+import { companyInfoService } from '@/services/companyInfoService'
 
 // Component Imports
 import AddCard from '@views/apps/invoice/add/AddCard'
@@ -29,6 +30,7 @@ const EditPage = () => {
   const [clients, setClients] = useState([])
   const [services, setServices] = useState([])
   const [employees, setEmployees] = useState([])
+  const [companyInfo, setCompanyInfo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [forceRender, setForceRender] = useState(0)
@@ -84,20 +86,28 @@ const EditPage = () => {
         setError(null)
 
         // Fetch invoice data and bank accounts in parallel
-        const [invoiceResponse, bankAccountsResponse, clientsResponse, servicesResponse, employeesResponse] =
-          await Promise.all([
-            invoiceService.getInvoiceById(params.id, session.accessToken),
-            bankAccountService.getActiveBankAccounts(session.accessToken),
-            clientService.getClients(session.accessToken),
-            serviceService.getServices(session.accessToken),
-            employeeService.getEmployees(session.accessToken)
-          ])
+        const [
+          invoiceResponse,
+          bankAccountsResponse,
+          clientsResponse,
+          servicesResponse,
+          employeesResponse,
+          companyInfoResponse
+        ] = await Promise.all([
+          invoiceService.getInvoiceById(params.id, session.accessToken),
+          bankAccountService.getActiveBankAccounts(session.accessToken),
+          clientService.getClients(session.accessToken),
+          serviceService.getServices(session.accessToken),
+          employeeService.getEmployees(session.accessToken),
+          companyInfoService.getCompanyInfo(session.accessToken)
+        ])
 
         setInvoiceData(invoiceResponse)
         setBankAccounts(bankAccountsResponse.data?.bankAccounts || [])
         setClients(clientsResponse.data?.clients || [])
         setServices(servicesResponse.data || [])
         setEmployees(employeesResponse.data || employeesResponse || [])
+        setCompanyInfo(companyInfoResponse.data || null)
 
         console.log('Fetched data:')
         console.log('Invoice:', invoiceResponse)
@@ -210,6 +220,20 @@ const EditPage = () => {
     })
   }
 
+  // Company info update handler
+  const handleCompanyInfoChange = async newCompanyInfo => {
+    try {
+      if (session?.accessToken) {
+        await companyInfoService.updateCompanyInfo(newCompanyInfo, session.accessToken)
+      }
+      setCompanyInfo(newCompanyInfo)
+    } catch (error) {
+      console.error('Error updating company info:', error)
+      // Still update local state even if API call fails
+      setCompanyInfo(newCompanyInfo)
+    }
+  }
+
   // Debug: Monitor invoiceState changes
   useEffect(() => {
     console.log('Invoice state changed:', invoiceState)
@@ -262,6 +286,8 @@ const EditPage = () => {
           clients={clients}
           services={services}
           employees={employees}
+          companyInfo={companyInfo}
+          onCompanyInfoChange={handleCompanyInfoChange}
         />
       </Grid>
       <Grid size={{ xs: 12, md: 3 }}>
@@ -271,6 +297,7 @@ const EditPage = () => {
           bankAccounts={bankAccounts}
           isEdit={true}
           invoiceId={params.id}
+          companyInfo={companyInfo}
         />
       </Grid>
     </Grid>

@@ -85,6 +85,9 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
         <MenuItem href={`/${locale}/apps/client/list`} icon={<i className='tabler-user-star' />}>
           {dictionary['navigation'].client}
         </MenuItem>
+        <MenuItem href={`/${locale}/apps/task/list`} icon={<i className='tabler-checklist' />}>
+          {dictionary['navigation'].task}
+        </MenuItem>
         <MenuItem href={`/${locale}/apps/invoice/list`} icon={<i className='tabler-file-description' />}>
           {dictionary['navigation'].invoice}
         </MenuItem>

@@ -1,7 +1,8 @@
 'use client'
 
 // React Imports
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 // MUI Imports
 import Drawer from '@mui/material/Drawer'
@@ -22,46 +23,74 @@ import { useSession } from 'next-auth/react'
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
 
-const AddClientDrawer = props => {
+const AddTaskDrawer = props => {
   // Props
-  const { open, handleClose, currentClient, onClientAdded } = props
+  const { open, handleClose, currentTask, onTaskAdded } = props
 
   // States
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState(null)
   const [apiSuccess, setApiSuccess] = useState(false)
+  const [clients, setClients] = useState([])
   const [services, setServices] = useState([])
-  const [branches, setBranches] = useState([])
   const [employees, setEmployees] = useState([])
 
   // Individual loading states for each dropdown
+  const [clientsLoading, setClientsLoading] = useState(false)
   const [servicesLoading, setServicesLoading] = useState(false)
-  const [branchesLoading, setBranchesLoading] = useState(false)
   const [employeesLoading, setEmployeesLoading] = useState(false)
 
   // Hooks
   const { data: session } = useSession()
+  const searchParams = useSearchParams()
+  const preSelectedClientId = searchParams?.get('clientId')
+
   const {
     control,
     reset: resetForm,
     handleSubmit,
+    watch,
     formState: { errors }
   } = useForm({
     defaultValues: {
-      name: '',
-      nationalIdentificationNumber: '',
-      email: '',
-      phone: '',
-      address: '',
-      city: '',
-      postalCode: '',
-      province: '',
-      // serviceId: '',
-      branchId: ''
-      // assignedEmployeeId: '',
-      // status: 'PENDING'
+      description: '',
+      clientId: preSelectedClientId || '',
+      serviceId: '',
+      assignedEmployeeId: '',
+      status: 'PENDING',
+      priority: 'MEDIUM',
+      dueDate: '',
+      startDate: '',
+      notes: ''
     }
   })
+
+  const watchedClientId = watch('clientId')
+
+  // Fetch clients
+  const fetchClients = async () => {
+    if (!session?.accessToken) return
+
+    setClientsLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setClients(data.data?.clients || data.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching clients:', error)
+    } finally {
+      setClientsLoading(false)
+    }
+  }
 
   // Fetch services
   const fetchServices = async () => {
@@ -85,31 +114,6 @@ const AddClientDrawer = props => {
       console.error('Error fetching services:', error)
     } finally {
       setServicesLoading(false)
-    }
-  }
-
-  // Fetch branches
-  const fetchBranches = async () => {
-    if (!session?.accessToken) return
-
-    setBranchesLoading(true)
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setBranches(data.data || [])
-      }
-    } catch (error) {
-      console.error('Error fetching branches:', error)
-    } finally {
-      setBranchesLoading(false)
     }
   }
 
@@ -138,57 +142,60 @@ const AddClientDrawer = props => {
     }
   }
 
-  // Valid status values
-  const validStatuses = ['ACTIVE', 'PENDING', 'PROCESSING', 'CANCELLED', 'COMPLETED']
+  // Valid status and priority values
+  const validStatuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'ON_HOLD']
+  const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 
-  // Effect to populate form fields when currentClient changes (for edit mode)
+  // Effect to populate form fields when currentTask changes (for edit mode)
   useEffect(() => {
-    if (currentClient) {
-      // Ensure status is valid, fallback to PENDING if invalid
-      const validStatus = validStatuses.includes(currentClient.status) ? currentClient.status : 'PENDING'
-
+    if (currentTask) {
       resetForm({
-        name: currentClient.name || '',
-        nationalIdentificationNumber: currentClient.nationalIdentificationNumber || '',
-        email: currentClient.email || '',
-        phone: currentClient.phone || '',
-        address: currentClient.address || '',
-        city: currentClient.city || '',
-        postalCode: currentClient.postalCode || '',
-        province: currentClient.province || '',
-        serviceId: currentClient.serviceId || '',
-        branchId: currentClient.branchId || '',
-        assignedEmployeeId: currentClient.assignedEmployeeId || '',
-        status: validStatus
+        description: currentTask.description || '',
+        clientId: currentTask.clientId || '',
+        serviceId: currentTask.serviceId || '',
+        assignedEmployeeId: currentTask.assignedEmployeeId || '',
+        status: currentTask.status || 'PENDING',
+        priority: currentTask.priority || 'MEDIUM',
+        dueDate: currentTask.dueDate ? new Date(currentTask.dueDate).toISOString().split('T')[0] : '',
+        startDate: currentTask.startDate ? new Date(currentTask.startDate).toISOString().split('T')[0] : '',
+        notes: currentTask.notes || ''
       })
     } else {
       resetForm({
-        name: '',
-        nationalIdentificationNumber: '',
-        email: '',
-        phone: '',
-        address: '',
-        city: '',
-        postalCode: '',
-        province: '',
+        description: '',
+        clientId: preSelectedClientId || '',
         serviceId: '',
-        branchId: '',
         assignedEmployeeId: '',
-        status: 'PENDING'
+        status: 'PENDING',
+        priority: 'MEDIUM',
+        dueDate: '',
+        startDate: '',
+        notes: ''
       })
     }
     setApiError(null)
     setApiSuccess(false)
-  }, [open, currentClient, resetForm])
+  }, [open, currentTask, resetForm, preSelectedClientId])
 
   // Fetch dropdown data when drawer opens
   useEffect(() => {
     if (open && session?.accessToken) {
+      fetchClients()
       fetchServices()
-      fetchBranches()
       fetchEmployees()
     }
   }, [open, session?.accessToken])
+
+  // Filter services based on selected client
+  const availableServices = useMemo(() => {
+    if (!watchedClientId) return services
+
+    const selectedClient = clients.find(client => client.id === watchedClientId)
+    if (!selectedClient) return services
+
+    // Filter services to show only the one associated with the client
+    return services.filter(service => service.id === selectedClient.serviceId)
+  }, [watchedClientId, clients, services])
 
   const onSubmit = async data => {
     setLoading(true)
@@ -202,36 +209,22 @@ const AddClientDrawer = props => {
     }
 
     const payload = {
-      name: data.name,
-      nationalIdentificationNumber: data.nationalIdentificationNumber || null,
-      email: data.email,
-      phone: data.phone || null,
-      address: data.address || null,
-      city: data.city || null,
-      postalCode: data.postalCode || null,
-      province: data.province || null,
+      description: data.description || null,
+      clientId: data.clientId,
       serviceId: data.serviceId,
-      branchId: data.branchId,
-      assignedEmployeeId: data.assignedEmployeeId || null,
-      status: data.status
+      assignedEmployeeId: data.assignedEmployeeId,
+      status: data.status,
+      priority: data.priority,
+      dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : null,
+      startDate: data.startDate ? new Date(data.startDate).toISOString() : null,
+      notes: data.notes || null
     }
 
-    // Validate status before sending
-    if (!validStatuses.includes(data.status)) {
-      setApiError(`Invalid status: ${data.status}. Please select a valid status.`)
-      setLoading(false)
-      return
-    }
-
-    // Debug: Log the payload being sent
-    console.log('Client creation payload:', payload)
-    console.log('Status value:', data.status, 'Type:', typeof data.status)
-
-    const isEditMode = !!currentClient
-    const apiMethod = isEditMode ? 'PUT' : 'POST'
+    const isEditMode = !!currentTask
+    const apiMethod = isEditMode ? 'PATCH' : 'POST'
     const apiUrl = isEditMode
-      ? `${process.env.NEXT_PUBLIC_API_URL}/clients/${currentClient.id}`
-      : `${process.env.NEXT_PUBLIC_API_URL}/clients`
+      ? `${process.env.NEXT_PUBLIC_API_URL}/tasks/${currentTask.id}`
+      : `${process.env.NEXT_PUBLIC_API_URL}/tasks`
 
     try {
       const response = await fetch(apiUrl, {
@@ -248,11 +241,11 @@ const AddClientDrawer = props => {
 
       if (response.ok) {
         setApiSuccess(true)
-        onClientAdded()
+        onTaskAdded()
         handleReset()
       } else {
         const errorMessage =
-          responseData.message || `Failed to ${isEditMode ? 'update' : 'create'} client: ${response.status}`
+          responseData.message || `Failed to ${isEditMode ? 'update' : 'create'} task: ${response.status}`
         setApiError(errorMessage)
       }
     } catch (error) {
@@ -265,17 +258,15 @@ const AddClientDrawer = props => {
   const handleReset = () => {
     handleClose()
     resetForm({
-      name: '',
-      email: '',
-      phone: '',
-      address: '',
-      city: '',
-      postalCode: '',
-      province: '',
+      description: '',
+      clientId: preSelectedClientId || '',
       serviceId: '',
-      branchId: '',
       assignedEmployeeId: '',
-      status: 'PENDING'
+      status: 'PENDING',
+      priority: 'MEDIUM',
+      dueDate: '',
+      startDate: '',
+      notes: ''
     })
     setApiError(null)
     setApiSuccess(false)
@@ -291,7 +282,7 @@ const AddClientDrawer = props => {
       sx={{ '& .MuiDrawer-paper': { width: { xs: 300, sm: 400 } } }}
     >
       <div className='flex items-center justify-between plb-5 pli-6'>
-        <Typography variant='h5'>{currentClient ? 'Edit Client' : 'Add New Client'}</Typography>
+        <Typography variant='h5'>{currentTask ? 'Edit Task' : 'Add New Task'}</Typography>
         <IconButton size='small' onClick={handleReset}>
           <i className='tabler-x text-2xl text-textPrimary' />
         </IconButton>
@@ -305,48 +296,67 @@ const AddClientDrawer = props => {
         )}
         {apiSuccess && (
           <Alert severity='success' onClose={() => setApiSuccess(false)} sx={{ mb: 4, mx: 6, mt: 4 }}>
-            Client {currentClient ? 'updated' : 'added'} successfully!
+            Task {currentTask ? 'updated' : 'created'} successfully!
           </Alert>
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6 p-6'>
-          {/* Client ID field, display only if editing */}
-          {currentClient && (
-            <CustomTextField
-              fullWidth
-              label='Client ID'
-              value={currentClient.clientId || ''}
-              disabled={true}
-              sx={{ mb: 2 }}
-            />
-          )}
+          <Controller
+            name='title'
+            control={control}
+            rules={{ required: 'Task title is required.' }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                label='Task Title'
+                placeholder='Enter task title'
+                {...(errors.title && { error: true, helperText: errors.title.message })}
+              />
+            )}
+          />
 
           <Controller
-            name='branchId'
+            name='description'
             control={control}
-            rules={{ required: 'Branch is required.' }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                multiline
+                rows={3}
+                label='Description (Optional)'
+                placeholder='Enter task description'
+              />
+            )}
+          />
+
+          <Controller
+            name='clientId'
+            control={control}
+            rules={{ required: 'Client is required.' }}
             render={({ field }) => (
               <CustomTextField
                 select
                 fullWidth
-                label='Select Branch'
+                label='Select Client'
                 {...field}
-                {...(errors.branchId && { error: true, helperText: errors.branchId.message })}
+                {...(errors.clientId && { error: true, helperText: errors.clientId.message })}
                 InputProps={{
-                  endAdornment: branchesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
+                  endAdornment: clientsLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
                 }}
               >
-                {branchesLoading ? (
+                {clientsLoading ? (
                   <MenuItem disabled>
                     <CircularProgress size={16} sx={{ mr: 1 }} />
-                    Loading branches...
+                    Loading clients...
                   </MenuItem>
-                ) : branches.length === 0 ? (
-                  <MenuItem disabled>No branches available</MenuItem>
+                ) : clients.length === 0 ? (
+                  <MenuItem disabled>No clients available</MenuItem>
                 ) : (
-                  branches.map(branch => (
-                    <MenuItem key={branch.id} value={branch.id}>
-                      {branch.name} - {branch.city}
+                  clients.map(client => (
+                    <MenuItem key={client.id} value={client.id}>
+                      {client.name} - {client.email}
                     </MenuItem>
                   ))
                 )}
@@ -355,99 +365,6 @@ const AddClientDrawer = props => {
           />
 
           <Controller
-            name='name'
-            control={control}
-            rules={{ required: 'Client Name is required.' }}
-            render={({ field }) => (
-              <CustomTextField
-                {...field}
-                fullWidth
-                label='Client Name'
-                placeholder='Mario Rossi'
-                {...(errors.name && { error: true, helperText: errors.name.message })}
-              />
-            )}
-          />
-
-          <Controller
-            name='nationalIdentificationNumber'
-            control={control}
-            rules={{
-              minLength: { value: 5, message: 'National ID must be at least 5 characters' },
-              maxLength: { value: 20, message: 'National ID must be at most 20 characters' }
-            }}
-            render={({ field }) => (
-              <CustomTextField
-                {...field}
-                fullWidth
-                label='National Identification Number'
-                placeholder='1234567890'
-                {...(errors.nationalIdentificationNumber && {
-                  error: true,
-                  helperText: errors.nationalIdentificationNumber.message
-                })}
-              />
-            )}
-          />
-
-          <Controller
-            name='email'
-            control={control}
-            rules={{
-              required: 'Email is required.',
-              pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address.' }
-            }}
-            render={({ field }) => (
-              <CustomTextField
-                {...field}
-                fullWidth
-                type='email'
-                label='Email'
-                placeholder='mario.rossi@email.com'
-                {...(errors.email && { error: true, helperText: errors.email.message })}
-              />
-            )}
-          />
-
-          <Controller
-            name='phone'
-            control={control}
-            render={({ field }) => (
-              <CustomTextField {...field} fullWidth label='Phone (Optional)' placeholder='+39 123 456 7890' />
-            )}
-          />
-
-          <Controller
-            name='address'
-            control={control}
-            render={({ field }) => (
-              <CustomTextField {...field} fullWidth label='Address (Optional)' placeholder='Via Roma 123' />
-            )}
-          />
-
-          <Controller
-            name='city'
-            control={control}
-            render={({ field }) => <CustomTextField {...field} fullWidth label='City (Optional)' placeholder='Rome' />}
-          />
-
-          <Controller
-            name='postalCode'
-            control={control}
-            render={({ field }) => (
-              <CustomTextField {...field} fullWidth label='Postal Code (Optional)' placeholder='00100' />
-            )}
-          />
-
-          <Controller
-            name='province'
-            control={control}
-            render={({ field }) => (
-              <CustomTextField {...field} fullWidth label='Province (Optional)' placeholder='RM' />
-            )}
-          />
-
-          {/* <Controller
             name='serviceId'
             control={control}
             rules={{ required: 'Service is required.' }}
@@ -467,10 +384,10 @@ const AddClientDrawer = props => {
                     <CircularProgress size={16} sx={{ mr: 1 }} />
                     Loading services...
                   </MenuItem>
-                ) : services.length === 0 ? (
+                ) : availableServices.length === 0 ? (
                   <MenuItem disabled>No services available</MenuItem>
                 ) : (
-                  services.map(service => (
+                  availableServices.map(service => (
                     <MenuItem key={service.id} value={service.id}>
                       {service.name} - €{service.price}
                     </MenuItem>
@@ -478,27 +395,30 @@ const AddClientDrawer = props => {
                 )}
               </CustomTextField>
             )}
-          /> */}
+          />
 
-          {/* <Controller
+          <Controller
             name='assignedEmployeeId'
             control={control}
+            rules={{ required: 'Assigned employee is required.' }}
             render={({ field }) => (
               <CustomTextField
                 select
                 fullWidth
-                label='Assigned Employee (Optional)'
+                label='Assign To Employee'
                 {...field}
+                {...(errors.assignedEmployeeId && { error: true, helperText: errors.assignedEmployeeId.message })}
                 InputProps={{
                   endAdornment: employeesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
                 }}
               >
-                <MenuItem value=''>None</MenuItem>
                 {employeesLoading ? (
                   <MenuItem disabled>
                     <CircularProgress size={16} sx={{ mr: 1 }} />
                     Loading employees...
                   </MenuItem>
+                ) : employees.length === 0 ? (
+                  <MenuItem disabled>No employees available</MenuItem>
                 ) : (
                   employees.map(employee => (
                     <MenuItem key={employee.id} value={employee.id}>
@@ -508,9 +428,9 @@ const AddClientDrawer = props => {
                 )}
               </CustomTextField>
             )}
-          /> */}
+          />
 
-          {/* <Controller
+          <Controller
             name='status'
             control={control}
             rules={{ required: 'Status is required.' }}
@@ -522,24 +442,103 @@ const AddClientDrawer = props => {
                 {...field}
                 {...(errors.status && { error: true, helperText: errors.status.message })}
               >
-                <MenuItem value='ACTIVE'>Active</MenuItem>
-                <MenuItem value='PENDING'>Pending</MenuItem>
-                <MenuItem value='PROCESSING'>Processing</MenuItem>
-                <MenuItem value='CANCELLED'>Cancelled</MenuItem>
-                <MenuItem value='COMPLETED'>Completed</MenuItem>
+                {validStatuses.map(status => (
+                  <MenuItem key={status} value={status}>
+                    {status.replace('_', ' ')}
+                  </MenuItem>
+                ))}
               </CustomTextField>
             )}
-          /> */}
+          />
+
+          <Controller
+            name='priority'
+            control={control}
+            rules={{ required: 'Priority is required.' }}
+            render={({ field }) => (
+              <CustomTextField
+                select
+                fullWidth
+                label='Priority'
+                {...field}
+                {...(errors.priority && { error: true, helperText: errors.priority.message })}
+              >
+                {validPriorities.map(priority => (
+                  <MenuItem key={priority} value={priority}>
+                    {priority}
+                  </MenuItem>
+                ))}
+              </CustomTextField>
+            )}
+          />
+
+          <Controller
+            name='dueDate'
+            control={control}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                type='date'
+                label='Due Date (Optional)'
+                InputLabelProps={{ shrink: true }}
+              />
+            )}
+          />
+
+          <Controller
+            name='startDate'
+            control={control}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                type='date'
+                label='Start Date (Optional)'
+                InputLabelProps={{ shrink: true }}
+              />
+            )}
+          />
+
+          <Controller
+            name='estimatedHours'
+            control={control}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                type='number'
+                label='Estimated Hours (Optional)'
+                placeholder='0'
+                inputProps={{ min: 0, step: 0.5 }}
+              />
+            )}
+          />
+
+          <Controller
+            name='notes'
+            control={control}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                multiline
+                rows={3}
+                label='Notes (Optional)'
+                placeholder='Enter any additional notes'
+              />
+            )}
+          />
 
           <div className='flex items-center gap-4'>
             <LoadingButton
               variant='contained'
               type='submit'
               loading={loading}
-              loadingText={currentClient ? 'Updating...' : 'Creating...'}
+              loadingText={currentTask ? 'Updating...' : 'Creating...'}
               disabled={loading}
             >
-              {currentClient ? 'Update' : 'Submit'}
+              {currentTask ? 'Update' : 'Create'}
             </LoadingButton>
             <LoadingButton variant='tonal' color='error' type='reset' onClick={handleReset} disabled={loading}>
               Cancel
@@ -551,4 +550,4 @@ const AddClientDrawer = props => {
   )
 }
 
-export default AddClientDrawer
+export default AddTaskDrawer

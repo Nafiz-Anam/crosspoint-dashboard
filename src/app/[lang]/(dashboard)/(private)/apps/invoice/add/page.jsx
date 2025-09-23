@@ -14,6 +14,7 @@ import bankAccountService from '@/libs/bankAccountService'
 import clientService from '@/libs/clientService'
 import serviceService from '@/libs/serviceService'
 import employeeService from '@/libs/employeeService'
+import { companyInfoService } from '@/services/companyInfoService'
 
 // Component Imports
 import AddCard from '@views/apps/invoice/add/AddCard'
@@ -25,6 +26,7 @@ const InvoiceContainer = ({ initialData }) => {
   const [clients, setClients] = useState([])
   const [services, setServices] = useState([])
   const [employees, setEmployees] = useState([])
+  const [companyInfo, setCompanyInfo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const { data: session } = useSession()
@@ -81,24 +83,28 @@ const InvoiceContainer = ({ initialData }) => {
       console.log('Starting to fetch data...')
 
       // Fetch all data in parallel
-      const [bankAccountsResponse, clientsResponse, servicesResponse, employeesResponse] = await Promise.all([
-        bankAccountService.getActiveBankAccounts(session.accessToken),
-        clientService.getClients(session.accessToken),
-        serviceService.getServices(session.accessToken),
-        employeeService.getEmployees(session.accessToken)
-      ])
+      const [bankAccountsResponse, clientsResponse, servicesResponse, employeesResponse, companyInfoResponse] =
+        await Promise.all([
+          bankAccountService.getActiveBankAccounts(session.accessToken),
+          clientService.getClients(session.accessToken),
+          serviceService.getServices(session.accessToken),
+          employeeService.getEmployees(session.accessToken),
+          companyInfoService.getCompanyInfo(session.accessToken)
+        ])
 
       console.log('Responses received:', {
         bankAccounts: bankAccountsResponse?.data?.bankAccounts?.length || 0,
         clients: clientsResponse?.data?.clients?.length || 0,
         services: servicesResponse?.data?.length || 0,
-        employees: employeesResponse?.data?.length || 0
+        employees: employeesResponse?.data?.length || 0,
+        companyInfo: !!companyInfoResponse?.data
       })
 
       setBankAccounts(bankAccountsResponse.data?.bankAccounts || [])
       setClients(clientsResponse.data?.clients || [])
       setServices(servicesResponse.data || [])
       setEmployees(employeesResponse.data || [])
+      setCompanyInfo(companyInfoResponse.data || null)
 
       console.log('Data set successfully')
     } catch (err) {
@@ -136,6 +142,20 @@ const InvoiceContainer = ({ initialData }) => {
 
       return newState
     })
+  }
+
+  // Company info update handler
+  const handleCompanyInfoChange = async newCompanyInfo => {
+    try {
+      if (session?.accessToken) {
+        await companyInfoService.updateCompanyInfo(newCompanyInfo, session.accessToken)
+      }
+      setCompanyInfo(newCompanyInfo)
+    } catch (error) {
+      console.error('Error updating company info:', error)
+      // Still update local state even if API call fails
+      setCompanyInfo(newCompanyInfo)
+    }
   }
 
   console.log('Render state:', { loading, error, session: !!session, accessToken: !!session?.accessToken })
@@ -189,10 +209,17 @@ const InvoiceContainer = ({ initialData }) => {
           clients={clients}
           services={services}
           employees={employees}
+          companyInfo={companyInfo}
+          onCompanyInfoChange={handleCompanyInfoChange}
         />
       </Grid>
       <Grid size={{ xs: 12, md: 3 }}>
-        <AddActions invoiceState={invoiceState} updateInvoiceState={updateInvoiceState} bankAccounts={bankAccounts} />
+        <AddActions
+          invoiceState={invoiceState}
+          updateInvoiceState={updateInvoiceState}
+          bankAccounts={bankAccounts}
+          companyInfo={companyInfo}
+        />
       </Grid>
     </Grid>
   )

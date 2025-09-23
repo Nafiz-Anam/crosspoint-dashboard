@@ -11,14 +11,14 @@ import CardContent from '@mui/material/CardContent'
 import Button from '@mui/material/Button'
 
 // Component Imports
-import SendInvoiceDrawer from '@views/apps/invoice/shared/SendInvoiceDrawer'
+// import SendInvoiceDrawer from '@views/apps/invoice/shared/SendInvoiceDrawer' // Removed email functionality
 
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
 
 const PreviewActions = ({ id, onButtonClick }) => {
   // States
-  const [sendDrawerOpen, setSendDrawerOpen] = useState(false)
+  // const [sendDrawerOpen, setSendDrawerOpen] = useState(false) // Removed email functionality
   const [isDownloading, setIsDownloading] = useState(false)
 
   // Hooks
@@ -44,7 +44,8 @@ const PreviewActions = ({ id, onButtonClick }) => {
     <>
       <Card>
         <CardContent className='flex flex-col gap-4'>
-          <Button
+          {/* Send Invoice Button - Removed email functionality */}
+          {/* <Button
             fullWidth
             variant='contained'
             color='primary'
@@ -53,7 +54,7 @@ const PreviewActions = ({ id, onButtonClick }) => {
             onClick={() => setSendDrawerOpen(true)}
           >
             Send Invoice
-          </Button>
+          </Button> */}
           <Button
             fullWidth
             variant='tonal'
@@ -90,7 +91,8 @@ const PreviewActions = ({ id, onButtonClick }) => {
           </div>
         </CardContent>
       </Card>
-      <SendInvoiceDrawer open={sendDrawerOpen} handleClose={() => setSendDrawerOpen(false)} />
+      {/* SendInvoiceDrawer - Removed email functionality */}
+      {/* <SendInvoiceDrawer open={sendDrawerOpen} handleClose={() => setSendDrawerOpen(false)} /> */}
     </>
   )
 }

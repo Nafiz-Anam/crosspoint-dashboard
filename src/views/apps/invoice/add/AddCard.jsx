@@ -23,6 +23,7 @@ import classnames from 'classnames'
 // Component Imports
 import Logo from '@components/layout/shared/Logo'
 import CustomTextField from '@core/components/mui/TextField'
+import CompanyInfoSection from '@/components/CompanyInfoSection'
 
 // Styled Component Imports
 import AppReactDatepicker from '@/libs/styles/AppReactDatepicker'
@@ -34,7 +35,9 @@ const AddCard = ({
   bankAccounts = [],
   clients = [],
   services = [],
-  employees = []
+  employees = [],
+  companyInfo = null,
+  onCompanyInfoChange = () => {}
 }) => {
   // Destructure from shared state
   const {
@@ -203,14 +206,12 @@ const AddCard = ({
             <div className='p-6 bg-actionHover rounded'>
               <div className='flex justify-between gap-4 flex-col sm:flex-row'>
                 <div className='flex flex-col gap-6'>
-                  <div className='flex items-center gap-2.5'>
-                    <Logo />
-                  </div>
-                  <div>
-                    <Typography color='text.primary'>Office 149, 450 South Brand Brooklyn</Typography>
-                    <Typography color='text.primary'>San Diego County, CA 91905, USA</Typography>
-                    <Typography color='text.primary'>+1 (123) 456 7891, +44 (876) 543 2198</Typography>
-                  </div>
+                  <CompanyInfoSection
+                    companyInfo={companyInfo}
+                    onCompanyInfoChange={onCompanyInfoChange}
+                    isEditable={true}
+                    showEditButton={true}
+                  />
                 </div>
                 <div className='flex flex-col gap-2'>
                   <div className='flex items-center gap-4'>
