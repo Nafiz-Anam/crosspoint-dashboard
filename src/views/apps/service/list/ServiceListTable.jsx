@@ -227,6 +227,31 @@ const ServiceListTable = () => {
           </Typography>
         )
       }),
+      columnHelper.accessor('category', {
+        header: 'Category',
+        cell: info => {
+          const category = info.getValue()
+          if (!category) {
+            return <Typography color='text.secondary'>-</Typography>
+          }
+          return (
+            <Chip
+              label={category}
+              size='small'
+              color={
+                category === 'Consulting'
+                  ? 'primary'
+                  : category === 'Development'
+                    ? 'success'
+                    : category === 'Design'
+                      ? 'warning'
+                      : 'default'
+              }
+              variant='tonal'
+            />
+          )
+        }
+      }),
       columnHelper.accessor('_count', {
         header: 'Usage',
         cell: info => {

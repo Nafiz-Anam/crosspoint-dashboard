@@ -9,6 +9,7 @@ import IconButton from '@mui/material/IconButton'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
 import Alert from '@mui/material/Alert'
+import MenuItem from '@mui/material/MenuItem'
 
 // Component Imports
 import LoadingButton from '@/components/ui/LoadingButton'
@@ -39,7 +40,8 @@ const AddServiceDrawer = props => {
   } = useForm({
     defaultValues: {
       name: '',
-      price: ''
+      price: '',
+      category: ''
     }
   })
 
@@ -48,13 +50,15 @@ const AddServiceDrawer = props => {
     if (currentService) {
       resetForm({
         name: currentService.name || '',
-        price: currentService.price?.toString() || ''
+        price: currentService.price?.toString() || '',
+        category: currentService.category || ''
       })
     } else {
       // Reset form to default values when switching to add mode
       resetForm({
         name: '',
-        price: ''
+        price: '',
+        category: ''
       })
     }
     // Clear any previous API messages when drawer opens/mode changes
@@ -83,7 +87,8 @@ const AddServiceDrawer = props => {
 
     const payload = {
       name: data.name,
-      price: priceValue
+      price: priceValue,
+      category: data.category || null
     }
 
     const isEditMode = !!currentService
@@ -129,7 +134,8 @@ const AddServiceDrawer = props => {
     handleClose()
     resetForm({
       name: '',
-      price: ''
+      price: '',
+      category: ''
     })
     setApiError(null)
     setApiSuccess(false)
@@ -173,6 +179,26 @@ const AddServiceDrawer = props => {
               sx={{ mb: 2 }}
             />
           )}
+
+          <Controller
+            name='category'
+            control={control}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                select
+                label='Category'
+                placeholder='Select a category'
+                value={field.value || ''}
+              >
+                <MenuItem value=''>None</MenuItem>
+                <MenuItem value='Consulting'>Consulting</MenuItem>
+                <MenuItem value='Development'>Development</MenuItem>
+                <MenuItem value='Design'>Design</MenuItem>
+              </CustomTextField>
+            )}
+          />
 
           <Controller
             name='name'
