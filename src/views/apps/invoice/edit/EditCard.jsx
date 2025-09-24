@@ -514,7 +514,7 @@ const EditCard = ({ invoiceData, id, data, clients, services, employees }) => {
                     </Typography>
                   </div>
                   <div className='flex items-center justify-between'>
-                    <Typography>Tax ({invoiceData?.taxRate || 21}%):</Typography>
+                    <Typography>Tax ({invoiceData?.taxRate || 0}%):</Typography>
                     <Typography className='font-medium' color='text.primary'>
                       ${invoiceData?.taxAmount || 0}
                     </Typography>

@@ -437,29 +437,6 @@ const AddTaskCard = () => {
 
             <Grid item xs={12} md={6}>
               <Controller
-                name='status'
-                control={control}
-                rules={{ required: 'Status is required.' }}
-                render={({ field }) => (
-                  <CustomTextField
-                    select
-                    fullWidth
-                    label='Status'
-                    {...field}
-                    {...(errors.status && { error: true, helperText: errors.status.message })}
-                  >
-                    {validStatuses.map(status => (
-                      <MenuItem key={status} value={status}>
-                        {status.replace('_', ' ')}
-                      </MenuItem>
-                    ))}
-                  </CustomTextField>
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
                 name='startDate'
                 control={control}
                 render={({ field }) => (
@@ -486,6 +463,29 @@ const AddTaskCard = () => {
                     label='Due Date (Optional)'
                     InputLabelProps={{ shrink: true }}
                   />
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Controller
+                name='status'
+                control={control}
+                rules={{ required: 'Status is required.' }}
+                render={({ field }) => (
+                  <CustomTextField
+                    select
+                    fullWidth
+                    label='Status'
+                    {...field}
+                    {...(errors.status && { error: true, helperText: errors.status.message })}
+                  >
+                    {validStatuses.map(status => (
+                      <MenuItem key={status} value={status}>
+                        {status.replace('_', ' ')}
+                      </MenuItem>
+                    ))}
+                  </CustomTextField>
                 )}
               />
             </Grid>

@@ -445,7 +445,7 @@ const AddActions = ({
 
   const calculateTax = () => {
     const subtotal = calculateInvoiceTotal()
-    const tax = subtotal * ((taxRate || 21) / 100)
+    const tax = subtotal * ((taxRate || 0) / 100)
     return isNaN(tax) ? 0 : tax
   }
 
@@ -634,9 +634,9 @@ const AddActions = ({
                     <span>Subtotal:</span>
                     <span>${calculateInvoiceTotal().toFixed(2)}</span>
                   </div>
-                  {(taxRate || 21) > 0 && (
+                  {(taxRate || 0) > 0 && (
                     <div className='flex justify-between text-sm'>
-                      <span>Tax ({taxRate || 21}%):</span>
+                      <span>Tax ({taxRate}%):</span>
                       <span>${calculateTax().toFixed(2)}</span>
                     </div>
                   )}
@@ -692,6 +692,26 @@ const AddActions = ({
                 </MenuItem>
               ))}
             </CustomTextField>
+
+            <CustomTextField
+              fullWidth
+              type='number'
+              value={taxRate || 0}
+              onChange={e => {
+                const value = parseFloat(e.target.value) || 0
+                if (value >= 0 && value <= 100) {
+                  updateInvoiceState({ taxRate: value })
+                }
+              }}
+              label='Tax Rate (%)'
+              helperText='Enter tax rate (0-100%)'
+              disabled={isSaved}
+              inputProps={{
+                min: 0,
+                max: 100,
+                step: 0.1
+              }}
+            />
 
             <Divider />
 

@@ -31,7 +31,6 @@ import {
 import { useSession } from 'next-auth/react'
 import CustomTextField from '@core/components/mui/TextField'
 import AddTaskDrawer from './AddTaskDrawer'
-import GenerateInvoiceDrawer from './GenerateInvoiceDrawer'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import { getLocalizedUrl } from '@/utils/i18n'
 import tableStyles from '@core/styles/table.module.css'
@@ -74,8 +73,6 @@ const TaskListTable = () => {
   // States for Drawer
   const [addTaskOpen, setAddTaskOpen] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
-  const [generateInvoiceOpen, setGenerateInvoiceOpen] = useState(false)
-  const [selectedTaskForInvoice, setSelectedTaskForInvoice] = useState(null)
 
   // States for Table Data and API Operations
   const [tasks, setTasks] = useState([])
@@ -239,17 +236,45 @@ const TaskListTable = () => {
     setEditingTask(null)
   }
 
-  // Function to handle generate invoice
-  const handleGenerateInvoiceClick = useCallback(task => {
-    setSelectedTaskForInvoice(task)
-    setGenerateInvoiceOpen(true)
-  }, [])
+  // Function to handle generate invoice - redirect to invoice add page with pre-filled data
+  const handleGenerateInvoiceClick = useCallback(
+    task => {
+      // Prepare pre-filled data for invoice creation - only use data that exists in task
+      const preFilledData = {
+        selectedClient: task.client,
+        selectedSalesperson: task.assignedEmployee,
+        serviceItems: [
+          {
+            categoryId: task.service?.category,
+            serviceId: task.service?.id,
+            description: task.description,
+            rate: task.service?.price,
+            discount: 0
+          }
+        ]
+      }
 
-  // Function to close generate invoice drawer
-  const handleGenerateInvoiceClose = () => {
-    setGenerateInvoiceOpen(false)
-    setSelectedTaskForInvoice(null)
-  }
+      // Only add notes if task has description
+      if (task.description) {
+        preFilledData.notes = task.description
+      }
+
+      // Add dates if they exist in task
+      if (task.startDate) {
+        preFilledData.issuedDate = task.startDate
+      }
+      if (task.dueDate) {
+        preFilledData.dueDate = task.dueDate
+      }
+
+      // Store pre-filled data in sessionStorage
+      sessionStorage.setItem('invoicePrefillData', JSON.stringify(preFilledData))
+
+      // Redirect to invoice add page
+      window.location.href = getLocalizedUrl('/apps/invoice/add', locale)
+    },
+    [locale]
+  )
 
   // Derive unique values for filter dropdowns from the fetched data
   const assignedEmployees = useMemo(
@@ -335,8 +360,7 @@ const TaskListTable = () => {
                     className: 'flex items-center gap-2 text-textSecondary'
                   }
                 },
-                ...(row.original.status === 'COMPLETED' &&
-                (!row.original.invoices || row.original.invoices.length === 0)
+                ...(!row.original.invoices || row.original.invoices.length === 0
                   ? [
                       {
                         text: 'Generate Invoice',
@@ -527,12 +551,6 @@ const TaskListTable = () => {
         handleClose={handleDrawerClose}
         currentTask={editingTask}
         onTaskAdded={fetchTasks}
-      />
-      <GenerateInvoiceDrawer
-        open={generateInvoiceOpen}
-        handleClose={handleGenerateInvoiceClose}
-        task={selectedTaskForInvoice}
-        onInvoiceGenerated={fetchTasks}
       />
     </>
   )

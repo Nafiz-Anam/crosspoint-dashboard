@@ -31,42 +31,102 @@ const InvoiceContainer = ({ initialData }) => {
   const [error, setError] = useState(null)
   const { data: session } = useSession()
 
-  // SHARED STATE - This connects AddCard and AddActions
-  const [invoiceState, setInvoiceState] = useState({
-    // Invoice form data
-    selectedClient: null,
-    selectedSalesperson: null,
-    issuedDate: null,
-    dueDate: null,
-    invoiceNumber: null,
-    invoiceItems: [
-      {
-        categoryId: '',
-        serviceId: '',
-        description: '',
-        rate: 0,
-        discount: 0
+  // Function to get pre-filled data from sessionStorage
+  const getPrefillData = () => {
+    try {
+      const prefillData = sessionStorage.getItem('invoicePrefillData')
+      if (prefillData) {
+        const parsed = JSON.parse(prefillData)
+        // Clear the data after reading it
+        sessionStorage.removeItem('invoicePrefillData')
+        return parsed
       }
-    ],
+    } catch (error) {
+      console.error('Error parsing prefill data:', error)
+    }
+    return null
+  }
 
-    // Settings from AddActions
-    paymentTerms: true,
-    paymentTermsText: '',
-    clientNotes: false,
-    clientNotesText: '',
-    paymentStub: false,
-    selectedBankAccount: null,
+  // SHARED STATE - This connects AddCard and AddActions
+  const [invoiceState, setInvoiceState] = useState(() => {
+    const prefillData = getPrefillData()
 
-    // Bank details that change based on selected bank account
-    bankDetails: null,
+    if (prefillData) {
+      return {
+        // Invoice form data
+        selectedClient: prefillData.selectedClient || null,
+        selectedSalesperson: prefillData.selectedSalesperson || null,
+        issuedDate: prefillData.issuedDate ? new Date(prefillData.issuedDate) : new Date(),
+        dueDate: prefillData.dueDate ? new Date(prefillData.dueDate) : null,
+        invoiceNumber: null,
+        invoiceItems: prefillData.serviceItems || [
+          {
+            categoryId: '',
+            serviceId: '',
+            description: '',
+            rate: 0,
+            discount: 0
+          }
+        ],
 
-    // Additional properties
-    employeeId: null,
-    branchId: null,
-    notes: '',
-    thanksMessage: '',
-    taxRate: 0,
-    discountAmount: 0
+        // Settings from AddActions
+        paymentTerms: false,
+        paymentTermsText: '',
+        clientNotes: false,
+        clientNotesText: '',
+        paymentStub: false,
+        selectedBankAccount: null,
+
+        // Bank details that change based on selected bank account
+        bankDetails: null,
+
+        // Additional properties
+        employeeId: prefillData.selectedSalesperson?.id || null,
+        branchId: prefillData.selectedClient?.branchId || null,
+        notes: prefillData.notes || '',
+        thanksMessage: '',
+        taxRate: 0,
+        discountAmount: 0
+      }
+    }
+
+    // Default state if no prefill data
+    return {
+      // Invoice form data
+      selectedClient: null,
+      selectedSalesperson: null,
+      issuedDate: null,
+      dueDate: null,
+      invoiceNumber: null,
+      invoiceItems: [
+        {
+          categoryId: '',
+          serviceId: '',
+          description: '',
+          rate: 0,
+          discount: 0
+        }
+      ],
+
+      // Settings from AddActions
+      paymentTerms: false,
+      paymentTermsText: '',
+      clientNotes: false,
+      clientNotesText: '',
+      paymentStub: false,
+      selectedBankAccount: null,
+
+      // Bank details that change based on selected bank account
+      bankDetails: null,
+
+      // Additional properties
+      employeeId: null,
+      branchId: null,
+      notes: '',
+      thanksMessage: '',
+      taxRate: 0,
+      discountAmount: 0
+    }
   })
 
   // Fetch all required data

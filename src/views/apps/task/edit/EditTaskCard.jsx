@@ -53,7 +53,6 @@ const EditTaskCard = ({ taskId }) => {
     formState: { errors }
   } = useForm({
     defaultValues: {
-      title: '',
       description: '',
       clientId: '',
       categoryId: '',
@@ -61,9 +60,7 @@ const EditTaskCard = ({ taskId }) => {
       assignedEmployeeId: '',
       status: 'PENDING',
       startDate: '',
-      dueDate: '',
-      estimatedHours: '',
-      actualHours: ''
+      dueDate: ''
     }
   })
 
@@ -89,22 +86,6 @@ const EditTaskCard = ({ taskId }) => {
         const data = await response.json()
         const task = data.data.task
         setTaskData(task)
-
-        // Populate form with task data
-        resetForm({
-          title: task.title || '',
-          description: task.description || '',
-          clientId: task.clientId || '',
-          serviceId: task.serviceId || '',
-          assignedEmployeeId: task.assignedEmployeeId || '',
-          status: task.status || 'PENDING',
-          priority: task.priority || 'MEDIUM',
-          dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
-          startDate: task.startDate ? new Date(task.startDate).toISOString().split('T')[0] : '',
-          estimatedHours: task.estimatedHours || '',
-          actualHours: task.actualHours || '',
-          notes: task.notes || ''
-        })
       } else {
         await toastService.handleApiError(response, 'Failed to fetch task data')
       }
@@ -234,21 +215,37 @@ const EditTaskCard = ({ taskId }) => {
     }
   }, [session?.accessToken, taskId])
 
+  // Populate form when task data and services are loaded
+  useEffect(() => {
+    if (taskData && services.length > 0) {
+      resetForm({
+        description: taskData.description || '',
+        clientId: taskData.clientId || '',
+        categoryId: taskData.service?.category || '', // Get category from service
+        serviceId: taskData.serviceId || '',
+        assignedEmployeeId: taskData.assignedEmployeeId || '',
+        status: taskData.status || 'PENDING',
+        dueDate: taskData.dueDate ? new Date(taskData.dueDate).toISOString().split('T')[0] : '',
+        startDate: taskData.startDate ? new Date(taskData.startDate).toISOString().split('T')[0] : ''
+      })
+    }
+  }, [taskData, services, resetForm])
+
   // Available services - filter by selected category
   const availableServices = useMemo(() => {
     if (!watchedCategoryId) return []
     return services.filter(service => service.category === watchedCategoryId)
   }, [watchedCategoryId, services])
 
-  // Reset serviceId when category changes
+  // Reset serviceId when category changes (only if category actually changed)
   useEffect(() => {
-    if (watchedCategoryId) {
+    if (watchedCategoryId && taskData?.service?.category !== watchedCategoryId) {
       resetForm({
         ...watch(),
         serviceId: ''
       })
     }
-  }, [watchedCategoryId, resetForm, watch])
+  }, [watchedCategoryId, resetForm, watch, taskData])
 
   const onSubmit = async data => {
     setLoading(true)
@@ -260,16 +257,13 @@ const EditTaskCard = ({ taskId }) => {
     }
 
     const payload = {
-      title: data.title,
       description: data.description || null,
       clientId: data.clientId,
       serviceId: data.serviceId,
       assignedEmployeeId: data.assignedEmployeeId,
       status: data.status,
       startDate: data.startDate ? new Date(data.startDate).toISOString() : null,
-      dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : null,
-      estimatedHours: data.estimatedHours ? parseFloat(data.estimatedHours) : null,
-      actualHours: data.actualHours ? parseFloat(data.actualHours) : null
+      dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : null
     }
 
     try {
@@ -331,63 +325,6 @@ const EditTaskCard = ({ taskId }) => {
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={6}>
-            <Grid item xs={12} md={6}>
-              <Controller
-                name='title'
-                control={control}
-                rules={{ required: 'Task title is required.' }}
-                render={({ field }) => (
-                  <CustomTextField
-                    {...field}
-                    fullWidth
-                    label='Task Title'
-                    placeholder='Enter task title'
-                    {...(errors.title && { error: true, helperText: errors.title.message })}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
-                name='priority'
-                control={control}
-                rules={{ required: 'Priority is required.' }}
-                render={({ field }) => (
-                  <CustomTextField
-                    select
-                    fullWidth
-                    label='Priority'
-                    {...field}
-                    {...(errors.priority && { error: true, helperText: errors.priority.message })}
-                  >
-                    {validPriorities.map(priority => (
-                      <MenuItem key={priority} value={priority}>
-                        {priority}
-                      </MenuItem>
-                    ))}
-                  </CustomTextField>
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Controller
-                name='description'
-                control={control}
-                render={({ field }) => (
-                  <CustomTextField
-                    {...field}
-                    fullWidth
-                    multiline
-                    rows={3}
-                    label='Description (Optional)'
-                    placeholder='Enter task description'
-                  />
-                )}
-              />
-            </Grid>
-
             <Grid item xs={12} md={6}>
               <Controller
                 name='clientId'
@@ -535,29 +472,6 @@ const EditTaskCard = ({ taskId }) => {
 
             <Grid item xs={12} md={6}>
               <Controller
-                name='status'
-                control={control}
-                rules={{ required: 'Status is required.' }}
-                render={({ field }) => (
-                  <CustomTextField
-                    select
-                    fullWidth
-                    label='Status'
-                    {...field}
-                    {...(errors.status && { error: true, helperText: errors.status.message })}
-                  >
-                    {validStatuses.map(status => (
-                      <MenuItem key={status} value={status}>
-                        {status.replace('_', ' ')}
-                      </MenuItem>
-                    ))}
-                  </CustomTextField>
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
                 name='startDate'
                 control={control}
                 render={({ field }) => (
@@ -590,41 +504,30 @@ const EditTaskCard = ({ taskId }) => {
 
             <Grid item xs={12} md={6}>
               <Controller
-                name='estimatedHours'
+                name='status'
                 control={control}
+                rules={{ required: 'Status is required.' }}
                 render={({ field }) => (
                   <CustomTextField
-                    {...field}
+                    select
                     fullWidth
-                    type='number'
-                    label='Estimated Hours (Optional)'
-                    placeholder='0'
-                    inputProps={{ min: 0, step: 0.5 }}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
-                name='actualHours'
-                control={control}
-                render={({ field }) => (
-                  <CustomTextField
+                    label='Status'
                     {...field}
-                    fullWidth
-                    type='number'
-                    label='Actual Hours (Optional)'
-                    placeholder='0'
-                    inputProps={{ min: 0, step: 0.5 }}
-                  />
+                    {...(errors.status && { error: true, helperText: errors.status.message })}
+                  >
+                    {validStatuses.map(status => (
+                      <MenuItem key={status} value={status}>
+                        {status.replace('_', ' ')}
+                      </MenuItem>
+                    ))}
+                  </CustomTextField>
                 )}
               />
             </Grid>
 
             <Grid item xs={12}>
               <Controller
-                name='notes'
+                name='description'
                 control={control}
                 render={({ field }) => (
                   <CustomTextField
@@ -632,8 +535,8 @@ const EditTaskCard = ({ taskId }) => {
                     fullWidth
                     multiline
                     rows={3}
-                    label='Notes (Optional)'
-                    placeholder='Enter any additional notes'
+                    label='Description (Optional)'
+                    placeholder='Enter task description'
                   />
                 )}
               />

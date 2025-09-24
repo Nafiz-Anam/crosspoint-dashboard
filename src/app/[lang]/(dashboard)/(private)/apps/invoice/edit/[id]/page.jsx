@@ -54,7 +54,7 @@ const EditPage = () => {
     ],
 
     // Settings from AddActions
-    paymentTerms: true,
+    paymentTerms: false,
     paymentTermsText: '',
     clientNotes: false,
     clientNotesText: '',
@@ -191,7 +191,7 @@ const EditPage = () => {
             branchId: invoiceResponse.branchId,
             notes: invoiceResponse.notes || '',
             thanksMessage: invoiceResponse.thanksMessage || 'Thank you for your business!',
-            taxRate: invoiceResponse.taxRate || 21,
+            taxRate: invoiceResponse.taxRate || 0,
             discountAmount: invoiceResponse.discountAmount || 0
           }
 

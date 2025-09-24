@@ -55,7 +55,8 @@ const AddCard = ({
     bankDetails,
     invoiceNumber,
     thanksMessage,
-    notes
+    notes,
+    taxRate
   } = invoiceState
 
   // Local API states - now passed as props
@@ -703,7 +704,7 @@ const AddCard = ({
                     </Typography>
                   </div>
                   <div className='flex items-center justify-between'>
-                    <Typography>Tax (21%):</Typography>
+                    <Typography>Tax ({taxRate || 0}%):</Typography>
                     <Typography className='font-medium' color='text.primary'>
                       ${calculateTax().toFixed(2)}
                     </Typography>
