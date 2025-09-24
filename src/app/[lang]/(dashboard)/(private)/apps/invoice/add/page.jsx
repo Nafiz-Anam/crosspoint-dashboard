@@ -41,6 +41,7 @@ const InvoiceContainer = ({ initialData }) => {
     invoiceNumber: null,
     invoiceItems: [
       {
+        categoryId: '',
         serviceId: '',
         description: '',
         rate: 0,

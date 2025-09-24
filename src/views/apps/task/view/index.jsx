@@ -7,16 +7,16 @@ import { useState } from 'react'
 import Grid from '@mui/material/Grid'
 
 // Component Imports
-import TaskListTable from './TaskListTable'
+import TaskViewCard from './TaskViewCard'
 
-const TaskList = () => {
+const TaskView = () => {
   return (
     <Grid container spacing={6}>
       <Grid item xs={12}>
-        <TaskListTable />
+        <TaskViewCard />
       </Grid>
     </Grid>
   )
 }
 
-export default TaskList
+export default TaskView

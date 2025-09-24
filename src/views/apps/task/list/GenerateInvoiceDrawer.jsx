@@ -8,7 +8,6 @@ import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
-import Alert from '@mui/material/Alert'
 import Grid from '@mui/material/Grid'
 
 // Component Imports
@@ -21,11 +20,12 @@ import { useSession } from 'next-auth/react'
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
 
+// Services
+import toastService from '@/services/toastService'
+
 const GenerateInvoiceDrawer = ({ open, handleClose, task, onInvoiceGenerated }) => {
   // States
   const [loading, setLoading] = useState(false)
-  const [apiError, setApiError] = useState(null)
-  const [apiSuccess, setApiSuccess] = useState(false)
 
   // Hooks
   const { data: session } = useSession()
@@ -58,11 +58,9 @@ const GenerateInvoiceDrawer = ({ open, handleClose, task, onInvoiceGenerated }) 
     if (!task) return
 
     setLoading(true)
-    setApiError(null)
-    setApiSuccess(false)
 
     if (!session?.accessToken) {
-      setApiError('Authentication token not found. Please log in again.')
+      toastService.showError('Authentication token not found. Please log in again.')
       setLoading(false)
       return
     }
@@ -91,17 +89,17 @@ const GenerateInvoiceDrawer = ({ open, handleClose, task, onInvoiceGenerated }) 
       const responseData = await response.json()
 
       if (response.ok) {
-        setApiSuccess(true)
+        toastService.showSuccess('Invoice generated successfully!')
         onInvoiceGenerated()
         setTimeout(() => {
           handleReset()
         }, 2000)
       } else {
         const errorMessage = responseData.message || `Failed to generate invoice: ${response.status}`
-        setApiError(errorMessage)
+        await toastService.handleApiError(response, errorMessage)
       }
     } catch (error) {
-      setApiError('Network error or unexpected issue. Please try again.')
+      await toastService.handleApiError(error, 'Network error or unexpected issue. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -118,8 +116,6 @@ const GenerateInvoiceDrawer = ({ open, handleClose, task, onInvoiceGenerated }) 
       discountAmount: 0,
       paymentMethod: 'Internet Banking'
     })
-    setApiError(null)
-    setApiSuccess(false)
   }
 
   if (!task) return null
@@ -141,17 +137,6 @@ const GenerateInvoiceDrawer = ({ open, handleClose, task, onInvoiceGenerated }) 
       </div>
       <Divider />
       <div>
-        {apiError && (
-          <Alert severity='error' onClose={() => setApiError(null)} sx={{ mb: 4, mx: 6, mt: 4 }}>
-            {apiError}
-          </Alert>
-        )}
-        {apiSuccess && (
-          <Alert severity='success' onClose={() => setApiSuccess(false)} sx={{ mb: 4, mx: 6, mt: 4 }}>
-            Invoice generated successfully!
-          </Alert>
-        )}
-
         {/* Task Information */}
         <div className='p-6 border-bs'>
           <Typography variant='h6' className='mb-4'>

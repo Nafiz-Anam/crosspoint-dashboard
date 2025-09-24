@@ -9,7 +9,6 @@ import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
 import MenuItem from '@mui/material/MenuItem'
-import Alert from '@mui/material/Alert'
 import CircularProgress from '@mui/material/CircularProgress'
 import Grid from '@mui/material/Grid'
 
@@ -23,17 +22,20 @@ import { useSession } from 'next-auth/react'
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
 
+// Services
+import toastService from '@/services/toastService'
+
 const AddTaskCard = () => {
   // States
   const [loading, setLoading] = useState(false)
-  const [apiError, setApiError] = useState(null)
-  const [apiSuccess, setApiSuccess] = useState(false)
   const [clients, setClients] = useState([])
+  const [categories, setCategories] = useState([])
   const [services, setServices] = useState([])
   const [employees, setEmployees] = useState([])
 
   // Individual loading states for each dropdown
   const [clientsLoading, setClientsLoading] = useState(false)
+  const [categoriesLoading, setCategoriesLoading] = useState(false)
   const [servicesLoading, setServicesLoading] = useState(false)
   const [employeesLoading, setEmployeesLoading] = useState(false)
 
@@ -53,17 +55,18 @@ const AddTaskCard = () => {
     defaultValues: {
       description: '',
       clientId: preSelectedClientId || '',
+      categoryId: '',
       serviceId: '',
       assignedEmployeeId: '',
       status: 'PENDING',
-      priority: 'MEDIUM',
-      dueDate: '',
       startDate: '',
-      notes: ''
+      dueDate: ''
     }
   })
 
   const watchedClientId = watch('clientId')
+  const watchedCategoryId = watch('categoryId')
+  const watchedServiceId = watch('serviceId')
 
   // Fetch clients
   const fetchClients = async () => {
@@ -87,6 +90,34 @@ const AddTaskCard = () => {
       console.error('Error fetching clients:', error)
     } finally {
       setClientsLoading(false)
+    }
+  }
+
+  // Fetch categories
+  const fetchCategories = async () => {
+    if (!session?.accessToken) return
+
+    setCategoriesLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const services = data.data || []
+        // Extract unique categories from services
+        const uniqueCategories = [...new Set(services.map(service => service.category).filter(Boolean))]
+        setCategories(uniqueCategories)
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+    } finally {
+      setCategoriesLoading(false)
     }
   }
 
@@ -158,29 +189,33 @@ const AddTaskCard = () => {
   useEffect(() => {
     if (session?.accessToken) {
       fetchClients()
+      fetchCategories()
       fetchServices()
       fetchEmployees()
     }
   }, [session?.accessToken])
 
-  // Filter services based on selected client
+  // Available services - filter by selected category
   const availableServices = useMemo(() => {
-    if (!watchedClientId) return services
+    if (!watchedCategoryId) return []
+    return services.filter(service => service.category === watchedCategoryId)
+  }, [watchedCategoryId, services])
 
-    const selectedClient = clients.find(client => client.id === watchedClientId)
-    if (!selectedClient) return services
-
-    // Filter services to show only the one associated with the client
-    return services.filter(service => service.id === selectedClient.serviceId)
-  }, [watchedClientId, clients, services])
+  // Reset serviceId when category changes
+  useEffect(() => {
+    if (watchedCategoryId) {
+      resetForm({
+        ...watch(),
+        serviceId: ''
+      })
+    }
+  }, [watchedCategoryId, resetForm, watch])
 
   const onSubmit = async data => {
     setLoading(true)
-    setApiError(null)
-    setApiSuccess(false)
 
     if (!session?.accessToken) {
-      setApiError('Authentication token not found. Please log in again.')
+      toastService.showError('Authentication token not found. Please log in again.')
       setLoading(false)
       return
     }
@@ -191,10 +226,8 @@ const AddTaskCard = () => {
       serviceId: data.serviceId,
       assignedEmployeeId: data.assignedEmployeeId,
       status: data.status,
-      priority: data.priority,
-      dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : null,
       startDate: data.startDate ? new Date(data.startDate).toISOString() : null,
-      notes: data.notes || null
+      dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : null
     }
 
     try {
@@ -211,17 +244,27 @@ const AddTaskCard = () => {
       const responseData = await response.json()
 
       if (response.ok) {
-        setApiSuccess(true)
+        toastService.showSuccess('Task created successfully!')
+        resetForm({
+          description: '',
+          clientId: preSelectedClientId || '',
+          categoryId: '',
+          serviceId: '',
+          assignedEmployeeId: '',
+          status: 'PENDING',
+          startDate: '',
+          dueDate: ''
+        })
         // Redirect to task list after successful creation
         setTimeout(() => {
           router.push('/apps/task/list')
         }, 2000)
       } else {
         const errorMessage = responseData.message || `Failed to create task: ${response.status}`
-        setApiError(errorMessage)
+        await toastService.handleApiError(response, errorMessage)
       }
     } catch (error) {
-      setApiError('Network error or unexpected issue. Please try again.')
+      await toastService.handleApiError(error, 'Network error or unexpected issue. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -231,33 +274,20 @@ const AddTaskCard = () => {
     resetForm({
       description: '',
       clientId: preSelectedClientId || '',
+      categoryId: '',
       serviceId: '',
       assignedEmployeeId: '',
       status: 'PENDING',
       priority: 'MEDIUM',
-      dueDate: '',
       startDate: '',
-      notes: ''
+      dueDate: ''
     })
-    setApiError(null)
-    setApiSuccess(false)
   }
 
   return (
     <Card>
       <CardHeader title='Create New Task' />
       <CardContent>
-        {apiError && (
-          <Alert severity='error' onClose={() => setApiError(null)} sx={{ mb: 4 }}>
-            {apiError}
-          </Alert>
-        )}
-        {apiSuccess && (
-          <Alert severity='success' onClose={() => setApiSuccess(false)} sx={{ mb: 4 }}>
-            Task created successfully! Redirecting to task list...
-          </Alert>
-        )}
-
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={6}>
             <Grid item xs={12} md={6}>
@@ -297,6 +327,41 @@ const AddTaskCard = () => {
 
             <Grid item xs={12} md={6}>
               <Controller
+                name='categoryId'
+                control={control}
+                rules={{ required: 'Category is required.' }}
+                render={({ field }) => (
+                  <CustomTextField
+                    select
+                    fullWidth
+                    label='Select Category'
+                    {...field}
+                    {...(errors.categoryId && { error: true, helperText: errors.categoryId.message })}
+                    InputProps={{
+                      endAdornment: categoriesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
+                    }}
+                  >
+                    {categoriesLoading ? (
+                      <MenuItem disabled>
+                        <CircularProgress size={16} sx={{ mr: 1 }} />
+                        Loading categories...
+                      </MenuItem>
+                    ) : categories.length === 0 ? (
+                      <MenuItem disabled>No categories available</MenuItem>
+                    ) : (
+                      categories.map(category => (
+                        <MenuItem key={category} value={category}>
+                          {category}
+                        </MenuItem>
+                      ))
+                    )}
+                  </CustomTextField>
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Controller
                 name='serviceId'
                 control={control}
                 rules={{ required: 'Service is required.' }}
@@ -310,6 +375,7 @@ const AddTaskCard = () => {
                     InputProps={{
                       endAdornment: servicesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
                     }}
+                    disabled={!watchedCategoryId}
                   >
                     {servicesLoading ? (
                       <MenuItem disabled>
@@ -317,7 +383,11 @@ const AddTaskCard = () => {
                         Loading services...
                       </MenuItem>
                     ) : availableServices.length === 0 ? (
-                      <MenuItem disabled>No services available</MenuItem>
+                      <MenuItem disabled>
+                        {!watchedCategoryId
+                          ? 'Please select a category first'
+                          : 'No services available for this category'}
+                      </MenuItem>
                     ) : (
                       availableServices.map(service => (
                         <MenuItem key={service.id} value={service.id}>
@@ -390,22 +460,6 @@ const AddTaskCard = () => {
 
             <Grid item xs={12} md={6}>
               <Controller
-                name='dueDate'
-                control={control}
-                render={({ field }) => (
-                  <CustomTextField
-                    {...field}
-                    fullWidth
-                    type='date'
-                    label='Due Date (Optional)'
-                    InputLabelProps={{ shrink: true }}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
                 name='startDate'
                 control={control}
                 render={({ field }) => (
@@ -414,6 +468,22 @@ const AddTaskCard = () => {
                     fullWidth
                     type='date'
                     label='Start Date (Optional)'
+                    InputLabelProps={{ shrink: true }}
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Controller
+                name='dueDate'
+                control={control}
+                render={({ field }) => (
+                  <CustomTextField
+                    {...field}
+                    fullWidth
+                    type='date'
+                    label='Due Date (Optional)'
                     InputLabelProps={{ shrink: true }}
                   />
                 )}

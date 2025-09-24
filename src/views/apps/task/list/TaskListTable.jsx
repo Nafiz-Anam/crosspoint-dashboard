@@ -12,7 +12,6 @@ import IconButton from '@mui/material/IconButton'
 import TablePagination from '@mui/material/TablePagination'
 import MenuItem from '@mui/material/MenuItem'
 import CircularProgress from '@mui/material/CircularProgress'
-import Alert from '@mui/material/Alert'
 import Chip from '@mui/material/Chip'
 import classnames from 'classnames'
 import OptionMenu from '@core/components/option-menu'
@@ -37,6 +36,9 @@ import TablePaginationComponent from '@components/TablePaginationComponent'
 import { getLocalizedUrl } from '@/utils/i18n'
 import tableStyles from '@core/styles/table.module.css'
 
+// Services
+import toastService from '@/services/toastService'
+
 const columnHelper = createColumnHelper()
 
 const taskStatusObj = {
@@ -45,13 +47,6 @@ const taskStatusObj = {
   COMPLETED: 'success',
   CANCELLED: 'error',
   ON_HOLD: 'secondary'
-}
-
-const taskPriorityObj = {
-  LOW: 'success',
-  MEDIUM: 'warning',
-  HIGH: 'error',
-  URGENT: 'error'
 }
 
 // Fuzzy filter for search
@@ -84,13 +79,14 @@ const TaskListTable = () => {
 
   // States for Table Data and API Operations
   const [tasks, setTasks] = useState([])
+  const [branches, setBranches] = useState([])
   const [fetchLoading, setFetchLoading] = useState(true)
   const [fetchError, setFetchError] = useState(null)
 
   // States for Filtering and Search
   const [filteredData, setFilteredData] = useState([])
   const [globalFilter, setGlobalFilter] = useState('')
-  const [filters, setFilters] = useState({ status: '', priority: '', assignedEmployee: '' })
+  const [filters, setFilters] = useState({ status: '', assignedEmployee: '', branch: '' })
 
   // States for row selection
   const [rowSelection, setRowSelection] = useState({})
@@ -98,6 +94,31 @@ const TaskListTable = () => {
   // Hooks
   const { lang: locale } = useParams()
   const { data: session, status: sessionStatus } = useSession()
+
+  // Function to fetch branches
+  const fetchBranches = useCallback(async () => {
+    if (!session?.accessToken) return
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setBranches(data.data || [])
+      } else {
+        console.error('Failed to fetch branches')
+      }
+    } catch (error) {
+      console.error('Error fetching branches:', error)
+    }
+  }, [session?.accessToken])
 
   // Function to fetch task data from API
   const fetchTasks = useCallback(async () => {
@@ -128,11 +149,12 @@ const TaskListTable = () => {
       } else {
         const errorMessage = responseData.message || `Failed to fetch tasks: ${response.status}`
         setFetchError(errorMessage)
-        console.error('API Error fetching tasks:', responseData)
+        await toastService.handleApiError(response, errorMessage)
       }
     } catch (error) {
-      setFetchError('Network error or unexpected issue fetching tasks. Please try again.')
-      console.error('Fetch error tasks:', error)
+      const errorMessage = 'Network error or unexpected issue fetching tasks. Please try again.'
+      setFetchError(errorMessage)
+      await toastService.handleApiError(error, errorMessage)
     } finally {
       setFetchLoading(false)
     }
@@ -142,11 +164,12 @@ const TaskListTable = () => {
   useEffect(() => {
     if (sessionStatus === 'authenticated') {
       fetchTasks()
+      fetchBranches()
     } else if (sessionStatus === 'unauthenticated') {
       setFetchError('Not authenticated. Please log in to view tasks.')
       setFetchLoading(false)
     }
-  }, [sessionStatus, session?.accessToken])
+  }, [sessionStatus, session?.accessToken, fetchTasks, fetchBranches])
 
   // Effect for client-side filtering
   useEffect(() => {
@@ -156,12 +179,12 @@ const TaskListTable = () => {
       tempData = tempData.filter(row => row.status === filters.status)
     }
 
-    if (filters.priority) {
-      tempData = tempData.filter(row => row.priority === filters.priority)
-    }
-
     if (filters.assignedEmployee) {
       tempData = tempData.filter(row => row.assignedEmployee?.name === filters.assignedEmployee)
+    }
+
+    if (filters.branch) {
+      tempData = tempData.filter(row => row.client?.branch?.name === filters.branch)
     }
 
     setFilteredData(tempData)
@@ -170,12 +193,13 @@ const TaskListTable = () => {
   // Function to handle task deletion
   const handleDeleteTask = useCallback(
     async taskId => {
+      // Use browser confirm for now, but show toast for result
       if (!confirm('Are you sure you want to delete this task?')) {
         return
       }
 
       if (!session?.accessToken) {
-        setFetchError('Authentication token not found. Cannot delete task.')
+        toastService.showError('Authentication token not found. Cannot delete task.')
         return
       }
 
@@ -189,17 +213,15 @@ const TaskListTable = () => {
         })
 
         if (response.ok) {
-          console.log(`Task ${taskId} deleted successfully.`)
+          toastService.showSuccess('Task deleted successfully!')
           fetchTasks()
         } else {
           const errorData = await response.json()
           const errorMessage = errorData.message || `Failed to delete task: ${response.status}`
-          setFetchError(errorMessage)
-          console.error('API Error deleting task:', errorData)
+          await toastService.handleApiError(response, errorMessage)
         }
       } catch (error) {
-        setFetchError('Network error or unexpected issue during deletion. Please try again.')
-        console.error('Fetch error deleting task:', error)
+        await toastService.handleApiError(error, 'Network error or unexpected issue during deletion. Please try again.')
       }
     },
     [session?.accessToken, fetchTasks]
@@ -235,7 +257,10 @@ const TaskListTable = () => {
     [tasks]
   )
   const statuses = useMemo(() => Array.from(new Set(tasks.map(item => item.status))), [tasks])
-  const priorities = useMemo(() => Array.from(new Set(tasks.map(item => item.priority))), [tasks])
+  const branchNames = useMemo(
+    () => Array.from(new Set(tasks.map(item => item.client?.branch?.name).filter(Boolean))),
+    [tasks]
+  )
 
   // Function to format date
   const formatDate = dateString => {
@@ -246,41 +271,17 @@ const TaskListTable = () => {
   // Column definitions
   const columns = useMemo(
     () => [
-      columnHelper.accessor('taskId', {
-        header: 'Task ID',
-        cell: ({ row }) => (
-          <Typography color='text.primary' className='font-medium'>
-            {row.original.taskId || '-'}
-          </Typography>
-        )
-      }),
       columnHelper.accessor('title', {
         header: 'Title',
         cell: ({ row }) => (
-          <div className='flex flex-col'>
-            <Typography color='text.primary' className='font-medium'>
-              {row.original.title}
-            </Typography>
-            {row.original.description && (
-              <Typography variant='body2' color='text.secondary' className='truncate max-w-xs'>
-                {row.original.description}
-              </Typography>
-            )}
-          </div>
+          <Typography color='text.primary' className='font-medium'>
+            {row.original.title}
+          </Typography>
         )
       }),
       columnHelper.accessor('client', {
         header: 'Client',
-        cell: ({ row }) => (
-          <div className='flex flex-col'>
-            <Typography color='text.primary' className='font-medium'>
-              {row.original.client?.name || '-'}
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-              {row.original.client?.email || ''}
-            </Typography>
-          </div>
-        )
+        cell: ({ row }) => <Typography color='text.primary'>{row.original.client?.name || '-'}</Typography>
       }),
       columnHelper.accessor('service', {
         header: 'Service',
@@ -288,16 +289,7 @@ const TaskListTable = () => {
       }),
       columnHelper.accessor('assignedEmployee', {
         header: 'Assigned To',
-        cell: ({ row }) => (
-          <div className='flex flex-col'>
-            <Typography color='text.primary' className='font-medium'>
-              {row.original.assignedEmployee?.name || '-'}
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-              {row.original.assignedEmployee?.role || ''}
-            </Typography>
-          </div>
-        )
+        cell: ({ row }) => <Typography color='text.primary'>{row.original.assignedEmployee?.name || '-'}</Typography>
       }),
       columnHelper.accessor('status', {
         header: 'Status',
@@ -308,20 +300,6 @@ const TaskListTable = () => {
               label={row.original.status}
               size='small'
               color={taskStatusObj[row.original.status]}
-              className='capitalize'
-            />
-          </div>
-        )
-      }),
-      columnHelper.accessor('priority', {
-        header: 'Priority',
-        cell: ({ row }) => (
-          <div className='flex items-center gap-3'>
-            <Chip
-              variant='tonal'
-              label={row.original.priority}
-              size='small'
-              color={taskPriorityObj[row.original.priority]}
               className='capitalize'
             />
           </div>
@@ -339,6 +317,15 @@ const TaskListTable = () => {
               iconButtonProps={{ size: 'medium' }}
               iconClassName='text-textSecondary'
               options={[
+                {
+                  text: 'View',
+                  icon: 'tabler-eye',
+                  menuItemProps: {
+                    component: Link,
+                    href: getLocalizedUrl(`/apps/task/view/${row.original.id}`, locale),
+                    className: 'flex items-center gap-2 text-textSecondary'
+                  }
+                },
                 {
                   text: 'Edit',
                   icon: 'tabler-edit',
@@ -419,22 +406,6 @@ const TaskListTable = () => {
             ))}
           </CustomTextField>
 
-          {/* Priority Filter */}
-          <CustomTextField
-            select
-            label='Priority'
-            value={filters.priority}
-            onChange={e => setFilters({ ...filters, priority: e.target.value })}
-            className='min-w-[180px]'
-          >
-            <MenuItem value=''>All</MenuItem>
-            {priorities.map(priority => (
-              <MenuItem key={priority} value={priority}>
-                {priority}
-              </MenuItem>
-            ))}
-          </CustomTextField>
-
           {/* Assigned Employee Filter */}
           <CustomTextField
             select
@@ -447,6 +418,22 @@ const TaskListTable = () => {
             {assignedEmployees.map(employee => (
               <MenuItem key={employee} value={employee}>
                 {employee}
+              </MenuItem>
+            ))}
+          </CustomTextField>
+
+          {/* Branch Filter */}
+          <CustomTextField
+            select
+            label='Branch'
+            value={filters.branch}
+            onChange={e => setFilters({ ...filters, branch: e.target.value })}
+            className='min-w-[180px]'
+          >
+            <MenuItem value=''>All</MenuItem>
+            {branchNames.map(branch => (
+              <MenuItem key={branch} value={branch}>
+                {branch}
               </MenuItem>
             ))}
           </CustomTextField>
@@ -474,10 +461,6 @@ const TaskListTable = () => {
             <CircularProgress />
             <Typography className='ml-4'>Loading Tasks...</Typography>
           </div>
-        ) : fetchError ? (
-          <Alert severity='error' sx={{ m: 6 }}>
-            {fetchError}
-          </Alert>
         ) : (
           <div className='overflow-x-auto'>
             <table className={tableStyles.table}>

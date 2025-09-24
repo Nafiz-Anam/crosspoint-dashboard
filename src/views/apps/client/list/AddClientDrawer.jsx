@@ -9,7 +9,6 @@ import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
-import Alert from '@mui/material/Alert'
 import CircularProgress from '@mui/material/CircularProgress'
 
 // Component Imports
@@ -22,22 +21,20 @@ import { useSession } from 'next-auth/react'
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
 
+// Service Imports
+import toastService from '@/services/toastService'
+import enhancedClientService from '@/services/enhancedClientService'
+
 const AddClientDrawer = props => {
   // Props
   const { open, handleClose, currentClient, onClientAdded } = props
 
   // States
   const [loading, setLoading] = useState(false)
-  const [apiError, setApiError] = useState(null)
-  const [apiSuccess, setApiSuccess] = useState(false)
-  const [services, setServices] = useState([])
   const [branches, setBranches] = useState([])
-  const [employees, setEmployees] = useState([])
 
   // Individual loading states for each dropdown
-  const [servicesLoading, setServicesLoading] = useState(false)
   const [branchesLoading, setBranchesLoading] = useState(false)
-  const [employeesLoading, setEmployeesLoading] = useState(false)
 
   // Hooks
   const { data: session } = useSession()
@@ -56,37 +53,10 @@ const AddClientDrawer = props => {
       city: '',
       postalCode: '',
       province: '',
-      // serviceId: '',
-      branchId: ''
-      // assignedEmployeeId: '',
-      // status: 'PENDING'
+      branchId: '',
+      status: 'PENDING'
     }
   })
-
-  // Fetch services
-  const fetchServices = async () => {
-    if (!session?.accessToken) return
-
-    setServicesLoading(true)
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setServices(data.data || [])
-      }
-    } catch (error) {
-      console.error('Error fetching services:', error)
-    } finally {
-      setServicesLoading(false)
-    }
-  }
 
   // Fetch branches
   const fetchBranches = async () => {
@@ -113,31 +83,6 @@ const AddClientDrawer = props => {
     }
   }
 
-  // Fetch employees
-  const fetchEmployees = async () => {
-    if (!session?.accessToken) return
-
-    setEmployeesLoading(true)
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setEmployees(data.data || [])
-      }
-    } catch (error) {
-      console.error('Error fetching employees:', error)
-    } finally {
-      setEmployeesLoading(false)
-    }
-  }
-
   // Valid status values
   const validStatuses = ['ACTIVE', 'PENDING', 'PROCESSING', 'CANCELLED', 'COMPLETED']
 
@@ -156,9 +101,9 @@ const AddClientDrawer = props => {
         city: currentClient.city || '',
         postalCode: currentClient.postalCode || '',
         province: currentClient.province || '',
-        serviceId: currentClient.serviceId || '',
+
         branchId: currentClient.branchId || '',
-        assignedEmployeeId: currentClient.assignedEmployeeId || '',
+
         status: validStatus
       })
     } else {
@@ -171,32 +116,26 @@ const AddClientDrawer = props => {
         city: '',
         postalCode: '',
         province: '',
-        serviceId: '',
+
         branchId: '',
-        assignedEmployeeId: '',
+
         status: 'PENDING'
       })
     }
-    setApiError(null)
-    setApiSuccess(false)
   }, [open, currentClient, resetForm])
 
   // Fetch dropdown data when drawer opens
   useEffect(() => {
     if (open && session?.accessToken) {
-      fetchServices()
       fetchBranches()
-      fetchEmployees()
     }
   }, [open, session?.accessToken])
 
   const onSubmit = async data => {
     setLoading(true)
-    setApiError(null)
-    setApiSuccess(false)
 
     if (!session?.accessToken) {
-      setApiError('Authentication token not found. Please log in again.')
+      toastService.showError('Authentication token not found. Please log in again.')
       setLoading(false)
       return
     }
@@ -210,15 +149,15 @@ const AddClientDrawer = props => {
       city: data.city || null,
       postalCode: data.postalCode || null,
       province: data.province || null,
-      serviceId: data.serviceId,
+
       branchId: data.branchId,
-      assignedEmployeeId: data.assignedEmployeeId || null,
+
       status: data.status
     }
 
     // Validate status before sending
     if (!validStatuses.includes(data.status)) {
-      setApiError(`Invalid status: ${data.status}. Please select a valid status.`)
+      toastService.showError(`Invalid status: ${data.status}. Please select a valid status.`)
       setLoading(false)
       return
     }
@@ -228,35 +167,30 @@ const AddClientDrawer = props => {
     console.log('Status value:', data.status, 'Type:', typeof data.status)
 
     const isEditMode = !!currentClient
-    const apiMethod = isEditMode ? 'PUT' : 'POST'
-    const apiUrl = isEditMode
-      ? `${process.env.NEXT_PUBLIC_API_URL}/clients/${currentClient.id}`
-      : `${process.env.NEXT_PUBLIC_API_URL}/clients`
 
     try {
-      const response = await fetch(apiUrl, {
-        method: apiMethod,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        },
-        body: JSON.stringify(payload)
-      })
-
-      const responseData = await response.json()
-
-      if (response.ok) {
-        setApiSuccess(true)
-        onClientAdded()
-        handleReset()
+      let result
+      if (isEditMode) {
+        result = await enhancedClientService.updateClient(currentClient.id, payload, session.accessToken, {
+          showToast: true,
+          successMessage: 'Client updated successfully!',
+          errorMessage: 'Failed to update client',
+          showLoading: false // We're handling loading state manually
+        })
       } else {
-        const errorMessage =
-          responseData.message || `Failed to ${isEditMode ? 'update' : 'create'} client: ${response.status}`
-        setApiError(errorMessage)
+        result = await enhancedClientService.createClient(payload, session.accessToken, {
+          showToast: true,
+          successMessage: 'Client created successfully!',
+          errorMessage: 'Failed to create client',
+          showLoading: false // We're handling loading state manually
+        })
       }
+
+      onClientAdded()
+      handleReset()
     } catch (error) {
-      setApiError('Network error or unexpected issue. Please try again.')
+      // Error is already handled by the enhanced service with toast
+      console.error('Client operation error:', error)
     } finally {
       setLoading(false)
     }
@@ -272,13 +206,9 @@ const AddClientDrawer = props => {
       city: '',
       postalCode: '',
       province: '',
-      serviceId: '',
       branchId: '',
-      assignedEmployeeId: '',
       status: 'PENDING'
     })
-    setApiError(null)
-    setApiSuccess(false)
   }
 
   return (
@@ -298,17 +228,6 @@ const AddClientDrawer = props => {
       </div>
       <Divider />
       <div>
-        {apiError && (
-          <Alert severity='error' onClose={() => setApiError(null)} sx={{ mb: 4, mx: 6, mt: 4 }}>
-            {apiError}
-          </Alert>
-        )}
-        {apiSuccess && (
-          <Alert severity='success' onClose={() => setApiSuccess(false)} sx={{ mb: 4, mx: 6, mt: 4 }}>
-            Client {currentClient ? 'updated' : 'added'} successfully!
-          </Alert>
-        )}
-
         <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6 p-6'>
           {/* Client ID field, display only if editing */}
           {currentClient && (
@@ -446,69 +365,6 @@ const AddClientDrawer = props => {
               <CustomTextField {...field} fullWidth label='Province (Optional)' placeholder='RM' />
             )}
           />
-
-          {/* <Controller
-            name='serviceId'
-            control={control}
-            rules={{ required: 'Service is required.' }}
-            render={({ field }) => (
-              <CustomTextField
-                select
-                fullWidth
-                label='Select Service'
-                {...field}
-                {...(errors.serviceId && { error: true, helperText: errors.serviceId.message })}
-                InputProps={{
-                  endAdornment: servicesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
-                }}
-              >
-                {servicesLoading ? (
-                  <MenuItem disabled>
-                    <CircularProgress size={16} sx={{ mr: 1 }} />
-                    Loading services...
-                  </MenuItem>
-                ) : services.length === 0 ? (
-                  <MenuItem disabled>No services available</MenuItem>
-                ) : (
-                  services.map(service => (
-                    <MenuItem key={service.id} value={service.id}>
-                      {service.name} - €{service.price}
-                    </MenuItem>
-                  ))
-                )}
-              </CustomTextField>
-            )}
-          /> */}
-
-          {/* <Controller
-            name='assignedEmployeeId'
-            control={control}
-            render={({ field }) => (
-              <CustomTextField
-                select
-                fullWidth
-                label='Assigned Employee (Optional)'
-                {...field}
-                InputProps={{
-                  endAdornment: employeesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
-                }}
-              >
-                <MenuItem value=''>None</MenuItem>
-                {employeesLoading ? (
-                  <MenuItem disabled>
-                    <CircularProgress size={16} sx={{ mr: 1 }} />
-                    Loading employees...
-                  </MenuItem>
-                ) : (
-                  employees.map(employee => (
-                    <MenuItem key={employee.id} value={employee.id}>
-                      {employee.name} - {employee.role}
-                    </MenuItem>
-                  ))
-                )}
-              </CustomTextField>
-            )}
-          /> */}
 
           {/* <Controller
             name='status'

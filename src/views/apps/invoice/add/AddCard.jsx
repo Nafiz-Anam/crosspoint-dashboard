@@ -3,6 +3,7 @@
 // React Imports
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useForm, Controller } from 'react-hook-form'
 
 // MUI Imports
 import Grid from '@mui/material/Grid2'
@@ -57,17 +58,34 @@ const AddCard = ({
     notes
   } = invoiceState
 
-  // Debug bank details
-  console.log('AddCard bankDetails:', bankDetails)
-  console.log('AddCard selectedBankAccount:', invoiceState.selectedBankAccount)
-
   // Local API states - now passed as props
   // const [clients, setClients] = useState([])
   // const [services, setServices] = useState([])
   // const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(false)
+  const [categories, setCategories] = useState([])
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false)
+
+  // Debug bank details
+  console.log('AddCard bankDetails:', bankDetails)
+  console.log('AddCard selectedBankAccount:', invoiceState.selectedBankAccount)
+  console.log('AddCard categories:', categories)
+  console.log('AddCard categoriesLoaded:', categoriesLoaded)
+  console.log('AddCard invoiceItems:', invoiceItems)
+  console.log('AddCard services:', services)
+  console.log('First invoice item structure:', invoiceItems[0])
 
   const { data: session } = useSession()
+
+  // Form control
+  const { control, watch } = useForm({
+    defaultValues: {
+      items: invoiceItems
+    }
+  })
+
+  // Watch for category changes
+  const watchedItems = watch('items') || invoiceItems
 
   // Debug logging for arrays (after state declarations)
   // console.log('=== AddCard Debug Info ===')
@@ -85,6 +103,32 @@ const AddCard = ({
   const isBelowSmScreen = useMediaQuery(theme => theme.breakpoints.down('sm'))
 
   // Data is now passed as props, no need to fetch
+
+  // Extract categories from services
+  useEffect(() => {
+    if (services && Array.isArray(services) && services.length > 0) {
+      console.log('Services data:', services)
+      console.log(
+        'Services with categories:',
+        services.map(s => ({ name: s.name, category: s.category }))
+      )
+      const uniqueCategories = [...new Set(services.map(service => service.category).filter(Boolean))]
+      console.log('Extracted categories:', uniqueCategories)
+      setCategories(uniqueCategories || [])
+      setCategoriesLoaded(true)
+    } else {
+      console.log('No services data available')
+      setCategories([])
+      setCategoriesLoaded(true)
+    }
+  }, [services])
+
+  // Get filtered services based on selected category
+  const getFilteredServices = categoryId => {
+    if (!categoryId || !services || !Array.isArray(services)) return []
+    const filtered = services.filter(service => service.category === categoryId)
+    return filtered
+  }
 
   // Update handlers that call parent function
   const handleClientChange = clientId => {
@@ -104,6 +148,8 @@ const AddCard = ({
   }
 
   const handleItemChange = (index, field, value) => {
+    console.log('handleItemChange called:', { index, field, value, currentItems: invoiceItems })
+
     const updatedItems = [...invoiceItems]
     updatedItems[index] = { ...updatedItems[index], [field]: value }
 
@@ -115,6 +161,13 @@ const AddCard = ({
       }
     }
 
+    // Reset service when category changes
+    if (field === 'categoryId') {
+      updatedItems[index].serviceId = ''
+      updatedItems[index].rate = 0
+    }
+
+    console.log('Updated items after change:', updatedItems)
     updateInvoiceState({ invoiceItems: updatedItems })
   }
 
@@ -122,6 +175,7 @@ const AddCard = ({
     const newItems = [
       ...invoiceItems,
       {
+        categoryId: '',
         serviceId: '',
         description: '',
         rate: 0,
@@ -370,44 +424,81 @@ const AddCard = ({
               invoiceItems.map((item, index) => (
                 <div
                   key={index}
-                  className='border rounded p-4 mb-4'
+                  className='border rounded p-4 mb-4 '
                   style={{ border: '1px solid #e0e0e0', borderRadius: 8, marginBottom: 16, padding: 16 }}
                 >
                   <Grid container spacing={2} alignItems='flex-end'>
-                    {/* Service Dropdown */}
-                    <Grid size={{ xs: 12, md: 2.5 }}>
+                    {/* Service Category */}
+                    <Grid size={{ xs: 12, md: 3 }}>
                       <Typography className='font-medium mb-2' color='text.primary'>
-                        Service
+                        Service Category
                       </Typography>
-                      <CustomTextField
-                        select
-                        fullWidth
-                        value={item.serviceId || ''}
-                        onChange={e => handleItemChange(index, 'serviceId', e.target.value)}
-                      >
-                        <MenuItem value=''>
-                          <em>Select Service</em>
-                        </MenuItem>
-                        {services &&
-                          services.length > 0 &&
-                          services.map(service => (
-                            <MenuItem key={service.id} value={service.id}>
-                              {service.name}
+                      <Controller
+                        name={`items.${index}.categoryId`}
+                        control={control}
+                        defaultValue={item.categoryId || ''}
+                        render={({ field }) => (
+                          <CustomTextField
+                            select
+                            fullWidth
+                            {...field}
+                            onChange={e => {
+                              console.log('Category selected:', e.target.value)
+                              field.onChange(e.target.value)
+                              handleItemChange(index, 'categoryId', e.target.value)
+                              handleItemChange(index, 'serviceId', '') // Reset service when category changes
+                            }}
+                          >
+                            <MenuItem value=''>
+                              <em>Select Category</em>
                             </MenuItem>
-                          ))}
-                      </CustomTextField>
+                            {!categoriesLoaded ? (
+                              <MenuItem disabled>Loading categories...</MenuItem>
+                            ) : categories.length > 0 ? (
+                              categories.map(category => (
+                                <MenuItem key={category} value={category}>
+                                  {category}
+                                </MenuItem>
+                              ))
+                            ) : (
+                              <MenuItem disabled>No categories available</MenuItem>
+                            )}
+                          </CustomTextField>
+                        )}
+                      />
                     </Grid>
 
-                    {/* Description */}
-                    <Grid size={{ xs: 12, md: 4.5 }}>
+                    {/* Service Name */}
+                    <Grid size={{ xs: 12, md: 3 }}>
                       <Typography className='font-medium mb-2' color='text.primary'>
-                        Description
+                        Service Name
                       </Typography>
-                      <CustomTextField
-                        fullWidth
-                        placeholder='Service description and notes...'
-                        value={item.description}
-                        onChange={e => handleItemChange(index, 'description', e.target.value)}
+                      <Controller
+                        name={`items.${index}.serviceId`}
+                        control={control}
+                        defaultValue={item.serviceId || ''}
+                        render={({ field }) => (
+                          <CustomTextField
+                            select
+                            fullWidth
+                            {...field}
+                            onChange={e => {
+                              field.onChange(e.target.value)
+                              handleItemChange(index, 'serviceId', e.target.value)
+                            }}
+                            disabled={!watchedItems[index]?.categoryId}
+                          >
+                            <MenuItem value=''>
+                              <em>{watchedItems[index]?.categoryId ? 'Select Service' : 'Select Category First'}</em>
+                            </MenuItem>
+                            {watchedItems[index]?.categoryId &&
+                              getFilteredServices(watchedItems[index].categoryId).map(service => (
+                                <MenuItem key={service.id} value={service.id}>
+                                  {service.name} - €{service.price}
+                                </MenuItem>
+                              ))}
+                          </CustomTextField>
+                        )}
                       />
                     </Grid>
 
@@ -418,7 +509,7 @@ const AddCard = ({
                       </Typography>
                       <div className='bg-gray-50 rounded border text-center min-h-[40px] flex items-center justify-center'>
                         <Typography variant='body1' className='font-medium'>
-                          ${item.rate || 0}
+                          €{item.rate || 0}
                         </Typography>
                       </div>
                     </Grid>
@@ -459,37 +550,56 @@ const AddCard = ({
                     </Grid>
 
                     {/* Total */}
-                    <Grid size={{ xs: 6, md: 1.5 }}>
+                    <Grid size={{ xs: 6, md: 2 }}>
                       <Typography className='font-medium mb-2' color='text.primary'>
                         Total
                       </Typography>
                       <div className='bg-primary-50 rounded border text-center min-h-[40px] flex items-center justify-center border-primary-200'>
                         <Typography variant='h6' color='primary' className='font-semibold'>
-                          ${calculateItemTotal(item).toFixed(2)}
+                          €{calculateItemTotal(item).toFixed(2)}
                         </Typography>
                       </div>
                     </Grid>
 
                     {/* Delete Button */}
-                    <Grid size={{ xs: 6, md: 0.5 }} className='flex justify-center'>
-                      <div>
-                        <IconButton
-                          onClick={() => removeInvoiceItem(index)}
-                          className='bg-red-100 hover:bg-red-200 transition-colors duration-200'
-                          size='small'
-                          sx={{
-                            backgroundColor: '#fef2f2',
-                            '&:hover': {
-                              backgroundColor: '#fecaca'
-                            },
-                            borderRadius: '8px',
-                            width: '40px',
-                            height: '40px'
-                          }}
-                        >
-                          <i className='tabler-x text-lg text-red-600' />
-                        </IconButton>
-                      </div>
+                    <Grid
+                      size={{ xs: 6, md: 1 }}
+                      className='flex justify-center'
+                      sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                    >
+                      <IconButton
+                        onClick={() => removeInvoiceItem(index)}
+                        className='bg-red-100 hover:bg-red-200 transition-colors duration-200'
+                        size='small'
+                        sx={{
+                          backgroundColor: '#fef2f2',
+                          '&:hover': {
+                            backgroundColor: '#fecaca'
+                          },
+                          borderRadius: '8px',
+                          width: '40px',
+                          height: '40px'
+                        }}
+                      >
+                        <i className='tabler-x text-lg text-red-600' />
+                      </IconButton>
+                    </Grid>
+                  </Grid>
+
+                  {/* Description - Full Width Textarea */}
+                  <Grid container spacing={2} sx={{ mt: 2 }}>
+                    <Grid size={{ xs: 12 }}>
+                      <Typography className='font-medium mb-2' color='text.primary'>
+                        Description
+                      </Typography>
+                      <CustomTextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        placeholder='Service description and notes...'
+                        value={item.description}
+                        onChange={e => handleItemChange(index, 'description', e.target.value)}
+                      />
                     </Grid>
                   </Grid>
                 </div>

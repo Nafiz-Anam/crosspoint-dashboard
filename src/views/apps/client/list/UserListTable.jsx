@@ -79,7 +79,7 @@ const ClientListTable = () => {
   // States for Filtering and Search
   const [filteredData, setFilteredData] = useState([])
   const [globalFilter, setGlobalFilter] = useState('')
-  const [filters, setFilters] = useState({ status: '', service: '', branch: '' })
+  const [filters, setFilters] = useState({ status: '', branch: '' })
 
   // States for row selection
   const [rowSelection, setRowSelection] = useState({})
@@ -145,10 +145,6 @@ const ClientListTable = () => {
       tempData = tempData.filter(row => row.status === filters.status)
     }
 
-    if (filters.service) {
-      tempData = tempData.filter(row => row.service?.name === filters.service)
-    }
-
     if (filters.branch) {
       tempData = tempData.filter(row => row.branch?.name === filters.branch)
     }
@@ -207,10 +203,6 @@ const ClientListTable = () => {
   }
 
   // Derive unique values for filter dropdowns from the fetched data
-  const services = useMemo(
-    () => Array.from(new Set(clients.map(item => item.service?.name).filter(Boolean))),
-    [clients]
-  )
   const branches = useMemo(() => Array.from(new Set(clients.map(item => item.branch?.name).filter(Boolean))), [clients])
   const statuses = useMemo(() => Array.from(new Set(clients.map(item => item.status))), [clients])
 
@@ -270,17 +262,9 @@ const ClientListTable = () => {
           )
         }
       }),
-      columnHelper.accessor('service', {
-        header: 'Service',
-        cell: ({ row }) => <Typography color='text.primary'>{row.original.service?.name || '-'}</Typography>
-      }),
       columnHelper.accessor('branch', {
         header: 'Branch',
         cell: ({ row }) => <Typography color='text.primary'>{row.original.branch?.name || '-'}</Typography>
-      }),
-      columnHelper.accessor('assignedEmployee', {
-        header: 'Employee',
-        cell: ({ row }) => <Typography color='text.primary'>{row.original.assignedEmployee?.name || '-'}</Typography>
       }),
       columnHelper.accessor('status', {
         header: 'Status',
@@ -384,22 +368,6 @@ const ClientListTable = () => {
             {statuses.map(status => (
               <MenuItem key={status} value={status}>
                 {status}
-              </MenuItem>
-            ))}
-          </CustomTextField>
-
-          {/* Service Filter */}
-          <CustomTextField
-            select
-            label='Service'
-            value={filters.service}
-            onChange={e => setFilters({ ...filters, service: e.target.value })}
-            className='min-w-[180px]'
-          >
-            <MenuItem value=''>All</MenuItem>
-            {services.map(service => (
-              <MenuItem key={service} value={service}>
-                {service}
               </MenuItem>
             ))}
           </CustomTextField>

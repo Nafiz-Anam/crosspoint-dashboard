@@ -9,7 +9,6 @@ import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
 import MenuItem from '@mui/material/MenuItem'
-import Alert from '@mui/material/Alert'
 import CircularProgress from '@mui/material/CircularProgress'
 import Grid from '@mui/material/Grid'
 
@@ -23,19 +22,22 @@ import { useSession } from 'next-auth/react'
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
 
+// Services
+import toastService from '@/services/toastService'
+
 const EditTaskCard = ({ taskId }) => {
   // States
   const [loading, setLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(true)
-  const [apiError, setApiError] = useState(null)
-  const [apiSuccess, setApiSuccess] = useState(false)
   const [taskData, setTaskData] = useState(null)
   const [clients, setClients] = useState([])
+  const [categories, setCategories] = useState([])
   const [services, setServices] = useState([])
   const [employees, setEmployees] = useState([])
 
   // Individual loading states for each dropdown
   const [clientsLoading, setClientsLoading] = useState(false)
+  const [categoriesLoading, setCategoriesLoading] = useState(false)
   const [servicesLoading, setServicesLoading] = useState(false)
   const [employeesLoading, setEmployeesLoading] = useState(false)
 
@@ -54,19 +56,20 @@ const EditTaskCard = ({ taskId }) => {
       title: '',
       description: '',
       clientId: '',
+      categoryId: '',
       serviceId: '',
       assignedEmployeeId: '',
       status: 'PENDING',
-      priority: 'MEDIUM',
-      dueDate: '',
       startDate: '',
+      dueDate: '',
       estimatedHours: '',
-      actualHours: '',
-      notes: ''
+      actualHours: ''
     }
   })
 
   const watchedClientId = watch('clientId')
+  const watchedCategoryId = watch('categoryId')
+  const watchedServiceId = watch('serviceId')
 
   // Fetch task data
   const fetchTaskData = async () => {
@@ -103,11 +106,11 @@ const EditTaskCard = ({ taskId }) => {
           notes: task.notes || ''
         })
       } else {
-        setApiError('Failed to fetch task data')
+        await toastService.handleApiError(response, 'Failed to fetch task data')
       }
     } catch (error) {
       console.error('Error fetching task:', error)
-      setApiError('Network error fetching task data')
+      await toastService.handleApiError(error, 'Network error fetching task data')
     } finally {
       setFetchLoading(false)
     }
@@ -135,6 +138,34 @@ const EditTaskCard = ({ taskId }) => {
       console.error('Error fetching clients:', error)
     } finally {
       setClientsLoading(false)
+    }
+  }
+
+  // Fetch categories
+  const fetchCategories = async () => {
+    if (!session?.accessToken) return
+
+    setCategoriesLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const services = data.data || []
+        // Extract unique categories from services
+        const uniqueCategories = [...new Set(services.map(service => service.category).filter(Boolean))]
+        setCategories(uniqueCategories)
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+    } finally {
+      setCategoriesLoading(false)
     }
   }
 
@@ -197,29 +228,33 @@ const EditTaskCard = ({ taskId }) => {
     if (session?.accessToken) {
       fetchTaskData()
       fetchClients()
+      fetchCategories()
       fetchServices()
       fetchEmployees()
     }
   }, [session?.accessToken, taskId])
 
-  // Filter services based on selected client
+  // Available services - filter by selected category
   const availableServices = useMemo(() => {
-    if (!watchedClientId) return services
+    if (!watchedCategoryId) return []
+    return services.filter(service => service.category === watchedCategoryId)
+  }, [watchedCategoryId, services])
 
-    const selectedClient = clients.find(client => client.id === watchedClientId)
-    if (!selectedClient) return services
-
-    // Filter services to show only the one associated with the client
-    return services.filter(service => service.id === selectedClient.serviceId)
-  }, [watchedClientId, clients, services])
+  // Reset serviceId when category changes
+  useEffect(() => {
+    if (watchedCategoryId) {
+      resetForm({
+        ...watch(),
+        serviceId: ''
+      })
+    }
+  }, [watchedCategoryId, resetForm, watch])
 
   const onSubmit = async data => {
     setLoading(true)
-    setApiError(null)
-    setApiSuccess(false)
 
     if (!session?.accessToken) {
-      setApiError('Authentication token not found. Please log in again.')
+      toastService.showError('Authentication token not found. Please log in again.')
       setLoading(false)
       return
     }
@@ -231,12 +266,10 @@ const EditTaskCard = ({ taskId }) => {
       serviceId: data.serviceId,
       assignedEmployeeId: data.assignedEmployeeId,
       status: data.status,
-      priority: data.priority,
-      dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : null,
       startDate: data.startDate ? new Date(data.startDate).toISOString() : null,
+      dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : null,
       estimatedHours: data.estimatedHours ? parseFloat(data.estimatedHours) : null,
-      actualHours: data.actualHours ? parseFloat(data.actualHours) : null,
-      notes: data.notes || null
+      actualHours: data.actualHours ? parseFloat(data.actualHours) : null
     }
 
     try {
@@ -253,17 +286,17 @@ const EditTaskCard = ({ taskId }) => {
       const responseData = await response.json()
 
       if (response.ok) {
-        setApiSuccess(true)
+        toastService.showSuccess('Task updated successfully!')
         // Redirect to task list after successful update
         setTimeout(() => {
           router.push('/apps/task/list')
         }, 2000)
       } else {
         const errorMessage = responseData.message || `Failed to update task: ${response.status}`
-        setApiError(errorMessage)
+        await toastService.handleApiError(response, errorMessage)
       }
     } catch (error) {
-      setApiError('Network error or unexpected issue. Please try again.')
+      await toastService.handleApiError(error, 'Network error or unexpected issue. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -296,17 +329,6 @@ const EditTaskCard = ({ taskId }) => {
     <Card>
       <CardHeader title={`Edit Task: ${taskData.title}`} />
       <CardContent>
-        {apiError && (
-          <Alert severity='error' onClose={() => setApiError(null)} sx={{ mb: 4 }}>
-            {apiError}
-          </Alert>
-        )}
-        {apiSuccess && (
-          <Alert severity='success' onClose={() => setApiSuccess(false)} sx={{ mb: 4 }}>
-            Task updated successfully! Redirecting to task list...
-          </Alert>
-        )}
-
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={6}>
             <Grid item xs={12} md={6}>
@@ -403,6 +425,41 @@ const EditTaskCard = ({ taskId }) => {
 
             <Grid item xs={12} md={6}>
               <Controller
+                name='categoryId'
+                control={control}
+                rules={{ required: 'Category is required.' }}
+                render={({ field }) => (
+                  <CustomTextField
+                    select
+                    fullWidth
+                    label='Select Category'
+                    {...field}
+                    {...(errors.categoryId && { error: true, helperText: errors.categoryId.message })}
+                    InputProps={{
+                      endAdornment: categoriesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
+                    }}
+                  >
+                    {categoriesLoading ? (
+                      <MenuItem disabled>
+                        <CircularProgress size={16} sx={{ mr: 1 }} />
+                        Loading categories...
+                      </MenuItem>
+                    ) : categories.length === 0 ? (
+                      <MenuItem disabled>No categories available</MenuItem>
+                    ) : (
+                      categories.map(category => (
+                        <MenuItem key={category} value={category}>
+                          {category}
+                        </MenuItem>
+                      ))
+                    )}
+                  </CustomTextField>
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Controller
                 name='serviceId'
                 control={control}
                 rules={{ required: 'Service is required.' }}
@@ -416,6 +473,7 @@ const EditTaskCard = ({ taskId }) => {
                     InputProps={{
                       endAdornment: servicesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
                     }}
+                    disabled={!watchedCategoryId}
                   >
                     {servicesLoading ? (
                       <MenuItem disabled>
@@ -423,7 +481,11 @@ const EditTaskCard = ({ taskId }) => {
                         Loading services...
                       </MenuItem>
                     ) : availableServices.length === 0 ? (
-                      <MenuItem disabled>No services available</MenuItem>
+                      <MenuItem disabled>
+                        {!watchedCategoryId
+                          ? 'Please select a category first'
+                          : 'No services available for this category'}
+                      </MenuItem>
                     ) : (
                       availableServices.map(service => (
                         <MenuItem key={service.id} value={service.id}>
@@ -496,22 +558,6 @@ const EditTaskCard = ({ taskId }) => {
 
             <Grid item xs={12} md={6}>
               <Controller
-                name='dueDate'
-                control={control}
-                render={({ field }) => (
-                  <CustomTextField
-                    {...field}
-                    fullWidth
-                    type='date'
-                    label='Due Date (Optional)'
-                    InputLabelProps={{ shrink: true }}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
                 name='startDate'
                 control={control}
                 render={({ field }) => (
@@ -520,6 +566,22 @@ const EditTaskCard = ({ taskId }) => {
                     fullWidth
                     type='date'
                     label='Start Date (Optional)'
+                    InputLabelProps={{ shrink: true }}
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Controller
+                name='dueDate'
+                control={control}
+                render={({ field }) => (
+                  <CustomTextField
+                    {...field}
+                    fullWidth
+                    type='date'
+                    label='Due Date (Optional)'
                     InputLabelProps={{ shrink: true }}
                   />
                 )}

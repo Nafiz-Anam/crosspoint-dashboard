@@ -1,7 +1,8 @@
 'use client'
 
 // React Imports
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useForm, Controller } from 'react-hook-form'
 
 // MUI Imports
 import Grid from '@mui/material/Grid2'
@@ -34,15 +35,66 @@ const EditCard = ({ invoiceData, id, data, clients, services, employees }) => {
   const [issueDate, setIssueDate] = useState(invoiceData?.issuedDate ? new Date(invoiceData.issuedDate) : new Date())
   const [dueDate, setDueDate] = useState(invoiceData?.dueDate ? new Date(invoiceData.dueDate) : null)
   const [invoiceItems, setInvoiceItems] = useState(invoiceData?.items || [])
+  const [categories, setCategories] = useState([])
+  const [isFormReady, setIsFormReady] = useState(false)
+
+  // Form control
+  const { control, watch, reset, setValue } = useForm({
+    defaultValues: {
+      items: invoiceItems || []
+    }
+  })
+
+  // Watch for category changes
+  const watchedItems = watch('items') || invoiceItems
+
+  // Initialize form when data is ready
+  useEffect(() => {
+    if (invoiceItems && invoiceItems.length > 0 && services && services.length > 0) {
+      reset({
+        items: invoiceItems
+      })
+      setIsFormReady(true)
+    }
+  }, [invoiceItems, services, reset])
 
   // Hooks
   const isBelowMdScreen = useMediaQuery(theme => theme.breakpoints.down('md'))
+
+  // Extract categories from services
+  useEffect(() => {
+    if (services && services.length > 0) {
+      const uniqueCategories = [...new Set(services.map(service => service.category).filter(Boolean))]
+      setCategories(uniqueCategories)
+    }
+  }, [services])
+
+  // Get filtered services based on selected category
+  const getFilteredServices = categoryId => {
+    if (!categoryId) return []
+    return services.filter(service => service.category === categoryId)
+  }
 
   const deleteForm = e => {
     e.preventDefault()
 
     // @ts-ignore
     e.target.closest('.repeater-item').remove()
+  }
+
+  // Show loading state while form initializes
+  if (!isFormReady) {
+    return (
+      <Card>
+        <CardContent className='sm:!p-12'>
+          <div className='flex justify-center items-center py-8'>
+            <Typography variant='h6' color='text.secondary'>
+              Loading invoice data...
+            </Typography>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -193,101 +245,197 @@ const EditCard = ({ invoiceData, id, data, clients, services, employees }) => {
                     'gap-5': isBelowMdScreen
                   })}
                 >
-                  <Grid container spacing={5} className='m-0 p-5'>
-                    <Grid size={{ xs: 12, md: 5, lg: 6 }}>
+                  <Grid container spacing={5} className='m-0 p-5' alignItems='flex-end'>
+                    {/* Service Category */}
+                    <Grid size={{ xs: 12, md: 3 }}>
                       <Typography className='font-medium md:absolute md:-top-8' color='text.primary'>
-                        Service
+                        Service Category
                       </Typography>
-                      <CustomTextField
-                        select
-                        fullWidth
-                        value={item.serviceId || ''}
-                        className='mbe-5'
-                        onChange={e => {
-                          const updatedItems = [...invoiceItems]
-                          updatedItems[index].serviceId = e.target.value
-                          setInvoiceItems(updatedItems)
-                        }}
-                      >
-                        <MenuItem value=''>
-                          <em>Select Service</em>
-                        </MenuItem>
-                        {services?.map((service, idx) => (
-                          <MenuItem key={idx} value={service.id}>
-                            {service.name}
-                          </MenuItem>
-                        ))}
-                      </CustomTextField>
-                      <CustomTextField
-                        rows={2}
-                        fullWidth
-                        multiline
-                        value={item.description || ''}
-                        onChange={e => {
-                          const updatedItems = [...invoiceItems]
-                          updatedItems[index].description = e.target.value
-                          setInvoiceItems(updatedItems)
-                        }}
+                      <Controller
+                        name={`items.${index}.categoryId`}
+                        control={control}
+                        render={({ field }) => (
+                          <CustomTextField
+                            select
+                            fullWidth
+                            {...field}
+                            className='mbe-5'
+                            onChange={e => {
+                              field.onChange(e.target.value)
+                              // Reset service when category changes
+                              setValue(`items.${index}.serviceId`, '')
+                              setValue(`items.${index}.rate`, 0)
+                            }}
+                          >
+                            <MenuItem value=''>
+                              <em>Select Category</em>
+                            </MenuItem>
+                            {categories.map(category => (
+                              <MenuItem key={category} value={category}>
+                                {category}
+                              </MenuItem>
+                            ))}
+                          </CustomTextField>
+                        )}
                       />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 3, lg: 2 }}>
+
+                    {/* Service Name */}
+                    <Grid size={{ xs: 12, md: 3 }}>
+                      <Typography className='font-medium md:absolute md:-top-8' color='text.primary'>
+                        Service Name
+                      </Typography>
+                      <Controller
+                        name={`items.${index}.serviceId`}
+                        control={control}
+                        render={({ field }) => (
+                          <CustomTextField
+                            select
+                            fullWidth
+                            {...field}
+                            className='mbe-5'
+                            disabled={!watchedItems[index]?.categoryId}
+                            onChange={e => {
+                              field.onChange(e.target.value)
+                              // Auto-populate rate when service is selected
+                              if (services && services.length > 0) {
+                                const selectedService = services.find(s => s.id === e.target.value)
+                                if (selectedService) {
+                                  setValue(`items.${index}.rate`, selectedService.price)
+                                }
+                              }
+                            }}
+                          >
+                            <MenuItem value=''>
+                              <em>{watchedItems[index]?.categoryId ? 'Select Service' : 'Select Category First'}</em>
+                            </MenuItem>
+                            {watchedItems[index]?.categoryId &&
+                              getFilteredServices(watchedItems[index].categoryId).map(service => (
+                                <MenuItem key={service.id} value={service.id}>
+                                  {service.name} - €{service.price}
+                                </MenuItem>
+                              ))}
+                          </CustomTextField>
+                        )}
+                      />
+                    </Grid>
+
+                    {/* Rate */}
+                    <Grid size={{ xs: 6, md: 1.5 }}>
                       <Typography className='font-medium md:absolute md:-top-8' color='text.primary'>
                         Rate
                       </Typography>
-                      <CustomTextField
-                        {...(isBelowMdScreen && { fullWidth: true })}
-                        type='number'
-                        placeholder='0'
-                        value={item.rate || 0}
-                        className='mbe-5'
-                        onChange={e => {
-                          const updatedItems = [...invoiceItems]
-                          updatedItems[index].rate = parseFloat(e.target.value) || 0
-                          setInvoiceItems(updatedItems)
-                        }}
-                        slotProps={{
-                          input: {
-                            inputProps: { min: 0 }
-                          }
-                        }}
+                      <Controller
+                        name={`items.${index}.rate`}
+                        control={control}
+                        render={({ field }) => (
+                          <div className='bg-gray-50 rounded border text-center min-h-[40px] flex items-center justify-center mbe-5'>
+                            <Typography variant='body1' className='font-medium'>
+                              €{field.value || 0}
+                            </Typography>
+                          </div>
+                        )}
                       />
-                      <div className='flex flex-col'>
-                        <Typography component='span' color='text.primary'>
-                          Discount:
-                        </Typography>
-                        <div className='flex gap-2'>
-                          <Typography component='span' color='text.primary'>
-                            {item.discount || 0}%
-                          </Typography>
-                        </div>
-                      </div>
                     </Grid>
-                    <Grid size={{ xs: 12, md: 2 }}>
+
+                    {/* Discount */}
+                    <Grid size={{ xs: 6, md: 1.5 }}>
                       <Typography className='font-medium md:absolute md:-top-8' color='text.primary'>
                         Discount
                       </Typography>
-                      <CustomTextField
-                        {...(isBelowMdScreen && { fullWidth: true })}
-                        type='number'
-                        placeholder='0'
-                        value={item.discount || 0}
-                        onChange={e => {
-                          const updatedItems = [...invoiceItems]
-                          updatedItems[index].discount = parseFloat(e.target.value) || 0
-                          setInvoiceItems(updatedItems)
-                        }}
-                        slotProps={{
-                          input: {
-                            inputProps: { min: 0, max: 100 }
-                          }
-                        }}
+                      <Controller
+                        name={`items.${index}.discount`}
+                        control={control}
+                        render={({ field }) => (
+                          <CustomTextField
+                            {...(isBelowMdScreen && { fullWidth: true })}
+                            type='number'
+                            placeholder='0'
+                            {...field}
+                            className='mbe-5'
+                            onChange={e => {
+                              field.onChange(parseFloat(e.target.value) || 0)
+                            }}
+                            slotProps={{
+                              input: {
+                                inputProps: { min: 0, max: 100 }
+                              }
+                            }}
+                          />
+                        )}
                       />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 2 }}>
+
+                    {/* Total */}
+                    <Grid size={{ xs: 6, md: 2 }}>
                       <Typography className='font-medium md:absolute md:-top-8' color='text.primary'>
                         Total
                       </Typography>
-                      <Typography>${item.total || 0}</Typography>
+                      <Controller
+                        name={`items.${index}.total`}
+                        control={control}
+                        render={({ field }) => {
+                          const rate = watchedItems[index]?.rate || 0
+                          const discount = watchedItems[index]?.discount || 0
+                          const total = rate - (rate * discount) / 100
+                          return (
+                            <div className='bg-primary-50 rounded border text-center min-h-[40px] flex items-center justify-center border-primary-200 mbe-5'>
+                              <Typography variant='h6' color='primary' className='font-semibold'>
+                                €{total.toFixed(2)}
+                              </Typography>
+                            </div>
+                          )
+                        }}
+                      />
+                    </Grid>
+
+                    {/* Delete Button */}
+                    <Grid
+                      size={{ xs: 6, md: 1 }}
+                      className='flex justify-center'
+                      sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                    >
+                      <IconButton
+                        onClick={() => {
+                          const updatedItems = invoiceItems.filter((_, i) => i !== index)
+                          setInvoiceItems(updatedItems)
+                        }}
+                        className='bg-red-100 hover:bg-red-200 transition-colors duration-200'
+                        size='small'
+                        sx={{
+                          backgroundColor: '#fef2f2',
+                          '&:hover': {
+                            backgroundColor: '#fecaca'
+                          },
+                          borderRadius: '8px',
+                          width: '40px',
+                          height: '40px'
+                        }}
+                      >
+                        <i className='tabler-x text-lg text-red-600' />
+                      </IconButton>
+                    </Grid>
+                  </Grid>
+
+                  {/* Description - Full Width Textarea */}
+                  <Grid container spacing={5} className='m-0 p-5' sx={{ mt: 2 }}>
+                    <Grid size={{ xs: 12 }}>
+                      <Typography className='font-medium md:absolute md:-top-8' color='text.primary'>
+                        Description
+                      </Typography>
+                      <Controller
+                        name={`items.${index}.description`}
+                        control={control}
+                        render={({ field }) => (
+                          <CustomTextField
+                            rows={3}
+                            fullWidth
+                            multiline
+                            {...field}
+                            placeholder='Service description and notes...'
+                          />
+                        )}
+                      />
                     </Grid>
                   </Grid>
                   <div className='flex flex-col justify-start border-is'>
@@ -311,6 +459,7 @@ const EditCard = ({ invoiceData, id, data, clients, services, employees }) => {
                     setInvoiceItems([
                       ...invoiceItems,
                       {
+                        categoryId: '',
                         serviceId: '',
                         description: '',
                         rate: 0,

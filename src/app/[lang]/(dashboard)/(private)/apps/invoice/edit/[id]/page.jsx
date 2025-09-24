@@ -45,6 +45,7 @@ const EditPage = () => {
     invoiceNumber: null,
     invoiceItems: [
       {
+        categoryId: '',
         serviceId: '',
         description: '',
         rate: 0,
@@ -156,6 +157,7 @@ const EditPage = () => {
             invoiceItems:
               invoiceResponse.items?.length > 0
                 ? invoiceResponse.items.map(item => ({
+                    categoryId: item.service?.category || '',
                     serviceId: item.serviceId,
                     description: item.description,
                     rate: item.rate,
@@ -164,6 +166,7 @@ const EditPage = () => {
                   }))
                 : [
                     {
+                      categoryId: '',
                       serviceId: '',
                       description: '',
                       rate: 0,

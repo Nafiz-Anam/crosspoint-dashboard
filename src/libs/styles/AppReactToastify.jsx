@@ -106,7 +106,26 @@ const AppReactToastify = props => {
 
   return (
     <ToastifyWrapper {...boxProps}>
-      <ToastContainer rtl={direction === 'rtl'} position={position} {...rest} />
+      <ToastContainer
+        rtl={direction === 'rtl'}
+        position={position}
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme='light'
+        style={{
+          fontSize: '14px'
+        }}
+        toastStyle={{
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+        }}
+        {...rest}
+      />
     </ToastifyWrapper>
   )
 }
