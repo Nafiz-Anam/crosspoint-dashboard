@@ -86,28 +86,47 @@ const EditPage = () => {
         setError(null)
 
         // Fetch invoice data and bank accounts in parallel
-        const [
-          invoiceResponse,
-          bankAccountsResponse,
-          clientsResponse,
-          servicesResponse,
-          employeesResponse,
-          companyInfoResponse
-        ] = await Promise.all([
-          invoiceService.getInvoiceById(params.id, session.accessToken),
-          bankAccountService.getActiveBankAccounts(session.accessToken),
-          clientService.getClients(session.accessToken),
-          serviceService.getServices(session.accessToken),
-          employeeService.getEmployees(session.accessToken),
-          companyInfoService.getCompanyInfo(session.accessToken)
-        ])
+        const [invoiceResponse, bankAccountsResponse, clientsResponse, servicesResponse, employeesResponse] =
+          await Promise.all([
+            invoiceService.getInvoiceById(params.id, session.accessToken),
+            bankAccountService.getActiveBankAccounts(session.accessToken),
+            clientService.getClients(session.accessToken),
+            serviceService.getServices(session.accessToken),
+            employeeService.getEmployees(session.accessToken)
+          ])
 
         setInvoiceData(invoiceResponse)
         setBankAccounts(bankAccountsResponse.data?.bankAccounts || [])
         setClients(clientsResponse.data?.clients || [])
         setServices(servicesResponse.data || [])
         setEmployees(employeesResponse.data || employeesResponse || [])
-        setCompanyInfo(companyInfoResponse.data || null)
+
+        // Use company info from invoice data if available, otherwise fetch from global company info
+        if (invoiceResponse && (invoiceResponse.companyName || invoiceResponse.companyEmail)) {
+          // Use company info from invoice data
+          const invoiceCompanyInfo = {
+            companyName: invoiceResponse.companyName,
+            tagline: invoiceResponse.companyTagline,
+            address: invoiceResponse.companyAddress,
+            city: invoiceResponse.companyCity,
+            phone: invoiceResponse.companyPhone,
+            email: invoiceResponse.companyEmail,
+            website: invoiceResponse.companyWebsite,
+            logo: invoiceResponse.companyLogo
+          }
+          setCompanyInfo(invoiceCompanyInfo)
+          console.log('Using company info from invoice:', invoiceCompanyInfo)
+        } else {
+          // Fallback to global company info if invoice doesn't have company info
+          try {
+            const companyInfoResponse = await companyInfoService.getCompanyInfo(session.accessToken)
+            setCompanyInfo(companyInfoResponse.data || null)
+            console.log('Using global company info:', companyInfoResponse.data)
+          } catch (error) {
+            console.error('Error fetching global company info:', error)
+            setCompanyInfo(null)
+          }
+        }
 
         console.log('Fetched data:')
         console.log('Invoice:', invoiceResponse)

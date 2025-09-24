@@ -70,6 +70,30 @@ class DashboardService {
     }
   }
 
+  // Get earnings data for any period (week/month/year)
+  async getEarningsData(params = {}, token = null) {
+    try {
+      const queryParams = new URLSearchParams()
+      if (params.branchId) queryParams.append('branchId', params.branchId)
+      if (params.period) queryParams.append('period', params.period)
+
+      const url = `${this.baseURL}/earnings?${queryParams.toString()}`
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(token)
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching earnings data:', error)
+      throw error
+    }
+  }
+
   // Get invoice statistics
   async getInvoiceStats(params = {}, token = null) {
     try {

@@ -7,6 +7,7 @@ export const useDashboardData = (params = {}) => {
   const [data, setData] = useState({
     stats: null,
     weeklyEarnings: null,
+    earningsData: null,
     invoiceStats: null,
     projectsOverview: null
   })
@@ -18,16 +19,19 @@ export const useDashboardData = (params = {}) => {
       setLoading(true)
       setError(null)
 
-      const [statsResponse, weeklyEarningsResponse, invoiceStatsResponse, invoicesResponse] = await Promise.all([
-        dashboardService.getDashboardStats(params, session.accessToken),
-        dashboardService.getWeeklyEarnings(params, session.accessToken),
-        dashboardService.getInvoiceStats(params, session.accessToken),
-        dashboardService.getInvoices(params, session.accessToken)
-      ])
+      const [statsResponse, weeklyEarningsResponse, earningsDataResponse, invoiceStatsResponse, invoicesResponse] =
+        await Promise.all([
+          dashboardService.getDashboardStats(params, session.accessToken),
+          dashboardService.getWeeklyEarnings(params, session.accessToken),
+          dashboardService.getEarningsData({ ...params, period: params.period || 'week' }, session.accessToken),
+          dashboardService.getInvoiceStats(params, session.accessToken),
+          dashboardService.getInvoices(params, session.accessToken)
+        ])
 
       setData({
         stats: statsResponse.data.stats,
         weeklyEarnings: weeklyEarningsResponse.data,
+        earningsData: earningsDataResponse.data,
         invoiceStats: invoiceStatsResponse.data,
         invoices: invoicesResponse.data.invoices
       })

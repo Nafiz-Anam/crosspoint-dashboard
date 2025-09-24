@@ -3,6 +3,9 @@
 // Next Imports
 import dynamic from 'next/dynamic'
 
+// React Imports
+import { useState } from 'react'
+
 // MUI Imports
 import Card from '@mui/material/Card'
 import Typography from '@mui/material/Typography'
@@ -11,6 +14,8 @@ import CardHeader from '@mui/material/CardHeader'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Divider from '@mui/material/Divider'
+import Button from '@mui/material/Button'
+import ButtonGroup from '@mui/material/ButtonGroup'
 import { useTheme } from '@mui/material/styles'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
@@ -18,12 +23,16 @@ import Alert from '@mui/material/Alert'
 // Styled Component Imports
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'))
 
+// Hook Imports
+import { useEarningsData } from '@/hooks/useEarningsData'
+
 const LineAreaDailySalesChart = ({ data, loading, error }) => {
-  // Hook
+  // Hooks
   const theme = useTheme()
+  const { data: earningsData, loading: earningsLoading, error: earningsError, period, changePeriod } = useEarningsData()
 
   // Handle loading and error states
-  if (loading) {
+  if (loading || earningsLoading) {
     return (
       <Card className='h-[100%] flex flex-col justify-center items-center'>
         <CircularProgress />
@@ -34,26 +43,59 @@ const LineAreaDailySalesChart = ({ data, loading, error }) => {
     )
   }
 
-  if (error) {
+  if (error || earningsError) {
     return (
       <Card className='h-[100%] flex flex-col justify-center items-center'>
         <Alert severity='error' sx={{ width: '100%' }}>
-          {error}
+          {error || earningsError}
         </Alert>
       </Card>
     )
   }
 
   // Prepare chart data
-  const weeklyEarnings = data?.weeklyEarnings || {}
-  const chartData = weeklyEarnings.chartData || [0, 0, 0, 0, 0, 0, 0]
-  const weeklyTotal = weeklyEarnings.weeklyTotal || 0
-  const weeklyAverage = weeklyEarnings.weeklyAverage || 0
-  const growthPercentage = weeklyEarnings.growthPercentage || 0
+  const chartData = earningsData?.chartData || [0, 0, 0, 0, 0, 0, 0]
+  const periodTotal = earningsData?.periodTotal || 0
+  const periodAverage = earningsData?.periodAverage || 0
+  const growthPercentage = earningsData?.growthPercentage || 0
+  const labels = earningsData?.labels || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+  // Get period-specific labels and series name
+  const getPeriodInfo = period => {
+    switch (period) {
+      case 'week':
+        return {
+          seriesName: 'Daily Earnings',
+          xAxisLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          periodLabel: 'This Week Average'
+        }
+      case 'month':
+        return {
+          seriesName: 'Weekly Earnings',
+          xAxisLabels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+          periodLabel: 'This Month Average'
+        }
+      case 'year':
+        return {
+          seriesName: 'Monthly Earnings',
+          xAxisLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+          periodLabel: 'This Year Average'
+        }
+      default:
+        return {
+          seriesName: 'Daily Earnings',
+          xAxisLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          periodLabel: 'This Week Average'
+        }
+    }
+  }
+
+  const periodInfo = getPeriodInfo(period)
+  const xAxisLabels = labels.length > 0 ? labels : periodInfo.xAxisLabels
 
   const series = [
     {
-      name: 'Daily Earnings',
+      name: periodInfo.seriesName,
       data: chartData
     }
   ]
@@ -72,13 +114,12 @@ const LineAreaDailySalesChart = ({ data, loading, error }) => {
       x: {
         show: true,
         formatter: (val, { dataPointIndex }) => {
-          const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-          return days[dataPointIndex] || `Day ${dataPointIndex + 1}`
+          return xAxisLabels[dataPointIndex] || `${periodInfo.seriesName} ${dataPointIndex + 1}`
         }
       },
       y: {
         formatter: val =>
-          `Daily Earnings: $${val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+          `${periodInfo.seriesName}: $${val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
       },
       marker: { show: true },
       style: {
@@ -86,13 +127,12 @@ const LineAreaDailySalesChart = ({ data, loading, error }) => {
         fontFamily: theme.typography.fontFamily
       },
       custom: function ({ series, seriesIndex, dataPointIndex, w }) {
-        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        const day = days[dataPointIndex] || `Day ${dataPointIndex + 1}`
+        const label = xAxisLabels[dataPointIndex] || `${periodInfo.seriesName} ${dataPointIndex + 1}`
         const value = series[seriesIndex][dataPointIndex]
         return `
           <div style="padding: 8px 12px; background: white; border: 1px solid #e0e0e0; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <div style="font-weight: 600; margin-bottom: 4px;">${day}</div>
-            <div style="color: #666;">Daily Earnings: $${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+            <div style="font-weight: 600; margin-bottom: 4px;">${label}</div>
+            <div style="color: #666;">${periodInfo.seriesName}: $${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
           </div>
         `
       }
@@ -150,7 +190,7 @@ const LineAreaDailySalesChart = ({ data, loading, error }) => {
       }
     },
     xaxis: {
-      categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      categories: xAxisLabels,
       labels: {
         show: true,
         style: {
@@ -178,13 +218,29 @@ const LineAreaDailySalesChart = ({ data, loading, error }) => {
 
   return (
     <Card className='h-[100%] flex flex-col justify-between'>
-      <CardHeader title='Average Weekly Earnings' className='pbe-0' />
+      <CardHeader
+        title={`Average ${period.charAt(0).toUpperCase() + period.slice(1)}ly Earnings`}
+        className='pbe-0'
+        action={
+          <ButtonGroup size='small' variant='outlined'>
+            <Button variant={period === 'week' ? 'contained' : 'outlined'} onClick={() => changePeriod('week')}>
+              Week
+            </Button>
+            <Button variant={period === 'month' ? 'contained' : 'outlined'} onClick={() => changePeriod('month')}>
+              Month
+            </Button>
+            <Button variant={period === 'year' ? 'contained' : 'outlined'} onClick={() => changePeriod('year')}>
+              Year
+            </Button>
+          </ButtonGroup>
+        }
+      />
 
       <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', pt: 0, justifyContent: 'space-between' }}>
         {/* Main Stats */}
         <Box sx={{ mb: 2 }}>
           <Typography variant='body2' color='text.secondary' sx={{ mb: 0.5 }}>
-            This Week Average
+            {periodInfo.periodLabel}
           </Typography>
           <Typography
             variant='h3'
@@ -194,10 +250,10 @@ const LineAreaDailySalesChart = ({ data, loading, error }) => {
               mb: 1
             }}
           >
-            ${weeklyAverage.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            ${periodAverage.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </Typography>
           <Chip
-            label={`↗ ${growthPercentage >= 0 ? '+' : ''}${growthPercentage.toFixed(1)}% vs last week`}
+            label={`↗ ${growthPercentage >= 0 ? '+' : ''}${growthPercentage.toFixed(1)}% vs last ${period}`}
             size='small'
             sx={{
               bgcolor: growthPercentage >= 0 ? theme.palette.success.light + '20' : theme.palette.error.light + '20',
@@ -219,37 +275,38 @@ const LineAreaDailySalesChart = ({ data, loading, error }) => {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant='body2' color='text.secondary'>
-              Total Invoices This Week
+              Total {period.charAt(0).toUpperCase() + period.slice(1)}ly Revenue
             </Typography>
             <Typography variant='body2' fontWeight={600}>
-              {data?.stats?.overview?.totalInvoices || 0} invoices
+              ${periodTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </Typography>
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant='body2' color='text.secondary'>
-              Paid Invoices
+              Average per {period === 'week' ? 'Day' : period === 'month' ? 'Week' : 'Month'}
             </Typography>
             <Typography variant='body2' fontWeight={600} color='success.main'>
-              {data?.stats?.invoiceStatus?.paid || 0} paid
+              ${periodAverage.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </Typography>
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant='body2' color='text.secondary'>
-              Unpaid Invoices
+              Growth vs Previous {period.charAt(0).toUpperCase() + period.slice(1)}
             </Typography>
-            <Typography variant='body2' fontWeight={600} color='warning.main'>
-              {data?.stats?.invoiceStatus?.unpaid || 0} unpaid
+            <Typography variant='body2' fontWeight={600} color={growthPercentage >= 0 ? 'success.main' : 'error.main'}>
+              {growthPercentage >= 0 ? '+' : ''}
+              {growthPercentage.toFixed(1)}%
             </Typography>
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant='body2' color='text.secondary'>
-              Overdue Invoices
+              Data Points
             </Typography>
-            <Typography variant='body2' fontWeight={600} color='error.main'>
-              {data?.stats?.invoiceStatus?.overdue || 0} overdue
+            <Typography variant='body2' fontWeight={600} color='primary.main'>
+              {chartData.length} {period === 'week' ? 'days' : period === 'month' ? 'weeks' : 'months'}
             </Typography>
           </Box>
         </Box>

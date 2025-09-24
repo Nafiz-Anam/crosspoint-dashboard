@@ -80,15 +80,12 @@ const DashboardAnalytics = () => {
       <Grid size={{ xs: 12, md: 6 }}>
         <LineAreaDailySalesChart data={data} loading={loading} error={error} />
       </Grid>
-      <Grid size={{ xs: 12, md: 6 }}>
-        <EarningReports data={data} loading={loading} error={error} />
-      </Grid>
 
       {/* Bottom Row - Timesheet Chart and Invoice List (50/50) */}
       <Grid size={{ xs: 12, md: 6 }}>
         <TimesheetChart />
       </Grid>
-      <Grid size={{ xs: 12, md: 6 }}>
+      <Grid size={{ xs: 12, md: 12 }}>
         <MinimalInvoiceListTable
           invoiceData={
             data?.invoices?.map(invoice => {
