@@ -10,13 +10,13 @@ const nextConfig = {
         locale: false
       },
       {
-        source: '/:lang(en|fr|ar)',
+        source: '/:lang(en|it)',
         destination: '/:lang/dashboards/analytics',
         permanent: true,
         locale: false
       },
       {
-        source: '/((?!(?:en|fr|ar|front-pages|favicon.ico)\\b)):path',
+        source: '/((?!(?:en|it|front-pages|favicon.ico)\\b)):path',
         destination: '/en/:path',
         permanent: true,
         locale: false

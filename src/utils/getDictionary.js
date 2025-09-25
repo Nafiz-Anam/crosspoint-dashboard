@@ -1,10 +1,12 @@
-// Third-party Imports
-import 'server-only'
+// Dictionary imports
+import enDictionary from '@/data/dictionaries/en.json'
+import itDictionary from '@/data/dictionaries/it.json'
 
 const dictionaries = {
-  en: () => import('@/data/dictionaries/en.json').then(module => module.default),
-  fr: () => import('@/data/dictionaries/fr.json').then(module => module.default),
-  ar: () => import('@/data/dictionaries/ar.json').then(module => module.default)
+  en: enDictionary,
+  it: itDictionary
 }
 
-export const getDictionary = async locale => dictionaries[locale]()
+export const getDictionary = locale => {
+  return dictionaries[locale] || dictionaries.en
+}

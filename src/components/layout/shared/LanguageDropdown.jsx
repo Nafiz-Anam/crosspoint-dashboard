@@ -35,14 +35,6 @@ const languageData = [
     langName: 'English'
   },
   {
-    langCode: 'fr',
-    langName: 'French'
-  },
-  {
-    langCode: 'ar',
-    langName: 'Arabic'
-  },
-  {
     langCode: 'it',
     langName: 'Italian'
   }

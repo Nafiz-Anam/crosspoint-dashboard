@@ -1,0 +1,163 @@
+{
+  "common": {
+    "loading": "Caricamento...",
+    "error": "Errore",
+    "success": "Successo",
+    "add": "Aggiungi",
+    "edit": "Modifica",
+    "delete": "Elimina",
+    "cancel": "Annulla",
+    "save": "Salva",
+    "close": "Chiudi",
+    "search": "Cerca",
+    "noData": "Nessun dato disponibile",
+    "actions": "Azioni",
+    "view": "Visualizza",
+    "status": "Stato",
+    "submit": "Invia",
+    "back": "Indietro",
+    "next": "Avanti",
+    "previous": "Precedente"
+  },
+  "auth": {
+    "login": "Accedi",
+    "logout": "Esci",
+    "register": "Registrati",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Conferma Password",
+    "forgotPassword": "Password Dimenticata",
+    "resetPassword": "Reimposta Password",
+    "authenticationRequired": "Autenticazione Richiesta"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "branch": "Filiale",
+    "paymentMethods": "Metodi di Pagamento",
+    "service": "Servizi",
+    "employee": "Dipendenti",
+    "client": "Clienti",
+    "task": "Attività",
+    "invoice": "Fatture"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Benvenuto",
+    "analytics": "Analisi",
+    "overview": "Panoramica",
+    "statistics": {
+      "title": "Statistiche",
+      "tasks": "Panoramica Attività",
+      "clients": "Statistiche Clienti",
+      "employees": "Performance Dipendenti",
+      "revenue": "Analisi Ricavi"
+    },
+    "taskStatistics": {
+      "title": "Panoramica Delle Mie Attività",
+      "pending": "Attività in Attesa",
+      "completed": "Attività Completate",
+      "cancelled": "Attività Annullate",
+      "loading": "Caricamento statistiche attività...",
+      "fetchError": "Impossibile recuperare le statistiche delle attività"
+    }
+  },
+  "tasks": {
+    "title": "Attività",
+    "addTask": "Aggiungi Attività",
+    "editTask": "Modifica Attività",
+    "deleteTask": "Elimina Attività",
+    "taskDetails": "Dettagli Attività",
+    "status": {
+      "pending": "In Attesa",
+      "inProgress": "In Corso",
+      "completed": "Completata",
+      "cancelled": "Annullata"
+    },
+    "fields": {
+      "title": "Titolo",
+      "description": "Descrizione",
+      "dueDate": "Data di Scadenza",
+      "assignedTo": "Assegnato a",
+      "status": "Stato",
+      "priority": "Priorità",
+      "client": "Cliente",
+      "service": "Servizio"
+    }
+  },
+  "clients": {
+    "title": "Clienti",
+    "addClient": "Aggiungi Cliente",
+    "editClient": "Modifica Cliente",
+    "deleteClient": "Elimina Cliente",
+    "clientDetails": "Dettagli Cliente",
+    "fields": {
+      "name": "Nome",
+      "email": "Email",
+      "phone": "Telefono",
+      "address": "Indirizzo",
+      "assignedEmployee": "Dipendente Assegnato"
+    }
+  },
+  "employees": {
+    "title": "Dipendenti",
+    "addEmployee": "Aggiungi Dipendente",
+    "editEmployee": "Modifica Dipendente",
+    "deleteEmployee": "Elimina Dipendente",
+    "employeeDetails": "Dettagli Dipendente",
+    "fields": {
+      "name": "Nome",
+      "email": "Email",
+      "phone": "Telefono",
+      "role": "Ruolo",
+      "branch": "Filiale",
+      "permissions": "Permessi"
+    }
+  },
+  "services": {
+    "title": "Servizi",
+    "addService": "Aggiungi Servizio",
+    "editService": "Modifica Servizio",
+    "deleteService": "Elimina Servizio",
+    "serviceDetails": "Dettagli Servizio",
+    "fields": {
+      "name": "Nome",
+      "description": "Descrizione",
+      "price": "Prezzo",
+      "duration": "Durata",
+      "category": "Categoria"
+    }
+  },
+  "invoices": {
+    "title": "Fatture",
+    "createInvoice": "Crea Fattura",
+    "editInvoice": "Modifica Fattura",
+    "deleteInvoice": "Elimina Fattura",
+    "invoiceDetails": "Dettagli Fattura",
+    "status": {
+      "paid": "Pagata",
+      "pending": "In Attesa",
+      "overdue": "Scaduta",
+      "draft": "Bozza"
+    },
+    "fields": {
+      "number": "Numero Fattura",
+      "date": "Data Fattura",
+      "dueDate": "Data Scadenza",
+      "client": "Cliente",
+      "services": "Servizi",
+      "amount": "Importo",
+      "status": "Stato"
+    }
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "sections": {
+      "profile": "Impostazioni Profilo",
+      "security": "Sicurezza",
+      "notifications": "Notifiche",
+      "preferences": "Preferenze",
+      "company": "Informazioni Azienda",
+      "branches": "Gestione Filiali"
+    }
+  }
+}

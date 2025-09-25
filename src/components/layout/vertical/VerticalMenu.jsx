@@ -8,18 +8,18 @@ import { useTheme } from '@mui/material/styles'
 import PerfectScrollbar from 'react-perfect-scrollbar'
 
 // Component Imports
-import { Menu, SubMenu, MenuItem } from '@menu/vertical-menu'
+import { Menu, MenuItem } from '@menu/vertical-menu'
 
-// import { GenerateVerticalMenu } from '@components/GenerateMenu'
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
-
-// Styled Component Imports
-import StyledVerticalNavExpandIcon from '@menu/styles/vertical/StyledVerticalNavExpandIcon'
+import { useTranslation } from '@/hooks/useTranslation'
 
 // Style Imports
 import menuItemStyles from '@core/styles/vertical/menuItemStyles'
 import menuSectionStyles from '@core/styles/vertical/menuSectionStyles'
+
+// Menu Data Import
+import verticalMenuItems from '@/data/navigation/verticalMenuItems'
 
 const RenderExpandIcon = ({ open, transitionDuration }) => (
   <StyledVerticalNavExpandIcon open={open} transitionDuration={transitionDuration}>
@@ -27,16 +27,20 @@ const RenderExpandIcon = ({ open, transitionDuration }) => (
   </StyledVerticalNavExpandIcon>
 )
 
-const VerticalMenu = ({ dictionary, scrollMenu }) => {
+const VerticalMenu = ({ scrollMenu }) => {
   // Hooks
   const theme = useTheme()
   const verticalNavOptions = useVerticalNav()
   const params = useParams()
+  const { t } = useTranslation()
 
   // Vars
   const { isBreakpointReached, transitionDuration } = verticalNavOptions
   const { lang: locale } = params
   const ScrollWrapper = isBreakpointReached ? 'div' : PerfectScrollbar
+
+  // Get menu items with translations
+  const menuItems = verticalMenuItems(t)
 
   return (
     // eslint-disable-next-line lines-around-comment
@@ -58,39 +62,13 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
       <Menu
         popoutMenuOffset={{ mainAxis: 23 }}
         menuItemStyles={menuItemStyles(verticalNavOptions, theme)}
-        renderExpandIcon={({ open }) => <RenderExpandIcon open={open} transitionDuration={transitionDuration} />}
-        renderExpandedMenuItemIcon={{ icon: <i className='tabler-circle text-xs' /> }}
         menuSectionStyles={menuSectionStyles(verticalNavOptions, theme)}
       >
-        <MenuItem
-          href={`/${locale}/dashboards/analytics`}
-          icon={<i className='tabler-smart-home' />}
-          exactMatch={false}
-          activeUrl='/dashboards/analytics'
-        >
-          {dictionary['navigation'].dashboard}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/branch/list`} icon={<i className='tabler-building-bank' />}>
-          {dictionary['navigation'].branch}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/bank-account/list`} icon={<i className='tabler-credit-card' />}>
-          Payment Methods
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/service/list`} icon={<i className='tabler-tools' />}>
-          {dictionary['navigation'].service}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/user/list`} icon={<i className='tabler-user' />}>
-          {dictionary['navigation'].employee}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/client/list`} icon={<i className='tabler-user-star' />}>
-          {dictionary['navigation'].client}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/task/list`} icon={<i className='tabler-checklist' />}>
-          {dictionary['navigation'].task}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/invoice/list`} icon={<i className='tabler-file-description' />}>
-          {dictionary['navigation'].invoice}
-        </MenuItem>
+        {menuItems.map((item, index) => (
+          <MenuItem key={index} href={`/${locale}${item.path}`} icon={<i className={item.icon} />} exactMatch={false}>
+            {item.title}
+          </MenuItem>
+        ))}
       </Menu>
     </ScrollWrapper>
   )

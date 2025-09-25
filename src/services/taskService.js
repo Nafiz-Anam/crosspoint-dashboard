@@ -1,23 +1,32 @@
 class TaskService {
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL
+    this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/v1'
   }
 
-  // Mock task statistics - in real app, this would call actual task APIs
-  async getMyTaskStats(token = null) {
-    try {
-      // For now, return mock data
-      // In the future, this would call something like:
-      // GET /api/v1/tasks/my-stats
-
-      return {
-        success: true,
-        data: {
-          pending: 175,
-          completed: 307,
-          cancelled: 12
-        }
+  async fetchWithAuth(endpoint, options = {}) {
+    const url = `${this.baseURL}${endpoint}`
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
       }
+    })
+
+    if (!response.ok) {
+      throw new Error('API request failed')
+    }
+
+    return response.json()
+  }
+
+  async getTaskStats(token) {
+    try {
+      return await this.fetchWithAuth('/tasks/statistics', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
     } catch (error) {
       console.error('Get task stats error:', error)
       throw error
