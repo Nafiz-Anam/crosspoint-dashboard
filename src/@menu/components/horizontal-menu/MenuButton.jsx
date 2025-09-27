@@ -41,11 +41,13 @@ export const menuButtonStyles = props => {
     [`&.${menuClasses.active}`]: {
       ...(level === 0
         ? {
-            color: 'white',
-            backgroundColor: '#765feb'
+            color: 'black',
+            backgroundColor: '#FFAB1D'
           }
         : {
-            ...(children ? { backgroundColor: '#f3f3f3' } : { color: '#765feb', backgroundColor: '#765feb1f' })
+            ...(children
+              ? { backgroundColor: '#f3f3f3' }
+              : { color: '#FFAB1D', backgroundColor: 'rgba(255, 171, 29, 0.12)' })
           })
     }
   })

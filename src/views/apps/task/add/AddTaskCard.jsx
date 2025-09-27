@@ -270,18 +270,9 @@ const AddTaskCard = () => {
     }
   }
 
-  const handleReset = () => {
-    resetForm({
-      description: '',
-      clientId: preSelectedClientId || '',
-      categoryId: '',
-      serviceId: '',
-      assignedEmployeeId: '',
-      status: 'PENDING',
-      priority: 'MEDIUM',
-      startDate: '',
-      dueDate: ''
-    })
+  const handleCancel = () => {
+    // Redirect to task list
+    router.push('/apps/task/list')
   }
 
   return (
@@ -518,8 +509,8 @@ const AddTaskCard = () => {
                 >
                   Create Task
                 </LoadingButton>
-                <LoadingButton variant='tonal' color='error' type='button' onClick={handleReset} disabled={loading}>
-                  Reset
+                <LoadingButton variant='tonal' color='error' type='button' onClick={handleCancel} disabled={loading}>
+                  Cancel
                 </LoadingButton>
               </div>
             </Grid>

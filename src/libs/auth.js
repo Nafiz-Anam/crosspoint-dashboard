@@ -119,7 +119,7 @@ export const authOptions = {
         token.id = user.id
         token.email = user.email
         token.name = user.name
-        token.roles = user.roles
+        token.roles = user.role // Backend returns 'role' not 'roles'
         token.accessToken = user.accessToken
         token.accessTokenExpires = user.accessTokenExpires
         token.refreshToken = user.refreshToken
@@ -186,7 +186,7 @@ export const authOptions = {
         session.user.id = token.id
         session.user.email = token.email
         session.user.name = token.name
-        session.user.roles = token.roles
+        session.user.roles = token.roles // This is now correctly set from user.role
       }
       session.accessToken = token.accessToken
       session.error = token.error

@@ -45,6 +45,8 @@ import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
 import CustomAvatar from '@core/components/mui/Avatar'
 import AttendanceReportDialog from '@/components/AttendanceReportDialog'
+import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
+import toastService from '@/services/toastService'
 
 // Util Imports
 import { getInitials } from '@/utils/getInitials'
@@ -123,6 +125,11 @@ const EmployeeListTable = () => {
   // Corrected: Initialize rowSelection state
   const [rowSelection, setRowSelection] = useState({}) // <--- Added this line
 
+  // States for Delete Confirmation Modal
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [employeeToDelete, setEmployeeToDelete] = useState(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
   // Hooks
   const { lang: locale } = useParams()
   const { data: session, status: sessionStatus } = useSession()
@@ -154,12 +161,13 @@ const EmployeeListTable = () => {
       if (response.ok) {
         setEmployees(responseData.data || responseData)
       } else {
-        const errorMessage = responseData.message || `Failed to fetch employees: ${response.status}`
-        setFetchError(errorMessage)
-        console.error('API Error fetching employees:', responseData)
+        await toastService.handleApiError(response, 'Failed to fetch employees')
       }
     } catch (error) {
-      setFetchError('Network error or unexpected issue fetching employees. Please try again.')
+      await toastService.handleApiError(
+        error,
+        'Network error or unexpected issue fetching employees. Please try again.'
+      )
       console.error('Fetch error employees:', error)
     } finally {
       setFetchLoading(false)
@@ -195,43 +203,40 @@ const EmployeeListTable = () => {
   // Derive unique roles for filter dropdowns from the fetched data
   const roles = useMemo(() => Array.from(new Set(employees.map(item => item.role))), [employees])
 
-  // Function to handle employee deletion
-  const handleDeleteEmployee = useCallback(
-    async employeeId => {
-      if (!confirm('Are you sure you want to delete this employee?')) {
-        return
-      }
+  // Handle delete click
+  const handleDeleteClick = useCallback(employee => {
+    setEmployeeToDelete(employee)
+    setDeleteDialogOpen(true)
+  }, [])
 
-      if (!session?.accessToken) {
-        setFetchError('Authentication token not found. Cannot delete employee.')
-        return
-      }
+  // Handle delete confirmation
+  const handleDeleteConfirm = async () => {
+    if (!employeeToDelete) return
 
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/${employeeId}`, {
-          method: 'DELETE',
-          headers: {
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          }
-        })
-
-        if (response.ok) {
-          console.log(`Employee ${employeeId} deleted successfully.`)
-          fetchEmployees()
-        } else {
-          const errorData = await response.json()
-          const errorMessage = errorData.message || `Failed to delete employee: ${response.status}`
-          setFetchError(errorMessage)
-          console.error('API Error deleting employee:', errorData)
+    setDeleteLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/${employeeToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
         }
-      } catch (error) {
-        setFetchError('Network error or unexpected issue during deletion. Please try again.')
-        console.error('Fetch error deleting employee:', error)
+      })
+
+      if (response.ok) {
+        toastService.handleApiSuccess('deleted', 'Employee')
+        fetchEmployees() // Re-fetch data to update the table
+        setDeleteDialogOpen(false)
+        setEmployeeToDelete(null)
+      } else {
+        await toastService.handleApiError(response, 'Failed to delete employee')
       }
-    },
-    [session?.accessToken, fetchEmployees]
-  )
+    } catch (error) {
+      await toastService.handleApiError(error, 'Network error or unexpected issue during deletion. Please try again.')
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
 
   // Function to open drawer for editing
   const handleEditClick = useCallback(employee => {
@@ -359,7 +364,7 @@ const EmployeeListTable = () => {
                   icon: 'tabler-eye',
                   menuItemProps: {
                     component: Link,
-                    href: getLocalizedUrl(`/apps/user/view/${row.original.id}`, locale),
+                    href: getLocalizedUrl(`/pages/account-settings?userId=${row.original.id}`, locale),
                     className: 'flex items-center gap-2 text-textSecondary'
                   }
                 },
@@ -384,7 +389,7 @@ const EmployeeListTable = () => {
                   icon: 'tabler-trash',
                   menuItemProps: {
                     className: 'flex items-center gap-2 text-textSecondary',
-                    onClick: () => handleDeleteEmployee(row.original.id)
+                    onClick: () => handleDeleteClick(row.original)
                   }
                 }
               ]}
@@ -394,7 +399,7 @@ const EmployeeListTable = () => {
         enableSorting: false
       })
     ],
-    [handleDeleteEmployee, handleEditClick, locale]
+    [handleDeleteClick, handleEditClick, locale]
   )
 
   const table = useReactTable({
@@ -568,6 +573,17 @@ const EmployeeListTable = () => {
         onGenerate={handleGenerateReport}
         loading={reportLoading}
         employeeName={selectedEmployee?.name || ''}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        setOpen={setDeleteDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        title='Delete Employee'
+        message={`Are you sure you want to delete "${employeeToDelete?.name}"? This action cannot be undone.`}
+        itemName={employeeToDelete?.name}
+        loading={deleteLoading}
       />
     </>
   )

@@ -6,7 +6,6 @@ import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
-import Alert from '@mui/material/Alert' // For error messages
 import Checkbox from '@mui/material/Checkbox'
 import Select from '@mui/material/Select'
 import InputLabel from '@mui/material/InputLabel'
@@ -23,13 +22,12 @@ import { useSession } from 'next-auth/react' // Import useSession to get token
 
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
+import toastService from '@/services/toastService'
 
 const AddEmployeeDrawer = props => {
   const { open, handleClose, currentEmployee, onEmployeeAdded } = props
 
   const [loading, setLoading] = useState(false)
-  const [apiError, setApiError] = useState(null)
-  const [apiSuccess, setApiSuccess] = useState(false)
 
   // States for fetching branches for the dropdown
   const [branchesList, setBranchesList] = useState([])
@@ -42,6 +40,47 @@ const AddEmployeeDrawer = props => {
 
   // Hooks
   const { data: session, status: sessionStatus } = useSession()
+
+  // Helper functions for role-based field restrictions
+  const canEditEmail = () => {
+    console.log('AddUserDrawer canEditEmail debug:', {
+      session: session,
+      user: session?.user,
+      roles: session?.user?.roles,
+      role: session?.user?.role,
+      currentEmployee: currentEmployee
+    })
+
+    if ((!session?.user?.roles && !session?.user?.role) || !currentEmployee) return true // Allow for new employees
+
+    const currentUserRole = session.user.roles || session.user.role
+
+    // Only Admin can edit email
+    if (currentUserRole === 'ADMIN') return true
+
+    // Everyone else cannot edit email
+    return false
+  }
+
+  const canEditRole = () => {
+    console.log('AddUserDrawer canEditRole debug:', {
+      session: session,
+      user: session?.user,
+      roles: session?.user?.roles,
+      role: session?.user?.role,
+      currentEmployee: currentEmployee
+    })
+
+    if ((!session?.user?.roles && !session?.user?.role) || !currentEmployee) return true // Allow for new employees
+
+    const currentUserRole = session.user.roles || session.user.role
+
+    // Only Admin can edit role
+    if (currentUserRole === 'ADMIN') return true
+
+    // Everyone else cannot edit role
+    return false
+  }
   const {
     control,
     reset: resetForm,
@@ -53,6 +92,7 @@ const AddEmployeeDrawer = props => {
       password: '',
       name: '',
       nationalIdentificationNumber: '',
+      dateOfBirth: '',
       role: 'EMPLOYEE',
       branchId: '',
       isActive: true
@@ -101,7 +141,7 @@ const AddEmployeeDrawer = props => {
   const fetchPermissions = useCallback(async () => {
     if (sessionStatus === 'loading') return
     if (sessionStatus === 'unauthenticated' || !session?.accessToken) {
-      setApiError('Authentication required to load permissions.')
+      toastService.showError('Authentication required to load permissions.')
       return
     }
 
@@ -119,12 +159,10 @@ const AddEmployeeDrawer = props => {
       if (response.ok) {
         setPermissions(responseData.data.permissions || [])
       } else {
-        const errorMessage = responseData.message || `Failed to load permissions: ${response.status}`
-        setApiError(errorMessage)
-        console.error('API Error loading permissions:', responseData)
+        await toastService.handleApiError(response, 'Failed to load permissions')
       }
     } catch (error) {
-      setApiError('Network error loading permissions. Please try again.')
+      await toastService.handleApiError(error, 'Network error loading permissions. Please try again.')
       console.error('Fetch error loading permissions:', error)
     }
   }, [sessionStatus, session?.accessToken])
@@ -139,24 +177,31 @@ const AddEmployeeDrawer = props => {
   // Reset form for editing or adding
   useEffect(() => {
     if (currentEmployee) {
-      resetForm({
-        email: currentEmployee.email || '',
-        password: '', // Password should never be pre-filled for security
-        name: currentEmployee.name || '',
-        nationalIdentificationNumber: currentEmployee.nationalIdentificationNumber || '',
-        role: currentEmployee.role || 'EMPLOYEE',
-        branchId: currentEmployee.branchId || '',
-        isEmailVerified: currentEmployee.isEmailVerified ?? false,
-        isActive: currentEmployee.isActive ?? true,
-        employeeId: currentEmployee.employeeId || '' // Populate employeeId
-      })
-      setSelectedPermissions(currentEmployee.permissions || [])
+      // Use setTimeout to ensure the form is ready
+      setTimeout(() => {
+        resetForm({
+          email: currentEmployee.email || '',
+          password: '', // Password should never be pre-filled for security
+          name: currentEmployee.name || '',
+          nationalIdentificationNumber: currentEmployee.nationalIdentificationNumber || '',
+          dateOfBirth: currentEmployee.dateOfBirth
+            ? new Date(currentEmployee.dateOfBirth).toISOString().split('T')[0]
+            : '',
+          role: currentEmployee.role || 'EMPLOYEE',
+          branchId: currentEmployee.branchId || '',
+          isEmailVerified: currentEmployee.isEmailVerified ?? false,
+          isActive: currentEmployee.isActive ?? true,
+          employeeId: currentEmployee.employeeId || '' // Populate employeeId
+        })
+        setSelectedPermissions(currentEmployee.permissions || [])
+      }, 100)
     } else {
       resetForm({
         email: '',
         password: '',
         name: '',
         nationalIdentificationNumber: '',
+        dateOfBirth: '',
         role: 'EMPLOYEE',
         branchId: '',
         isEmailVerified: false,
@@ -165,18 +210,13 @@ const AddEmployeeDrawer = props => {
       })
       setSelectedPermissions([]) // Clear selected permissions in add mode
     }
-
-    setApiError(null)
-    setApiSuccess(false)
   }, [open, currentEmployee, resetForm])
 
   const onSubmit = async data => {
     setLoading(true)
-    setApiError(null)
-    setApiSuccess(false)
 
     if (!session?.accessToken) {
-      setApiError('Authentication token not found. Please log in again.')
+      toastService.showError('Authentication token not found. Please log in again.')
       setLoading(false)
       return
     }
@@ -190,14 +230,19 @@ const AddEmployeeDrawer = props => {
     const payload = {
       name: data.name || null,
       nationalIdentificationNumber: data.nationalIdentificationNumber || null,
-      role: data.role,
+      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString() : null,
       branchId: data.branchId || null,
       isActive: data.isActive,
       permissions: selectedPermissions // Send selected permissions
     }
 
-    // Only include email for new employees
-    if (!isEditMode) {
+    // Include role based on permissions
+    if (!isEditMode || canEditRole()) {
+      payload.role = data.role
+    }
+
+    // Include email based on permissions
+    if (!isEditMode || canEditEmail()) {
       payload.email = data.email
     }
 
@@ -217,21 +262,17 @@ const AddEmployeeDrawer = props => {
         body: JSON.stringify(payload)
       })
 
-      const responseData = await response.json()
-
       if (response.ok) {
-        setApiSuccess(true)
+        const responseData = await response.json()
+        toastService.handleApiSuccess(isEditMode ? 'updated' : 'created', 'Employee')
         console.log(`Employee ${isEditMode ? 'updated' : 'created'} successfully:`, responseData)
         onEmployeeAdded()
         handleReset()
       } else {
-        const errorMessage =
-          responseData.message || `Failed to ${isEditMode ? 'update' : 'create'} employee: ${response.status}`
-        setApiError(errorMessage)
-        console.error('API Error:', responseData)
+        await toastService.handleApiError(response, `Failed to ${isEditMode ? 'update' : 'create'} employee`)
       }
     } catch (error) {
-      setApiError('Network error or unexpected issue. Please try again.')
+      await toastService.handleApiError(error, 'Network error or unexpected issue. Please try again.')
       console.error('Fetch error:', error)
     } finally {
       setLoading(false)
@@ -245,14 +286,13 @@ const AddEmployeeDrawer = props => {
       password: '',
       name: '',
       nationalIdentificationNumber: '',
+      dateOfBirth: '',
       role: 'EMPLOYEE',
       branchId: '',
       isEmailVerified: false,
       isActive: true,
       employeeId: ''
     })
-    setApiError(null)
-    setApiSuccess(false)
   }
 
   return (
@@ -272,16 +312,6 @@ const AddEmployeeDrawer = props => {
       </div>
       <Divider />
       <div>
-        {apiError && (
-          <Alert severity='error' onClose={() => setApiError(null)} sx={{ mb: 4, mx: 6, mt: 4 }}>
-            {apiError}
-          </Alert>
-        )}
-        {apiSuccess && (
-          <Alert severity='success' onClose={() => setApiSuccess(false)} sx={{ mb: 4, mx: 6, mt: 4 }}>
-            Employee {currentEmployee ? 'updated' : 'added'} successfully!
-          </Alert>
-        )}
         <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6 p-6'>
           {/* Name */}
           <Controller
@@ -324,6 +354,40 @@ const AddEmployeeDrawer = props => {
             )}
           />
 
+          {/* Date of Birth */}
+          <Controller
+            name='dateOfBirth'
+            control={control}
+            rules={{
+              required: 'Date of birth is required.',
+              validate: value => {
+                if (!value) return 'Date of birth is required.'
+                const birthDate = new Date(value)
+                const today = new Date()
+                const age = today.getFullYear() - birthDate.getFullYear()
+                const monthDiff = today.getMonth() - birthDate.getMonth()
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                  return age - 1 < 16 ? 'Employee must be at least 16 years old.' : null
+                }
+                return age < 16 ? 'Employee must be at least 16 years old.' : null
+              }
+            }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                type='date'
+                label='Date of Birth'
+                required
+                error={!!errors.dateOfBirth}
+                helperText={errors.dateOfBirth?.message}
+                InputLabelProps={{
+                  shrink: true
+                }}
+              />
+            )}
+          />
+
           {/* Email */}
           <Controller
             name='email'
@@ -345,10 +409,13 @@ const AddEmployeeDrawer = props => {
                 placeholder='employee@example.com'
                 required
                 error={!!errors.email}
-                helperText={errors.email?.message}
-                disabled={!!currentEmployee} // Disable in edit mode
+                helperText={
+                  errors.email?.message ||
+                  (!canEditEmail() && currentEmployee ? 'You do not have permission to change this email' : '')
+                }
+                disabled={!!currentEmployee && !canEditEmail()}
                 InputProps={{
-                  readOnly: !!currentEmployee // Make read-only in edit mode
+                  readOnly: !!currentEmployee && !canEditEmail()
                 }}
               />
             )}
@@ -430,7 +497,11 @@ const AddEmployeeDrawer = props => {
                 {...field}
                 required
                 error={!!errors.role}
-                helperText={errors.role?.message}
+                helperText={
+                  errors.role?.message ||
+                  (!canEditRole() && currentEmployee ? 'You do not have permission to change this role' : '')
+                }
+                disabled={!!currentEmployee && !canEditRole()}
               >
                 <MenuItem value='ADMIN'>Admin</MenuItem>
                 <MenuItem value='MANAGER'>Manager</MenuItem>

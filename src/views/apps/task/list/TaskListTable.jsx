@@ -7,7 +7,6 @@ import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
-import Checkbox from '@mui/material/Checkbox'
 import IconButton from '@mui/material/IconButton'
 import TablePagination from '@mui/material/TablePagination'
 import MenuItem from '@mui/material/MenuItem'
@@ -37,6 +36,10 @@ import tableStyles from '@core/styles/table.module.css'
 
 // Services
 import toastService from '@/services/toastService'
+import enhancedTaskService from '@/services/enhancedTaskService'
+
+// Component Imports
+import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
 
 const columnHelper = createColumnHelper()
 
@@ -85,8 +88,10 @@ const TaskListTable = () => {
   const [globalFilter, setGlobalFilter] = useState('')
   const [filters, setFilters] = useState({ status: '', assignedEmployee: '', branch: '' })
 
-  // States for row selection
-  const [rowSelection, setRowSelection] = useState({})
+  // States for Delete Dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [taskToDelete, setTaskToDelete] = useState(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   // Hooks
   const { lang: locale } = useParams()
@@ -188,41 +193,56 @@ const TaskListTable = () => {
   }, [filters, tasks])
 
   // Function to handle task deletion
-  const handleDeleteTask = useCallback(
-    async taskId => {
-      // Use browser confirm for now, but show toast for result
-      if (!confirm('Are you sure you want to delete this task?')) {
-        return
-      }
-
-      if (!session?.accessToken) {
-        toastService.showError('Authentication token not found. Cannot delete task.')
-        return
-      }
-
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${taskId}`, {
-          method: 'DELETE',
-          headers: {
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          }
-        })
-
-        if (response.ok) {
-          toastService.showSuccess('Task deleted successfully!')
-          fetchTasks()
-        } else {
-          const errorData = await response.json()
-          const errorMessage = errorData.message || `Failed to delete task: ${response.status}`
-          await toastService.handleApiError(response, errorMessage)
-        }
-      } catch (error) {
-        await toastService.handleApiError(error, 'Network error or unexpected issue during deletion. Please try again.')
-      }
+  const handleDeleteClick = useCallback(
+    taskId => {
+      const task = tasks.find(t => t.id === taskId)
+      setTaskToDelete(task)
+      setDeleteDialogOpen(true)
     },
-    [session?.accessToken, fetchTasks]
+    [tasks]
   )
+
+  // Function to confirm task deletion
+  const handleDeleteTask = useCallback(async () => {
+    if (!taskToDelete) return
+
+    if (!session?.accessToken) {
+      toastService.showError('Authentication token not found. Cannot delete task.')
+      setDeleteDialogOpen(false)
+      return
+    }
+
+    setDeleteLoading(true)
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${taskToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        // Show success toast
+        toastService.handleApiSuccess('deleted', 'Task')
+        console.log(`Task ${taskToDelete.id} deleted successfully.`)
+        fetchTasks() // Re-fetch data to update the table
+        setDeleteDialogOpen(false)
+        setTaskToDelete(null)
+      } else {
+        // Show error toast
+        await toastService.handleApiError(response, 'Failed to delete task')
+        console.error('API Error deleting task:', await response.json())
+      }
+    } catch (error) {
+      // Show error toast
+      await toastService.handleApiError(error, 'Network error or unexpected issue during deletion. Please try again.')
+      console.error('Fetch error deleting task:', error)
+    } finally {
+      setDeleteLoading(false)
+    }
+  }, [session?.accessToken, fetchTasks, taskToDelete])
 
   // Function to open drawer for editing
   const handleEditClick = useCallback(task => {
@@ -377,7 +397,7 @@ const TaskListTable = () => {
                   icon: 'tabler-trash',
                   menuItemProps: {
                     className: 'flex items-center gap-2 text-textSecondary',
-                    onClick: () => handleDeleteTask(row.original.id)
+                    onClick: () => handleDeleteClick(row.original.id)
                   }
                 }
               ]}
@@ -387,20 +407,18 @@ const TaskListTable = () => {
         enableSorting: false
       })
     ],
-    [handleDeleteTask, handleGenerateInvoiceClick, locale]
+    [handleDeleteClick, handleGenerateInvoiceClick, locale]
   )
 
   const table = useReactTable({
     data: filteredData,
     columns,
     filterFns: { fuzzy: fuzzyFilter },
-    state: { rowSelection, globalFilter },
+    state: { globalFilter },
     initialState: { pagination: { pageSize: 10 } },
-    enableRowSelection: true,
     globalFilterFn: fuzzyFilter,
-    onRowSelectionChange: setRowSelection,
-    getCoreRowModel: getCoreRowModel(),
     onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -551,6 +569,17 @@ const TaskListTable = () => {
         handleClose={handleDrawerClose}
         currentTask={editingTask}
         onTaskAdded={fetchTasks}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        setOpen={setDeleteDialogOpen}
+        onConfirm={handleDeleteTask}
+        title='Delete Task'
+        message={`Are you sure you want to delete "${taskToDelete?.title || taskToDelete?.description}"? This action cannot be undone.`}
+        itemName={taskToDelete?.title || taskToDelete?.description}
+        loading={deleteLoading}
       />
     </>
   )

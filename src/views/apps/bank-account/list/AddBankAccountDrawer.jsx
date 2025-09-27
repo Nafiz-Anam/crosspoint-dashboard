@@ -16,6 +16,7 @@ import Divider from '@mui/material/Divider'
 
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
+import toastService from '@/services/toastService'
 
 const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
   // States
@@ -87,6 +88,7 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
       handleClose()
     } catch (error) {
       console.error('Error adding bank account:', error)
+      await toastService.handleApiError(error, 'Failed to add bank account')
     } finally {
       setLoading(false)
     }

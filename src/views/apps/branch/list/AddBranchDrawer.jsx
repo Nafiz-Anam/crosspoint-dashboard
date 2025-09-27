@@ -9,7 +9,6 @@ import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
-import Alert from '@mui/material/Alert' // For error messages
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Checkbox from '@mui/material/Checkbox'
 
@@ -22,6 +21,7 @@ import { useSession } from 'next-auth/react' // Import useSession to get token
 
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
+import toastService from '@/services/toastService'
 
 const AddBranchDrawer = props => {
   // Props
@@ -29,8 +29,6 @@ const AddBranchDrawer = props => {
 
   // States
   const [loading, setLoading] = useState(false)
-  const [apiError, setApiError] = useState(null)
-  const [apiSuccess, setApiSuccess] = useState(false)
 
   // Hooks
   const { data: session } = useSession()
@@ -78,18 +76,14 @@ const AddBranchDrawer = props => {
         isActive: true
       })
     }
-    // Clear any previous API messages when drawer opens/mode changes
-    setApiError(null)
-    setApiSuccess(false)
+    // Clear any previous state when drawer opens/mode changes
   }, [open, currentBranch, resetForm])
 
   const onSubmit = async data => {
     setLoading(true)
-    setApiError(null)
-    setApiSuccess(false)
 
     if (!session?.accessToken) {
-      setApiError('Authentication token not found. Please log in again.')
+      toastService.showError('Authentication token not found. Please log in again.')
       setLoading(false)
       return
     }
@@ -123,21 +117,20 @@ const AddBranchDrawer = props => {
         body: JSON.stringify(payload)
       })
 
-      const responseData = await response.json()
-
       if (response.ok) {
-        setApiSuccess(true)
+        const responseData = await response.json()
+        // Show success toast
+        toastService.handleApiSuccess(isEditMode ? 'updated' : 'created', 'Branch')
         console.log(`Branch ${isEditMode ? 'updated' : 'created'} successfully:`, responseData)
         onBranchAdded()
         handleReset()
       } else {
-        const errorMessage =
-          responseData.message || `Failed to ${isEditMode ? 'update' : 'create'} branch: ${response.status}`
-        setApiError(errorMessage)
-        console.error('API Error:', responseData)
+        // Show error toast - pass the response object before consuming it
+        await toastService.handleApiError(response, `Failed to ${isEditMode ? 'update' : 'create'} branch`)
       }
     } catch (error) {
-      setApiError('Network error or unexpected issue. Please try again.')
+      // Show error toast
+      await toastService.handleApiError(error, 'Network error or unexpected issue. Please try again.')
       console.error('Fetch error:', error)
     } finally {
       setLoading(false)
@@ -156,8 +149,6 @@ const AddBranchDrawer = props => {
       email: '',
       isActive: true
     })
-    setApiError(null)
-    setApiSuccess(false)
   }
 
   return (
@@ -177,16 +168,6 @@ const AddBranchDrawer = props => {
       </div>
       <Divider />
       <div>
-        {apiError && (
-          <Alert severity='error' onClose={() => setApiError(null)} sx={{ mb: 4, mx: 6, mt: 4 }}>
-            {apiError}
-          </Alert>
-        )}
-        {apiSuccess && (
-          <Alert severity='success' onClose={() => setApiSuccess(false)} sx={{ mb: 4, mx: 6, mt: 4 }}>
-            Branch {currentBranch ? 'updated' : 'added'} successfully!
-          </Alert>
-        )}
         <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6 p-6'>
           {/* Branch ID field, display only if editing, and make it disabled */}
           {currentBranch && (

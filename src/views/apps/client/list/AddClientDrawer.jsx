@@ -55,7 +55,8 @@ const AddClientDrawer = props => {
       province: '',
       branchId: '',
       status: 'PENDING'
-    }
+    },
+    mode: 'onChange' // Enable real-time validation
   })
 
   // Fetch branches
@@ -140,18 +141,43 @@ const AddClientDrawer = props => {
       return
     }
 
+    // Validate required fields
+    if (!data.name?.trim()) {
+      toastService.showError('Client name is required.')
+      setLoading(false)
+      return
+    }
+
+    if (!data.email?.trim()) {
+      toastService.showError('Client email is required.')
+      setLoading(false)
+      return
+    }
+
+    if (!data.branchId) {
+      toastService.showError('Please select a branch.')
+      setLoading(false)
+      return
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(data.email)) {
+      toastService.showError('Please enter a valid email address.')
+      setLoading(false)
+      return
+    }
+
     const payload = {
-      name: data.name,
-      nationalIdentificationNumber: data.nationalIdentificationNumber || null,
-      email: data.email,
-      phone: data.phone || null,
-      address: data.address || null,
-      city: data.city || null,
-      postalCode: data.postalCode || null,
-      province: data.province || null,
-
+      name: data.name.trim(),
+      nationalIdentificationNumber: data.nationalIdentificationNumber?.trim() || null,
+      email: data.email.trim().toLowerCase(),
+      phone: data.phone?.trim() || null,
+      address: data.address?.trim() || null,
+      city: data.city?.trim() || null,
+      postalCode: data.postalCode?.trim() || null,
+      province: data.province?.trim() || null,
       branchId: data.branchId,
-
       status: data.status
     }
 
@@ -162,10 +188,6 @@ const AddClientDrawer = props => {
       return
     }
 
-    // Debug: Log the payload being sent
-    console.log('Client creation payload:', payload)
-    console.log('Status value:', data.status, 'Type:', typeof data.status)
-
     const isEditMode = !!currentClient
 
     try {
@@ -173,14 +195,14 @@ const AddClientDrawer = props => {
       if (isEditMode) {
         result = await enhancedClientService.updateClient(currentClient.id, payload, session.accessToken, {
           showToast: true,
-          successMessage: 'Client updated successfully!',
+          successMessage: `Client "${payload.name}" updated successfully!`,
           errorMessage: 'Failed to update client',
           showLoading: false // We're handling loading state manually
         })
       } else {
         result = await enhancedClientService.createClient(payload, session.accessToken, {
           showToast: true,
-          successMessage: 'Client created successfully!',
+          successMessage: `Client "${payload.name}" created successfully!`,
           errorMessage: 'Failed to create client',
           showLoading: false // We're handling loading state manually
         })
@@ -276,7 +298,17 @@ const AddClientDrawer = props => {
           <Controller
             name='name'
             control={control}
-            rules={{ required: 'Client Name is required.' }}
+            rules={{
+              required: 'Client Name is required.',
+              minLength: {
+                value: 2,
+                message: 'Name must be at least 2 characters long.'
+              },
+              maxLength: {
+                value: 100,
+                message: 'Name must not exceed 100 characters.'
+              }
+            }}
             render={({ field }) => (
               <CustomTextField
                 {...field}

@@ -27,31 +27,28 @@ const menuItemStyles = (verticalNavOptions, theme) => {
           color: 'inherit'
         }
       },
-      [`&:not(.${menuClasses.subMenuRoot}) > .${menuClasses.button}.${menuClasses.active}`]: {
-        ...(popoutCollapsed && level > 0
-          ? {
-              backgroundColor: 'var(--mui-palette-primary-lightOpacity)',
-              color: 'var(--mui-palette-primary-main)',
-              [`& .${menuClasses.icon}`]: {
-                color: 'var(--mui-palette-primary-main)'
+      [`&:not(.${menuClasses.subMenuRoot}) > .${menuClasses.button}.${menuClasses.active}, &.${menuClasses.active} > .${menuClasses.button}`]:
+        {
+          ...(popoutCollapsed && level > 0
+            ? {
+                backgroundColor: 'rgba(255, 171, 29, 0.16) !important',
+                color: '#FFAB1D !important',
+                [`& .${menuClasses.icon}`]: {
+                  color: '#FFAB1D !important'
+                }
               }
-            }
-          : {
-              color: 'var(--mui-palette-primary-contrastText)',
-              background:
-                theme.direction === 'ltr'
-                  ? `linear-gradient(270deg,
-                    rgb(var(--mui-palette-primary-mainChannel) / 0.7) 0%,
-                    var(--mui-palette-primary-main) 100%) !important`
-                  : `linear-gradient(270deg,
-                     var(--mui-palette-primary-main) 100%,
-                     rgb(var(--mui-palette-primary-mainChannel) / 0.7) 100%) !important`,
-              boxShadow: 'var(--mui-customShadows-primary-sm)',
-              [`& .${menuClasses.icon}`]: {
-                color: 'inherit'
-              }
-            })
-      }
+            : {
+                color: '#000000 !important',
+                background:
+                  theme.direction === 'ltr'
+                    ? `linear-gradient(270deg, rgba(255, 171, 29, 0.7) 0%, #FFAB1D 100%) !important`
+                    : `linear-gradient(270deg, #FFAB1D 100%, rgba(255, 171, 29, 0.7) 100%) !important`,
+                boxShadow: '0 2px 4px rgba(255, 171, 29, 0.3) !important',
+                [`& .${menuClasses.icon}`]: {
+                  color: 'inherit !important'
+                }
+              })
+        }
     }),
     button: ({ level, active }) => ({
       paddingBlock: '8px',

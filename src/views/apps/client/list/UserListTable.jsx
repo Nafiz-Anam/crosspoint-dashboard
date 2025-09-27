@@ -7,7 +7,6 @@ import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
-import Checkbox from '@mui/material/Checkbox'
 import IconButton from '@mui/material/IconButton'
 import TablePagination from '@mui/material/TablePagination'
 import MenuItem from '@mui/material/MenuItem'
@@ -35,6 +34,13 @@ import AddClientDrawer from './AddClientDrawer'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import { getLocalizedUrl } from '@/utils/i18n'
 import tableStyles from '@core/styles/table.module.css'
+
+// Service Imports
+import toastService from '@/services/toastService'
+import enhancedClientService from '@/services/enhancedClientService'
+
+// Component Imports
+import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
 
 const columnHelper = createColumnHelper()
 const clientStatusObj = {
@@ -81,8 +87,10 @@ const ClientListTable = () => {
   const [globalFilter, setGlobalFilter] = useState('')
   const [filters, setFilters] = useState({ status: '', branch: '' })
 
-  // States for row selection
-  const [rowSelection, setRowSelection] = useState({})
+  // States for Delete Dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [clientToDelete, setClientToDelete] = useState(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   // Hooks
   const { lang: locale } = useParams()
@@ -101,26 +109,18 @@ const ClientListTable = () => {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
+      const result = await enhancedClientService.getClients(
+        session.accessToken,
+        {},
+        {
+          showToast: false // Don't show toast for initial load
         }
-      })
+      )
 
-      const responseData = await response.json()
-
-      if (response.ok) {
-        setClients(responseData.data?.clients || responseData.data || [])
-      } else {
-        const errorMessage = responseData.message || `Failed to fetch clients: ${response.status}`
-        setFetchError(errorMessage)
-        console.error('API Error fetching clients:', responseData)
-      }
+      setClients(result.data?.clients || result.data || [])
     } catch (error) {
-      setFetchError('Network error or unexpected issue fetching clients. Please try again.')
+      const errorMessage = error.message || 'Failed to fetch clients. Please try again.'
+      setFetchError(errorMessage)
       console.error('Fetch error clients:', error)
     } finally {
       setFetchLoading(false)
@@ -153,42 +153,56 @@ const ClientListTable = () => {
   }, [filters, clients])
 
   // Function to handle client deletion
-  const handleDeleteClient = useCallback(
-    async clientId => {
-      if (!confirm('Are you sure you want to delete this client?')) {
-        return
-      }
-
-      if (!session?.accessToken) {
-        setFetchError('Authentication token not found. Cannot delete client.')
-        return
-      }
-
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/${clientId}`, {
-          method: 'DELETE',
-          headers: {
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          }
-        })
-
-        if (response.ok) {
-          console.log(`Client ${clientId} deleted successfully.`)
-          fetchClients()
-        } else {
-          const errorData = await response.json()
-          const errorMessage = errorData.message || `Failed to delete client: ${response.status}`
-          setFetchError(errorMessage)
-          console.error('API Error deleting client:', errorData)
-        }
-      } catch (error) {
-        setFetchError('Network error or unexpected issue during deletion. Please try again.')
-        console.error('Fetch error deleting client:', error)
-      }
+  const handleDeleteClick = useCallback(
+    clientId => {
+      const client = clients.find(c => c.id === clientId)
+      setClientToDelete(client)
+      setDeleteDialogOpen(true)
     },
-    [session?.accessToken, fetchClients]
+    [clients]
   )
+
+  // Function to confirm client deletion
+  const handleDeleteClient = useCallback(async () => {
+    if (!clientToDelete) return
+
+    if (!session?.accessToken) {
+      toastService.showError('Authentication token not found. Cannot delete client.')
+      setDeleteDialogOpen(false)
+      return
+    }
+
+    setDeleteLoading(true)
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/${clientToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        // Show success toast
+        toastService.handleApiSuccess('deleted', 'Client')
+        console.log(`Client ${clientToDelete.id} deleted successfully.`)
+        fetchClients() // Re-fetch data to update the table
+        setDeleteDialogOpen(false)
+        setClientToDelete(null)
+      } else {
+        // Show error toast
+        await toastService.handleApiError(response, 'Failed to delete client')
+        console.error('API Error deleting client:', await response.json())
+      }
+    } catch (error) {
+      // Show error toast
+      await toastService.handleApiError(error, 'Network error or unexpected issue during deletion. Please try again.')
+      console.error('Fetch error deleting client:', error)
+    } finally {
+      setDeleteLoading(false)
+    }
+  }, [session?.accessToken, fetchClients, clientToDelete])
 
   // Function to open drawer for editing
   const handleEditClick = useCallback(client => {
@@ -319,7 +333,7 @@ const ClientListTable = () => {
                   icon: 'tabler-trash',
                   menuItemProps: {
                     className: 'flex items-center gap-2 text-textSecondary',
-                    onClick: () => handleDeleteClient(row.original.id)
+                    onClick: () => handleDeleteClick(row.original.id)
                   }
                 }
               ]}
@@ -329,20 +343,18 @@ const ClientListTable = () => {
         enableSorting: false
       })
     ],
-    [handleDeleteClient, handleEditClick, locale]
+    [handleDeleteClick, handleEditClick, locale]
   )
 
   const table = useReactTable({
     data: filteredData,
     columns,
     filterFns: { fuzzy: fuzzyFilter },
-    state: { rowSelection, globalFilter },
+    state: { globalFilter },
     initialState: { pagination: { pageSize: 10 } },
-    enableRowSelection: true,
     globalFilterFn: fuzzyFilter,
-    onRowSelectionChange: setRowSelection,
-    getCoreRowModel: getCoreRowModel(),
     onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -483,6 +495,17 @@ const ClientListTable = () => {
         handleClose={handleDrawerClose}
         currentClient={editingClient}
         onClientAdded={fetchClients}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        setOpen={setDeleteDialogOpen}
+        onConfirm={handleDeleteClient}
+        title='Delete Client'
+        message={`Are you sure you want to delete "${clientToDelete?.name || clientToDelete?.email}"? This action cannot be undone.`}
+        itemName={clientToDelete?.name || clientToDelete?.email}
+        loading={deleteLoading}
       />
     </>
   )

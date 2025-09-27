@@ -12,21 +12,17 @@ const menuItemStyles = (theme, iconClass) => ({
     ...(level === 0
       ? {
           [`& .${menuClasses.button}.${menuClasses.active}`]: {
-            color: 'var(--mui-palette-primary-contrastText) !important',
+            color: '#000000 !important',
             background:
               theme.direction === 'ltr'
-                ? `linear-gradient(270deg,
-                  rgb(var(--mui-palette-primary-mainChannel) / 0.7) 0%,
-                  var(--mui-palette-primary-main) 100%) !important`
-                : `linear-gradient(270deg,
-                  var(--mui-palette-primary-main) 100%,
-                  rgb(var(--mui-palette-primary-mainChannel) / 0.7) 100%) !important`
+                ? `linear-gradient(270deg, rgba(255, 171, 29, 0.7) 0%, #FFAB1D 100%) !important`
+                : `linear-gradient(270deg, #FFAB1D 100%, rgba(255, 171, 29, 0.7) 100%) !important`
           }
         }
       : {
           [`&:not([aria-expanded]) > .${menuClasses.button}.${menuClasses.active}`]: {
-            backgroundColor: 'var(--mui-palette-primary-lightOpacity)',
-            color: 'var(--mui-palette-primary-main)'
+            backgroundColor: 'rgba(255, 171, 29, 0.16)',
+            color: '#FFAB1D'
           },
           [`&[aria-expanded] > .${menuClasses.button}.${menuClasses.active}`]: {
             backgroundColor: 'var(--mui-palette-action-selected) !important'

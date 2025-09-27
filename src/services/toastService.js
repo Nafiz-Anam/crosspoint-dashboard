@@ -236,20 +236,20 @@ export const clearToast = toastId => {
  */
 export const handleAuthError = (error, fallbackMessage = 'Authentication failed', options = {}) => {
   const authErrorMessage = 'Your session has expired. Please log in again.'
-  
+
   // Show error toast
   showError(authErrorMessage, {
     ...options,
     autoClose: 5000 // Longer duration for auth errors
   })
-  
+
   // Redirect to login page after a delay
   setTimeout(() => {
     if (typeof window !== 'undefined') {
       // Clear any stored tokens
       localStorage.removeItem('token')
       sessionStorage.clear()
-      
+
       // Redirect to login
       window.location.href = '/login'
     }

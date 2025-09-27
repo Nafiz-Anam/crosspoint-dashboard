@@ -92,7 +92,7 @@ const MenuItem = (props, ref) => {
 
     if (href) {
       // Check if the current url matches any of the children urls
-      if (exactMatch ? pathname === href : activeUrl && pathname.includes(activeUrl)) {
+      if (exactMatch ? pathname === href : pathname.includes(href)) {
         setActive(true)
       } else {
         setActive(false)

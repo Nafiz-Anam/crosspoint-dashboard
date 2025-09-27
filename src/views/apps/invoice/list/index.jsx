@@ -161,6 +161,7 @@ const InvoiceList = () => {
           break
 
         case 'updateStatus':
+          console.log('Updating invoice status:', { invoiceId, status: data.status })
           const updateResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoiceId}/status`, {
             method: 'PATCH',
             headers: {
@@ -173,8 +174,12 @@ const InvoiceList = () => {
 
           if (!updateResponse.ok) {
             const errorData = await updateResponse.json()
+            console.error('Status update failed:', errorData)
             throw new Error(errorData.message || 'Failed to update invoice status')
           }
+
+          const updateResult = await updateResponse.json()
+          console.log('Status update successful:', updateResult)
           break
         default:
           break
@@ -182,6 +187,13 @@ const InvoiceList = () => {
 
       // Refresh data after action
       await fetchData()
+
+      // Show success message for status updates
+      if (action === 'updateStatus') {
+        const statusText = data.status === 'PAID' ? 'paid' : 'unpaid'
+        console.log(`Invoice marked as ${statusText} successfully`)
+        // You can add a toast notification here if you have a toast service
+      }
     } catch (err) {
       console.error(`Error performing ${action}:`, err)
       setError(err.message || `Failed to ${action} invoice`)

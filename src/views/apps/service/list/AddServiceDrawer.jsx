@@ -8,7 +8,6 @@ import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
-import Alert from '@mui/material/Alert'
 import MenuItem from '@mui/material/MenuItem'
 
 // Component Imports
@@ -20,6 +19,7 @@ import { useSession } from 'next-auth/react'
 
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
+import toastService from '@/services/toastService'
 
 const AddServiceDrawer = props => {
   // Props
@@ -27,8 +27,6 @@ const AddServiceDrawer = props => {
 
   // States
   const [loading, setLoading] = useState(false)
-  const [apiError, setApiError] = useState(null)
-  const [apiSuccess, setApiSuccess] = useState(false)
 
   // Hooks
   const { data: session } = useSession()
@@ -61,18 +59,14 @@ const AddServiceDrawer = props => {
         category: ''
       })
     }
-    // Clear any previous API messages when drawer opens/mode changes
-    setApiError(null)
-    setApiSuccess(false)
+    // Clear any previous state when drawer opens/mode changes
   }, [open, currentService, resetForm])
 
   const onSubmit = async data => {
     setLoading(true)
-    setApiError(null)
-    setApiSuccess(false)
 
     if (!session?.accessToken) {
-      setApiError('Authentication token not found. Please log in again.')
+      toastService.showError('Authentication token not found. Please log in again.')
       setLoading(false)
       return
     }
@@ -80,7 +74,7 @@ const AddServiceDrawer = props => {
     // Convert price to float
     const priceValue = parseFloat(data.price)
     if (isNaN(priceValue) || priceValue < 0) {
-      setApiError('Please enter a valid positive price.')
+      toastService.showError('Please enter a valid positive price.')
       setLoading(false)
       return
     }
@@ -109,21 +103,17 @@ const AddServiceDrawer = props => {
         body: JSON.stringify(payload)
       })
 
-      const responseData = await response.json()
-
       if (response.ok) {
-        setApiSuccess(true)
+        const responseData = await response.json()
+        toastService.handleApiSuccess(isEditMode ? 'updated' : 'created', 'Service')
         console.log(`Service ${isEditMode ? 'updated' : 'created'} successfully:`, responseData)
         onServiceAdded()
         handleReset()
       } else {
-        const errorMessage =
-          responseData.message || `Failed to ${isEditMode ? 'update' : 'create'} service: ${response.status}`
-        setApiError(errorMessage)
-        console.error('API Error:', responseData)
+        await toastService.handleApiError(response, `Failed to ${isEditMode ? 'update' : 'create'} service`)
       }
     } catch (error) {
-      setApiError('Network error or unexpected issue. Please try again.')
+      await toastService.handleApiError(error, 'Network error or unexpected issue. Please try again.')
       console.error('Fetch error:', error)
     } finally {
       setLoading(false)
@@ -137,8 +127,6 @@ const AddServiceDrawer = props => {
       price: '',
       category: ''
     })
-    setApiError(null)
-    setApiSuccess(false)
   }
 
   return (
@@ -158,16 +146,6 @@ const AddServiceDrawer = props => {
       </div>
       <Divider />
       <div>
-        {apiError && (
-          <Alert severity='error' onClose={() => setApiError(null)} sx={{ mb: 4, mx: 6, mt: 4 }}>
-            {apiError}
-          </Alert>
-        )}
-        {apiSuccess && (
-          <Alert severity='success' onClose={() => setApiSuccess(false)} sx={{ mb: 4, mx: 6, mt: 4 }}>
-            Service {currentService ? 'updated' : 'added'} successfully!
-          </Alert>
-        )}
         <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6 p-6'>
           {/* Service ID field, display only if editing, and make it disabled */}
           {currentService && (

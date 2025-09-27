@@ -86,11 +86,8 @@ const MenuItem = (props, ref) => {
 
     if (href) {
       // Check if the current url matches any of the children urls
-      if (exactMatch ? pathname === href : activeUrl && pathname.includes(activeUrl)) {
-        setActive(true)
-      } else {
-        setActive(false)
-      }
+      const isActive = exactMatch ? pathname === href : pathname.includes(href)
+      setActive(isActive)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname])

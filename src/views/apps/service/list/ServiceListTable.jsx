@@ -18,6 +18,9 @@ import TablePagination from '@mui/material/TablePagination'
 import MenuItem from '@mui/material/MenuItem'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
+import FormControl from '@mui/material/FormControl'
+import InputLabel from '@mui/material/InputLabel'
+import Select from '@mui/material/Select'
 
 // Third-party Imports
 import classnames from 'classnames'
@@ -37,6 +40,8 @@ import { useSession } from 'next-auth/react'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import AddServiceDrawer from './AddServiceDrawer'
 import CustomTextField from '@core/components/mui/TextField'
+import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
+import toastService from '@/services/toastService'
 
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
@@ -86,82 +91,103 @@ const ServiceListTable = () => {
   // States for Filtering and Search
   const [filteredData, setFilteredData] = useState([])
   const [globalFilter, setGlobalFilter] = useState('')
-  const [filters, setFilters] = useState({ name: '', priceRange: '' })
+  const [filters, setFilters] = useState({ name: '', priceRange: '', category: '' })
+  const [categoryFilter, setCategoryFilter] = useState('')
+
+  // States for Delete Confirmation Modal
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [serviceToDelete, setServiceToDelete] = useState(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const { lang: locale } = useParams()
   const { data: session, status } = useSession()
 
   // Function to fetch service data from API
-  const fetchServices = useCallback(async () => {
-    setFetchLoading(true)
-    setFetchError(null)
+  const fetchServices = useCallback(
+    async (categoryFilter = '') => {
+      setFetchLoading(true)
+      setFetchError(null)
 
-    if (status === 'loading') return
-    if (status === 'unauthenticated' || !session?.accessToken) {
-      setFetchError('Authentication required to fetch services. Please log in.')
-      setFetchLoading(false)
-      return
-    }
-
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      const responseData = await response.json()
-
-      if (response.ok) {
-        // Extract services from the nested response structure
-        setServices(responseData.data || [])
-      } else {
-        const errorMessage = responseData.message || `Failed to fetch services: ${response.status}`
-        setFetchError(errorMessage)
-        console.error('API Error fetching services:', responseData)
-      }
-    } catch (error) {
-      setFetchError('Network error or unexpected issue fetching services. Please try again.')
-      console.error('Fetch error services:', error)
-    } finally {
-      setFetchLoading(false)
-    }
-  }, [status, session?.accessToken])
-
-  // Handle deleting a service
-  const handleDeleteService = useCallback(
-    async serviceId => {
-      if (!confirm('Are you sure you want to delete this service?')) return
-
-      if (!session?.accessToken) {
-        setFetchError('Authentication token not found. Cannot delete service.')
+      if (status === 'loading') return
+      if (status === 'unauthenticated' || !session?.accessToken) {
+        setFetchError('Authentication required to fetch services. Please log in.')
+        setFetchLoading(false)
         return
       }
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services/${serviceId}`, {
-          method: 'DELETE',
+        // Build query parameters
+        const queryParams = new URLSearchParams()
+        if (categoryFilter) {
+          queryParams.append('category', categoryFilter)
+        }
+
+        const url = `${process.env.NEXT_PUBLIC_API_URL}/services${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+
+        const response = await fetch(url, {
+          method: 'GET',
           headers: {
+            'Content-Type': 'application/json',
             'x-client-type': 'web',
             Authorization: `Bearer ${session.accessToken}`
           }
         })
 
+        const responseData = await response.json()
+
         if (response.ok) {
-          fetchServices() // Re-fetch data to update the table
+          // Extract services from the nested response structure
+          setServices(responseData.data || [])
         } else {
-          const errorData = await response.json()
-          setFetchError(errorData.message || 'Failed to delete service.')
+          await toastService.handleApiError(response, 'Failed to fetch services')
         }
       } catch (error) {
-        setFetchError('Network error or unexpected issue during deletion. Please try again.')
+        await toastService.handleApiError(
+          error,
+          'Network error or unexpected issue fetching services. Please try again.'
+        )
+        console.error('Fetch error services:', error)
+      } finally {
+        setFetchLoading(false)
       }
     },
-    [session?.accessToken, fetchServices]
+    [status, session?.accessToken]
   )
+
+  // Handle delete click
+  const handleDeleteClick = useCallback(service => {
+    setServiceToDelete(service)
+    setDeleteDialogOpen(true)
+  }, [])
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = async () => {
+    if (!serviceToDelete) return
+
+    setDeleteLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services/${serviceToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        toastService.handleApiSuccess('deleted', 'Service')
+        fetchServices() // Re-fetch data to update the table
+        setDeleteDialogOpen(false)
+        setServiceToDelete(null)
+      } else {
+        await toastService.handleApiError(response, 'Failed to delete service')
+      }
+    } catch (error) {
+      await toastService.handleApiError(error, 'Network error or unexpected issue during deletion. Please try again.')
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
 
   const handleEditClick = service => {
     setEditingService(service)
@@ -181,7 +207,7 @@ const ServiceListTable = () => {
       setFetchError('Not authenticated. Please log in to view services.')
       setFetchLoading(false)
     }
-  }, [status, session?.accessToken])
+  }, [status, session?.accessToken, fetchServices])
 
   // Effect for client-side filtering
   useEffect(() => {
@@ -197,8 +223,21 @@ const ServiceListTable = () => {
       tempData = tempData.filter(row => row.price >= minPrice && row.price <= maxPrice)
     }
 
+    if (filters.category) {
+      tempData = tempData.filter(row => row.category === filters.category)
+    }
+
     setFilteredData(tempData)
   }, [filters, services])
+
+  // Effect to handle category filter changes
+  useEffect(() => {
+    if (categoryFilter !== filters.category) {
+      setFilters(prev => ({ ...prev, category: categoryFilter }))
+      // Refetch data with category filter
+      fetchServices(categoryFilter)
+    }
+  }, [categoryFilter, filters.category, fetchServices])
 
   const columns = useMemo(
     () => [
@@ -256,16 +295,10 @@ const ServiceListTable = () => {
         header: 'Usage',
         cell: info => {
           const count = info.getValue()
-          const totalUsage = (count?.clients || 0) + (count?.invoiceItems || 0)
           return (
-            <div className='flex flex-col gap-1'>
-              <Typography color='text.primary' variant='body2'>
-                Clients: {count?.clients || 0}
-              </Typography>
-              <Typography color='text.primary' variant='body2'>
-                Invoices: {count?.invoiceItems || 0}
-              </Typography>
-            </div>
+            <Typography color='text.primary' variant='body2'>
+              Invoices: {count?.invoiceItems || 0}
+            </Typography>
           )
         },
         enableSorting: false
@@ -325,7 +358,7 @@ const ServiceListTable = () => {
             <IconButton onClick={() => handleEditClick(row.original)} size='small'>
               <i className='tabler-edit text-textSecondary' />
             </IconButton>
-            <IconButton onClick={() => handleDeleteService(row.original.id)} size='small'>
+            <IconButton onClick={() => handleDeleteClick(row.original)} size='small'>
               <i className='tabler-trash text-textSecondary' />
             </IconButton>
           </div>
@@ -333,7 +366,7 @@ const ServiceListTable = () => {
         enableSorting: false
       })
     ],
-    [handleDeleteService]
+    [handleDeleteClick]
   )
 
   const table = useReactTable({
@@ -356,6 +389,16 @@ const ServiceListTable = () => {
         <CardHeader title='Service Management' className='pbe-4' />
 
         <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
+          <FormControl className='min-w-[180px]' size='small'>
+            <InputLabel>Category</InputLabel>
+            <Select value={categoryFilter} label='Category' onChange={e => setCategoryFilter(e.target.value)}>
+              <MenuItem value=''>All Categories</MenuItem>
+              <MenuItem value='Consulting'>Consulting</MenuItem>
+              <MenuItem value='Development'>Development</MenuItem>
+              <MenuItem value='Design'>Design</MenuItem>
+            </Select>
+          </FormControl>
+
           <DebouncedInput
             value={globalFilter ?? ''}
             onChange={value => setGlobalFilter(String(value))}
@@ -450,6 +493,17 @@ const ServiceListTable = () => {
         handleClose={handleDrawerClose}
         currentService={editingService}
         onServiceAdded={fetchServices}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        setOpen={setDeleteDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        title='Delete Service'
+        message={`Are you sure you want to delete "${serviceToDelete?.name}"? This action cannot be undone.`}
+        itemName={serviceToDelete?.name}
+        loading={deleteLoading}
       />
     </>
   )

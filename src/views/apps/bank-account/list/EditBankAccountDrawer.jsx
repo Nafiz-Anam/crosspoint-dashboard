@@ -16,6 +16,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
+import toastService from '@/services/toastService'
 
 const EditBankAccountDrawer = ({ open, onClose, onEdit, bankAccount, loading = false }) => {
   // States
@@ -104,6 +105,7 @@ const EditBankAccountDrawer = ({ open, onClose, onEdit, bankAccount, loading = f
       handleClose()
     } catch (error) {
       console.error('Error editing bank account:', error)
+      await toastService.handleApiError(error, 'Failed to edit bank account')
     }
   }
 

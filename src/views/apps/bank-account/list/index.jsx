@@ -23,6 +23,7 @@ import { useSession } from 'next-auth/react'
 import BankAccountListTable from './BankAccountListTable'
 import AddBankAccountDrawer from './AddBankAccountDrawer'
 import EditBankAccountDrawer from './EditBankAccountDrawer'
+import toastService from '@/services/toastService'
 
 const BankAccountList = () => {
   // States
@@ -72,16 +73,16 @@ const BankAccountList = () => {
         }
       })
 
-      const responseData = await response.json()
-
       if (response.ok) {
+        const responseData = await response.json()
         setBankAccounts(responseData.data?.bankAccounts || [])
       } else {
-        throw new Error(responseData.message || 'Failed to fetch bank accounts')
+        await toastService.handleApiError(response, 'Failed to fetch bank accounts')
+        return
       }
     } catch (err) {
       console.error('Error fetching bank accounts:', err)
-      setError(err.message || 'Failed to fetch bank accounts')
+      await toastService.handleApiError(err, 'Failed to fetch bank accounts')
     } finally {
       setLoading(false)
     }
@@ -158,14 +159,14 @@ const BankAccountList = () => {
       }
     } catch (err) {
       console.error(`Error performing ${action}:`, err)
-      setError(err.message || `Failed to ${action} bank account`)
+      await toastService.handleApiError(err, `Failed to ${action} bank account`)
     }
   }
 
   // Handle add bank account
   const handleAddBankAccount = async bankAccountData => {
     if (!session?.accessToken) {
-      setError('Authentication required to add bank account.')
+      toastService.showError('Authentication required to add bank account.')
       return
     }
 
@@ -180,23 +181,23 @@ const BankAccountList = () => {
         body: JSON.stringify(bankAccountData)
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to add bank account')
+      if (response.ok) {
+        toastService.handleApiSuccess('created', 'Bank Account')
+        setAddDrawerOpen(false)
+        await fetchBankAccounts()
+      } else {
+        await toastService.handleApiError(response, 'Failed to add bank account')
       }
-
-      setAddDrawerOpen(false)
-      await fetchBankAccounts()
     } catch (err) {
       console.error('Error adding bank account:', err)
-      setError(err.message || 'Failed to add bank account')
+      await toastService.handleApiError(err, 'Network error or unexpected issue. Please try again.')
     }
   }
 
   // Handle edit bank account
   const handleEditBankAccount = async bankAccountData => {
     if (!session?.accessToken) {
-      setError('Authentication required to edit bank account.')
+      toastService.showError('Authentication required to edit bank account.')
       return
     }
 
@@ -211,17 +212,17 @@ const BankAccountList = () => {
         body: JSON.stringify(bankAccountData)
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to update bank account')
+      if (response.ok) {
+        toastService.handleApiSuccess('updated', 'Bank Account')
+        setEditDrawerOpen(false)
+        setEditingBankAccount(null)
+        await fetchBankAccounts()
+      } else {
+        await toastService.handleApiError(response, 'Failed to update bank account')
       }
-
-      setEditDrawerOpen(false)
-      setEditingBankAccount(null)
-      await fetchBankAccounts()
     } catch (err) {
       console.error('Error editing bank account:', err)
-      setError(err.message || 'Failed to edit bank account')
+      await toastService.handleApiError(err, 'Network error or unexpected issue. Please try again.')
     }
   }
 

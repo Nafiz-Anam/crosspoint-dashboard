@@ -63,7 +63,8 @@ const AddTaskDrawer = props => {
       status: 'PENDING',
       startDate: '',
       dueDate: ''
-    }
+    },
+    mode: 'onChange' // Enable real-time validation
   })
 
   const watchedClientId = watch('clientId')
@@ -240,10 +241,41 @@ const AddTaskDrawer = props => {
       return
     }
 
+    // Validate required fields
+    if (!data.description?.trim()) {
+      toastService.showError('Task description is required.')
+      setLoading(false)
+      return
+    }
+
+    if (!data.clientId) {
+      toastService.showError('Please select a client.')
+      setLoading(false)
+      return
+    }
+
+    if (!data.assignedEmployeeId) {
+      toastService.showError('Please select an assigned employee.')
+      setLoading(false)
+      return
+    }
+
+    // Validate dates
+    if (data.startDate && data.dueDate) {
+      const startDate = new Date(data.startDate)
+      const dueDate = new Date(data.dueDate)
+
+      if (startDate > dueDate) {
+        toastService.showError('Start date cannot be after due date.')
+        setLoading(false)
+        return
+      }
+    }
+
     const payload = {
-      description: data.description || null,
+      description: data.description.trim(),
       clientId: data.clientId,
-      serviceId: data.serviceId,
+      serviceId: data.serviceId || null,
       assignedEmployeeId: data.assignedEmployeeId,
       status: data.status,
       startDate: data.startDate ? new Date(data.startDate).toISOString() : null,
@@ -270,7 +302,7 @@ const AddTaskDrawer = props => {
       const responseData = await response.json()
 
       if (response.ok) {
-        toastService.showSuccess(`Task ${isEditMode ? 'updated' : 'created'} successfully!`)
+        toastService.showSuccess(`Task "${data.description}" ${isEditMode ? 'updated' : 'created'} successfully!`)
         onTaskAdded()
         handleReset()
       } else {

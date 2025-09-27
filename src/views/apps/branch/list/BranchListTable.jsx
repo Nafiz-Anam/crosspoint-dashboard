@@ -20,6 +20,9 @@ import MenuItem from '@mui/material/MenuItem'
 import CircularProgress from '@mui/material/CircularProgress' // For loading indicator
 import Alert from '@mui/material/Alert' // For error messages
 
+// Component Imports
+import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
+
 // Third-party Imports
 import classnames from 'classnames'
 import { rankItem } from '@tanstack/match-sorter-utils'
@@ -41,6 +44,7 @@ import { useSession } from 'next-auth/react' // Import useSession to get token
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import AddBranchDrawer from './AddBranchDrawer' // Ensure this is the updated drawer
 import CustomTextField from '@core/components/mui/TextField'
+import toastService from '@/services/toastService'
 
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
@@ -87,6 +91,11 @@ const BranchListTable = () => {
   const [fetchLoading, setFetchLoading] = useState(true) // Loading state for data fetch
   const [fetchError, setFetchError] = useState(null) // Error state for data fetch
 
+  // States for Delete Dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [branchToDelete, setBranchToDelete] = useState(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
   // States for Filtering and Search
   const [filteredData, setFilteredData] = useState([]) // Data after client-side filters
   const [globalFilter, setGlobalFilter] = useState('')
@@ -125,10 +134,15 @@ const BranchListTable = () => {
       } else {
         const errorMessage = responseData.message || `Failed to fetch branches: ${response.status}`
         setFetchError(errorMessage)
+        // Show error toast for fetch errors
+        await toastService.handleApiError(response, 'Failed to fetch branches')
         console.error('API Error fetching branches:', responseData)
       }
     } catch (error) {
-      setFetchError('Network error or unexpected issue fetching branches. Please try again.')
+      const errorMessage = 'Network error or unexpected issue fetching branches. Please try again.'
+      setFetchError(errorMessage)
+      // Show error toast for network errors
+      await toastService.handleApiError(error, errorMessage)
       console.error('Fetch error branches:', error)
     } finally {
       setFetchLoading(false)
@@ -169,43 +183,57 @@ const BranchListTable = () => {
   const cities = useMemo(() => Array.from(new Set(branches.map(item => item.city))), [branches])
   const provinces = useMemo(() => Array.from(new Set(branches.map(item => item.province))), [branches])
 
-  // Function to handle branch deletion
-  const handleDeleteBranch = useCallback(
-    async branchId => {
-      if (!confirm('Are you sure you want to delete this branch?')) {
-        return
-      }
-
-      if (!session?.accessToken) {
-        setFetchError('Authentication token not found. Cannot delete branch.')
-        return
-      }
-
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/${branchId}`, {
-          method: 'DELETE',
-          headers: {
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          }
-        })
-
-        if (response.ok) {
-          console.log(`Branch ${branchId} deleted successfully.`)
-          fetchBranches() // Re-fetch data to update the table
-        } else {
-          const errorData = await response.json()
-          const errorMessage = errorData.message || `Failed to delete branch: ${response.status}`
-          setFetchError(errorMessage)
-          console.error('API Error deleting branch:', errorData)
-        }
-      } catch (error) {
-        setFetchError('Network error or unexpected issue during deletion. Please try again.')
-        console.error('Fetch error deleting branch:', error)
-      }
+  // Function to open delete confirmation dialog
+  const handleDeleteClick = useCallback(
+    branchId => {
+      const branch = branches.find(b => b.id === branchId)
+      setBranchToDelete(branch)
+      setDeleteDialogOpen(true)
     },
-    [session?.accessToken, fetchBranches]
+    [branches]
   )
+
+  // Function to handle branch deletion
+  const handleDeleteBranch = useCallback(async () => {
+    if (!branchToDelete) return
+
+    if (!session?.accessToken) {
+      toastService.showError('Authentication token not found. Cannot delete branch.')
+      setDeleteDialogOpen(false)
+      return
+    }
+
+    setDeleteLoading(true)
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/${branchToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        // Show success toast
+        toastService.handleApiSuccess('deleted', 'Branch')
+        console.log(`Branch ${branchToDelete.id} deleted successfully.`)
+        fetchBranches() // Re-fetch data to update the table
+        setDeleteDialogOpen(false)
+        setBranchToDelete(null)
+      } else {
+        // Show error toast
+        await toastService.handleApiError(response, 'Failed to delete branch')
+        console.error('API Error deleting branch:', await response.json())
+      }
+    } catch (error) {
+      // Show error toast
+      await toastService.handleApiError(error, 'Network error or unexpected issue during deletion. Please try again.')
+      console.error('Fetch error deleting branch:', error)
+    } finally {
+      setDeleteLoading(false)
+    }
+  }, [session?.accessToken, fetchBranches, branchToDelete])
 
   // Function to open drawer for editing
   const handleEditClick = useCallback(branch => {
@@ -223,35 +251,54 @@ const BranchListTable = () => {
     () => [
       columnHelper.accessor('branchId', {
         header: 'Branch ID',
-        cell: info => <Typography color='text.primary'>{info.getValue()}</Typography>
+        cell: info => (
+          <Typography color='text.primary' className='font-medium'>
+            {info.getValue()}
+          </Typography>
+        )
       }),
       columnHelper.accessor('name', {
         header: 'Branch Name',
-        cell: info => <Typography color='text.primary'>{info.getValue()}</Typography>
+        cell: info => (
+          <Typography color='text.primary' className='font-medium'>
+            {info.getValue()}
+          </Typography>
+        )
       }),
-      columnHelper.accessor('address', {
-        header: 'Address',
-        cell: info => <Typography color='text.primary'>{info.getValue()}</Typography>
+      columnHelper.accessor('location', {
+        header: 'Location',
+        cell: ({ row }) => (
+          <div className='flex flex-col'>
+            <Typography color='text.primary' className='font-medium'>
+              {row.original.address}
+            </Typography>
+            <Typography variant='body2' color='text.secondary'>
+              {[row.original.city, row.original.province, row.original.postalCode].filter(Boolean).join(', ')}
+            </Typography>
+          </div>
+        )
       }),
-      columnHelper.accessor('city', {
-        header: 'City',
-        cell: info => <Typography color='text.primary'>{info.getValue()}</Typography>
-      }),
-      columnHelper.accessor('postalCode', {
-        header: 'Postal Code',
-        cell: info => <Typography color='text.primary'>{info.getValue()}</Typography>
-      }),
-      columnHelper.accessor('province', {
-        header: 'Province',
-        cell: info => <Typography color='text.primary'>{info.getValue()}</Typography>
-      }),
-      columnHelper.accessor('phone', {
-        header: 'Phone',
-        cell: info => <Typography color='text.primary'>{info.getValue() || '-'}</Typography> // Display '-' if null
-      }),
-      columnHelper.accessor('email', {
-        header: 'Email',
-        cell: info => <Typography color='text.primary'>{info.getValue() || '-'}</Typography> // Display '-' if null
+      columnHelper.accessor('contact', {
+        header: 'Contact',
+        cell: ({ row }) => (
+          <div className='flex flex-col'>
+            {row.original.phone && (
+              <Typography variant='body2' color='text.primary'>
+                {row.original.phone}
+              </Typography>
+            )}
+            {row.original.email && (
+              <Typography variant='body2' color='text.primary'>
+                {row.original.email}
+              </Typography>
+            )}
+            {!row.original.phone && !row.original.email && (
+              <Typography variant='body2' color='text.secondary'>
+                No contact info
+              </Typography>
+            )}
+          </div>
+        )
       }),
       columnHelper.accessor('isActive', {
         header: 'Status',
@@ -268,20 +315,18 @@ const BranchListTable = () => {
         header: 'Action',
         cell: ({ row }) => (
           <div className='flex items-center gap-2'>
-            <IconButton onClick={() => handleDeleteBranch(row.original.id)}>
-              <i className='tabler-trash text-textSecondary' />
+            <IconButton onClick={() => handleEditClick(row.original)} size='small'>
+              <i className='tabler-edit text-textSecondary' />
             </IconButton>
-            <IconButton onClick={() => handleEditClick(row.original)}>
-              {' '}
-              {/* Call handleEditClick */}
-              <i className='tabler-edit text-textSecondary' /> {/* Changed icon to edit */}
+            <IconButton onClick={() => handleDeleteClick(row.original.id)} size='small'>
+              <i className='tabler-trash text-textSecondary' />
             </IconButton>
           </div>
         ),
         enableSorting: false
       })
     ],
-    [handleDeleteBranch, handleEditClick] // Depend on handleDeleteBranch and handleEditClick
+    [handleDeleteClick, handleEditClick] // Depend on handleDeleteClick and handleEditClick
   )
 
   const table = useReactTable({
@@ -443,6 +488,16 @@ const BranchListTable = () => {
         handleClose={handleDrawerClose} // Use the new handler
         currentBranch={editingBranch} // Pass the branch data for editing
         onBranchAdded={fetchBranches} // Callback to re-fetch data after adding/editing a branch
+      />
+
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        setOpen={setDeleteDialogOpen}
+        onConfirm={handleDeleteBranch}
+        title='Delete Branch'
+        message={`Are you sure you want to delete "${branchToDelete?.name}"? This action cannot be undone.`}
+        itemName={branchToDelete?.name}
+        loading={deleteLoading}
       />
     </>
   )

@@ -38,6 +38,8 @@ import {
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import OptionMenu from '@core/components/option-menu'
 import CustomTextField from '@core/components/mui/TextField'
+import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
+import toastService from '@/services/toastService'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
@@ -76,9 +78,35 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
   const [filteredData, setFilteredData] = useState(data)
   const [globalFilter, setGlobalFilter] = useState('')
   const [isActiveFilter, setIsActiveFilter] = useState('')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [bankAccountToDelete, setBankAccountToDelete] = useState(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   // Hooks
   const { lang: locale } = useParams()
+
+  // Handle delete click
+  const handleDeleteClick = bankAccount => {
+    setBankAccountToDelete(bankAccount)
+    setDeleteDialogOpen(true)
+  }
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = async () => {
+    if (!bankAccountToDelete) return
+
+    setDeleteLoading(true)
+    try {
+      await onBankAccountAction('delete', bankAccountToDelete.id)
+      toastService.handleApiSuccess('deleted', 'Bank Account')
+      setDeleteDialogOpen(false)
+      setBankAccountToDelete(null)
+    } catch (error) {
+      await toastService.handleApiError(error, 'Failed to delete bank account')
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
 
   const columns = useMemo(
     () => [
@@ -185,7 +213,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
                   icon: 'tabler-trash',
                   menuItemProps: {
                     className: 'flex items-center gap-2 text-textSecondary',
-                    onClick: () => onBankAccountAction('delete', row.original.id)
+                    onClick: () => handleDeleteClick(row.original)
                   }
                 }
               ]}
@@ -357,6 +385,17 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
           table.setPageIndex(page)
         }}
         onRowsPerPageChange={e => table.setPageSize(Number(e.target.value))}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        setOpen={setDeleteDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        title='Delete Bank Account'
+        message={`Are you sure you want to delete "${bankAccountToDelete?.bankName}"? This action cannot be undone.`}
+        itemName={bankAccountToDelete?.bankName}
+        loading={deleteLoading}
       />
     </Card>
   )

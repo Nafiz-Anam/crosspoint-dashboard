@@ -211,22 +211,56 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
               iconButtonProps={{ size: 'medium' }}
               iconClassName='text-textSecondary'
               options={[
-                {
-                  text: 'Mark as Paid',
-                  icon: 'tabler-check',
-                  onClick: () => onInvoiceAction('updateStatus', row.original.id, { status: 'PAID' }),
-                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
-                },
-                {
-                  text: 'Mark as Unpaid',
-                  icon: 'tabler-clock',
-                  onClick: () => onInvoiceAction('updateStatus', row.original.id, { status: 'UNPAID' }),
-                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
-                },
+                // Only show "Mark as Paid" if invoice is not already paid
+                ...(row.original.status !== 'PAID'
+                  ? [
+                      {
+                        text: 'Mark as Paid',
+                        icon: 'tabler-check',
+                        onClick: () => {
+                          console.log('Mark as Paid clicked for invoice:', row.original.id)
+                          onInvoiceAction('updateStatus', row.original.id, { status: 'PAID' })
+                        },
+                        menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
+                      }
+                    ]
+                  : []),
+                // Only show "Mark as Unpaid" if invoice is not already unpaid
+                ...(row.original.status !== 'UNPAID'
+                  ? [
+                      {
+                        text: 'Mark as Unpaid',
+                        icon: 'tabler-clock',
+                        onClick: () => {
+                          console.log('Mark as Unpaid clicked for invoice:', row.original.id)
+                          onInvoiceAction('updateStatus', row.original.id, { status: 'UNPAID' })
+                        },
+                        menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
+                      }
+                    ]
+                  : []),
+                // Only show "Mark as Cancelled" if invoice is not already cancelled
+                ...(row.original.status !== 'CANCELLED'
+                  ? [
+                      {
+                        text: 'Mark as Cancelled',
+                        icon: 'tabler-x',
+                        onClick: () => {
+                          console.log('Mark as Cancelled clicked for invoice:', row.original.id)
+                          onInvoiceAction('updateStatus', row.original.id, { status: 'CANCELLED' })
+                        },
+                        menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
+                      }
+                    ]
+                  : []),
+                // Always show delete option
                 {
                   text: 'Delete',
                   icon: 'tabler-trash',
-                  onClick: () => onInvoiceAction('delete', row.original.id),
+                  onClick: () => {
+                    console.log('Delete clicked for invoice:', row.original.id)
+                    onInvoiceAction('delete', row.original.id)
+                  },
                   menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
                 }
               ]}
