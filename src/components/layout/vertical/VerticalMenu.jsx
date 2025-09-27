@@ -21,11 +21,7 @@ import menuSectionStyles from '@core/styles/vertical/menuSectionStyles'
 // Menu Data Import
 import verticalMenuItems from '@/data/navigation/verticalMenuItems'
 
-const RenderExpandIcon = ({ open, transitionDuration }) => (
-  <StyledVerticalNavExpandIcon open={open} transitionDuration={transitionDuration}>
-    <i className='tabler-chevron-right' />
-  </StyledVerticalNavExpandIcon>
-)
+// Not using RenderExpandIcon since we don't have expandable menu items
 
 const VerticalMenu = ({ scrollMenu }) => {
   // Hooks

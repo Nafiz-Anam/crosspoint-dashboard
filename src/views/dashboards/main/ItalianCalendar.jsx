@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle, Alert, CircularProgress, Box, Typography } from '@mui/material'
+import { Card, CardContent, CardHeader, Alert, CircularProgress, Box, Typography } from '@mui/material'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'

@@ -11,6 +11,7 @@ import CardContent from '@mui/material/CardContent'
 import MenuItem from '@mui/material/MenuItem'
 import CircularProgress from '@mui/material/CircularProgress'
 import Grid from '@mui/material/Grid'
+import Alert from '@mui/material/Alert'
 
 // Component Imports
 import LoadingButton from '@/components/ui/LoadingButton'
@@ -313,7 +314,7 @@ const EditTaskCard = ({ taskId }) => {
     return (
       <Card>
         <CardContent>
-          <Alert severity='error'>Task not found or you don't have permission to edit this task.</Alert>
+          <Alert severity='error'>Task not found or you don&apos;t have permission to edit this task.</Alert>
         </CardContent>
       </Card>
     )

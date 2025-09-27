@@ -118,7 +118,7 @@ const TaskViewCard = () => {
       <Card>
         <CardContent>
           <Typography variant='h6' color='error'>
-            Task not found or you don't have permission to view this task.
+            Task not found or you don&apos;t have permission to view this task.
           </Typography>
         </CardContent>
       </Card>
