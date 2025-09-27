@@ -1,3 +1,5 @@
+'use client'
+
 // MUI Imports
 import Grid from '@mui/material/Grid2'
 
@@ -13,7 +15,7 @@ import AllTasksOverview from '@views/dashboards/main/AllTasksOverview'
 import TicketStatus from '@views/dashboards/main/TicketStatus'
 import CardStatVertical from '@/components/card-statistics/Vertical'
 
-const MainDashboard = async () => {
+const MainDashboard = () => {
   const { t } = useTranslation()
 
   return (
