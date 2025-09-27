@@ -480,7 +480,7 @@ const EditTaskCard = ({ taskId }) => {
                     {...field}
                     fullWidth
                     type='date'
-                    label='Start Date (Optional)'
+                    label='Start Date'
                     InputLabelProps={{ shrink: true }}
                   />
                 )}
@@ -496,7 +496,7 @@ const EditTaskCard = ({ taskId }) => {
                     {...field}
                     fullWidth
                     type='date'
-                    label='Due Date (Optional)'
+                    label='Due Date'
                     InputLabelProps={{ shrink: true }}
                   />
                 )}
@@ -536,7 +536,7 @@ const EditTaskCard = ({ taskId }) => {
                     fullWidth
                     multiline
                     rows={3}
-                    label='Description (Optional)'
+                    label='Description'
                     placeholder='Enter task description'
                   />
                 )}

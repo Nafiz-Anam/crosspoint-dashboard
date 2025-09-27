@@ -25,6 +25,7 @@ import CustomTextField from '@core/components/mui/TextField'
 
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
+import { useTranslation } from '@/hooks/useTranslation'
 
 const AddActions = ({
   invoiceState,
@@ -45,6 +46,7 @@ const AddActions = ({
   const { data: session } = useSession()
   const { lang: locale } = useParams()
   const router = useRouter()
+  const { t } = useTranslation()
 
   // Destructure from shared state
   const {
@@ -128,46 +130,46 @@ const AddActions = ({
     const errors = []
 
     if (!selectedClient?.id) {
-      errors.push('Please select a client')
+      errors.push(t('invoices.pleaseSelectClient'))
     }
 
     // Use fallback for branchId
     const finalBranchId = branchId || selectedClient?.branchId
     if (!finalBranchId) {
-      errors.push('Branch ID is required')
+      errors.push(t('invoices.branchRequired'))
     }
 
     // Use fallback for employeeId
     const finalEmployeeId = employeeId || selectedSalesperson?.id
     if (!finalEmployeeId) {
-      errors.push('Employee ID is required')
+      errors.push(t('invoices.pleaseSelectSalesperson'))
     }
 
     if (!dueDate) {
-      errors.push('Due date is required')
+      errors.push(t('invoices.pleaseSelectDueDate'))
     }
 
     if (!thanksMessage?.trim()) {
-      errors.push('Thanks message is required')
+      errors.push(t('invoices.pleaseAddThanksMessage'))
     }
 
     if (!invoiceItems || invoiceItems.length === 0) {
-      errors.push('At least one invoice item is required')
+      errors.push(t('invoices.pleaseAddInvoiceItem'))
     }
 
     // Validate invoice items (NO QUANTITY CHECK)
     invoiceItems?.forEach((item, index) => {
       if (!item.serviceId) {
-        errors.push(`Item ${index + 1}: Service is required`)
+        errors.push(`Item ${index + 1}: ${t('invoices.service')} is required`)
       }
       if (!item.description?.trim()) {
-        errors.push(`Item ${index + 1}: Description is required`)
+        errors.push(`Item ${index + 1}: ${t('invoices.description')} is required`)
       }
       if (!item.rate || parseFloat(item.rate) <= 0) {
-        errors.push(`Item ${index + 1}: Rate must be greater than 0`)
+        errors.push(`Item ${index + 1}: ${t('invoices.rate')} must be greater than 0`)
       }
       if (item.discount && parseFloat(item.discount) < 0) {
-        errors.push(`Item ${index + 1}: Discount cannot be negative`)
+        errors.push(`Item ${index + 1}: ${t('invoices.discount')} cannot be negative`)
       }
     })
 
@@ -535,7 +537,7 @@ const AddActions = ({
         <Card>
           <CardContent className='flex flex-col gap-4'>
             <Typography variant='h6' className='mb-2'>
-              Invoice Actions
+              {t('invoices.invoiceActions')}
             </Typography>
 
             {/* Send Invoice Button - Removed email functionality */}
@@ -558,32 +560,34 @@ const AddActions = ({
               href={isSaved ? getLocalizedUrl(`/apps/invoice/preview/${createdInvoiceId}`, locale) : undefined}
               onClick={!isSaved ? handlePreview : undefined}
             >
-              Preview
+              {t('invoices.preview')}
             </Button>
 
             {/* Save Button */}
             <Button fullWidth {...getButtonProps('save')} className='capitalize' onClick={handleSaveInvoice}>
               {saveStatus === 'saving'
-                ? 'Saving...'
+                ? t('invoices.saving')
                 : saveStatus === 'updated'
-                  ? 'Updated'
+                  ? t('invoices.updated')
                   : isSaved && !isEdit
-                    ? 'Saved'
+                    ? t('invoices.saved')
                     : isEdit
-                      ? 'Update Invoice'
-                      : 'Save'}
+                      ? t('invoices.updateInvoice')
+                      : t('invoices.save')}
             </Button>
 
             {/* Status Messages */}
             {apiSuccess && saveStatus === 'success' && (
               <Alert severity='success' size='small'>
-                Invoice created successfully! Invoice #{invoiceNumber}
+                {t('invoices.invoiceCreatedSuccessfully')}
+                {invoiceNumber}
               </Alert>
             )}
 
             {apiSuccess && saveStatus === 'updated' && (
               <Alert severity='success' size='small'>
-                Invoice updated successfully! Invoice #{invoiceNumber}
+                {t('invoices.invoiceUpdatedSuccessfully')}
+                {invoiceNumber}
               </Alert>
             )}
 
@@ -595,31 +599,31 @@ const AddActions = ({
 
             {!selectedClient && (
               <Alert severity='warning' size='small'>
-                Please select a client to continue
+                {t('invoices.pleaseSelectClient')}
               </Alert>
             )}
 
             {selectedClient && (!invoiceItems || invoiceItems.length === 0) && (
               <Alert severity='warning' size='small'>
-                Please add at least one invoice item
+                {t('invoices.pleaseAddInvoiceItem')}
               </Alert>
             )}
 
             {selectedClient && invoiceItems?.length > 0 && !thanksMessage?.trim() && (
               <Alert severity='warning' size='small'>
-                Please add a thanks message
+                {t('invoices.pleaseAddThanksMessage')}
               </Alert>
             )}
 
             {selectedClient && invoiceItems?.length > 0 && thanksMessage?.trim() && !finalEmployeeId && (
               <Alert severity='warning' size='small'>
-                Please select a salesperson
+                {t('invoices.pleaseSelectSalesperson')}
               </Alert>
             )}
 
             {selectedClient && invoiceItems?.length > 0 && thanksMessage?.trim() && finalEmployeeId && !dueDate && (
               <Alert severity='warning' size='small'>
-                Please select a due date
+                {t('invoices.pleaseSelectDueDate')}
               </Alert>
             )}
 
@@ -627,28 +631,30 @@ const AddActions = ({
             {invoiceItems?.length > 0 && (
               <div className='p-4 bg-gray-50 rounded-lg border'>
                 <Typography variant='subtitle2' className='font-medium mb-3'>
-                  Invoice Summary
+                  {t('invoices.invoiceSummary')}
                 </Typography>
                 <div className='space-y-2'>
                   <div className='flex justify-between text-sm'>
-                    <span>Subtotal:</span>
+                    <span>{t('invoices.subtotalLabel')}</span>
                     <span>${calculateInvoiceTotal().toFixed(2)}</span>
                   </div>
                   {(taxRate || 0) > 0 && (
                     <div className='flex justify-between text-sm'>
-                      <span>Tax ({taxRate}%):</span>
+                      <span>
+                        {t('invoices.taxLabel')} ({taxRate}%):
+                      </span>
                       <span>${calculateTax().toFixed(2)}</span>
                     </div>
                   )}
                   {discountAmount > 0 && (
                     <div className='flex justify-between text-sm'>
-                      <span>Discount:</span>
+                      <span>{t('invoices.discountLabel')}</span>
                       <span>-${discountAmount.toFixed(2)}</span>
                     </div>
                   )}
                   <Divider className='my-2' />
                   <div className='flex justify-between font-medium text-base'>
-                    <span>Total:</span>
+                    <span>{t('invoices.totalLabel')}</span>
                     <span>${calculateFinalTotal().toFixed(2)}</span>
                   </div>
                 </div>
@@ -671,7 +677,7 @@ const AddActions = ({
         <Card>
           <CardContent className='flex flex-col gap-4'>
             <Typography variant='h6' className='mb-2'>
-              Payment Settings
+              {t('invoices.paymentSettings')}
             </Typography>
 
             <CustomTextField
@@ -679,8 +685,8 @@ const AddActions = ({
               fullWidth
               value={selectedBankAccount || ''}
               onChange={e => handleBankAccountChange(e.target.value)}
-              label='Payment Method'
-              helperText='Select bank account for payment details'
+              label={t('invoices.paymentMethod')}
+              helperText={t('invoices.selectBankAccountForPayment')}
               disabled={isSaved}
             >
               {bankAccounts.map(account => (
@@ -703,8 +709,8 @@ const AddActions = ({
                   updateInvoiceState({ taxRate: value })
                 }
               }}
-              label='Tax Rate (%)'
-              helperText='Enter tax rate (0-100%)'
+              label={t('invoices.taxRate')}
+              helperText={t('invoices.enterTaxRate')}
               disabled={isSaved}
               inputProps={{
                 min: 0,
@@ -716,16 +722,16 @@ const AddActions = ({
             <Divider />
 
             <Typography variant='subtitle2' className='font-medium'>
-              Display Options
+              {t('invoices.displayOptions')}
             </Typography>
 
             <div className='flex items-center justify-between'>
               <div className='flex flex-col'>
                 <InputLabel htmlFor='invoice-edit-payment-terms' className='cursor-pointer text-sm'>
-                  Payment Terms
+                  {t('invoices.paymentTerms')}
                 </InputLabel>
                 <Typography variant='caption' color='text.secondary'>
-                  Show payment terms on invoice
+                  {t('invoices.showPaymentTermsOnInvoice')}
                 </Typography>
               </div>
               <Switch
@@ -739,10 +745,10 @@ const AddActions = ({
             <div className='flex items-center justify-between'>
               <div className='flex flex-col'>
                 <InputLabel htmlFor='invoice-edit-client-notes' className='cursor-pointer text-sm'>
-                  Client Notes
+                  {t('invoices.clientNotes')}
                 </InputLabel>
                 <Typography variant='caption' color='text.secondary'>
-                  Display client notes section
+                  {t('invoices.displayClientNotesSection')}
                 </Typography>
               </div>
               <Switch

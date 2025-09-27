@@ -81,7 +81,21 @@ export const calendarConfig = {
         list: 'Lista'
       },
       dayHeaderFormat: { weekday: 'long' },
-      titleFormat: { year: 'numeric', month: 'long' }
+      titleFormat: { year: 'numeric', month: 'long' },
+      monthNames: [
+        'GENNAIO',
+        'FEBBRAIO',
+        'MARZO',
+        'APRILE',
+        'MAGGIO',
+        'GIUGNO',
+        'LUGLIO',
+        'AGOSTO',
+        'SETTEMBRE',
+        'OTTOBRE',
+        'NOVEMBRE',
+        'DICEMBRE'
+      ]
     }
   }
 }

@@ -43,6 +43,9 @@ import CustomTextField from '@core/components/mui/TextField'
 import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
 import toastService from '@/services/toastService'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
 
@@ -101,6 +104,7 @@ const ServiceListTable = () => {
 
   const { lang: locale } = useParams()
   const { data: session, status } = useSession()
+  const { t } = useTranslation()
 
   // Function to fetch service data from API
   const fetchServices = useCallback(
@@ -110,7 +114,7 @@ const ServiceListTable = () => {
 
       if (status === 'loading') return
       if (status === 'unauthenticated' || !session?.accessToken) {
-        setFetchError('Authentication required to fetch services. Please log in.')
+        setFetchError(t('services.authenticationRequired'))
         setFetchLoading(false)
         return
       }
@@ -139,13 +143,10 @@ const ServiceListTable = () => {
           // Extract services from the nested response structure
           setServices(responseData.data || [])
         } else {
-          await toastService.handleApiError(response, 'Failed to fetch services')
+          await toastService.handleApiError(response, t('services.failedToCreateService'))
         }
       } catch (error) {
-        await toastService.handleApiError(
-          error,
-          'Network error or unexpected issue fetching services. Please try again.'
-        )
+        await toastService.handleApiError(error, t('services.networkError'))
         console.error('Fetch error services:', error)
       } finally {
         setFetchLoading(false)
@@ -204,7 +205,7 @@ const ServiceListTable = () => {
     if (status === 'authenticated') {
       fetchServices()
     } else if (status === 'unauthenticated') {
-      setFetchError('Not authenticated. Please log in to view services.')
+      setFetchError(t('services.notAuthenticated'))
       setFetchLoading(false)
     }
   }, [status, session?.accessToken, fetchServices])
@@ -255,11 +256,11 @@ const ServiceListTable = () => {
         }
       }),
       columnHelper.accessor('name', {
-        header: 'Service Name',
+        header: t('services.fields.name'),
         cell: info => <Typography color='text.primary'>{info.getValue()}</Typography>
       }),
       columnHelper.accessor('price', {
-        header: 'Price (€)',
+        header: t('services.fields.price'),
         cell: info => (
           <Typography color='text.primary' className='font-medium'>
             €{parseFloat(info.getValue()).toFixed(2)}
@@ -267,7 +268,7 @@ const ServiceListTable = () => {
         )
       }),
       columnHelper.accessor('category', {
-        header: 'Category',
+        header: t('services.fields.category'),
         cell: info => {
           const category = info.getValue()
           if (!category) {
@@ -277,16 +278,25 @@ const ServiceListTable = () => {
             <Chip
               label={category}
               size='small'
-              color={
-                category === 'Consulting'
-                  ? 'primary'
-                  : category === 'Development'
-                    ? 'success'
-                    : category === 'Design'
-                      ? 'warning'
-                      : 'default'
-              }
-              variant='tonal'
+              sx={{
+                backgroundColor:
+                  category === 'Consulting'
+                    ? '#e3f2fd' // Light blue
+                    : category === 'Development'
+                      ? '#f3e5f5' // Light purple
+                      : category === 'Design'
+                        ? '#fff3e0' // Light orange
+                        : '#f5f5f5', // Default light gray
+                color:
+                  category === 'Consulting'
+                    ? '#1976d2' // Blue text
+                    : category === 'Development'
+                      ? '#9c27b0' // Purple text
+                      : category === 'Design'
+                        ? '#f57c00' // Orange text
+                        : '#757575', // Default gray text
+                fontWeight: 'medium'
+              }}
             />
           )
         }
@@ -352,7 +362,7 @@ const ServiceListTable = () => {
         }
       }),
       columnHelper.accessor('action', {
-        header: 'Action',
+        header: t('services.fields.action'),
         cell: ({ row }) => (
           <div className='flex items-center gap-2'>
             <IconButton onClick={() => handleEditClick(row.original)} size='small'>
@@ -386,13 +396,17 @@ const ServiceListTable = () => {
   return (
     <>
       <Card>
-        <CardHeader title='Service Management' className='pbe-4' />
+        <CardHeader title={t('services.serviceManagement')} className='pbe-4' />
 
         <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
           <FormControl className='min-w-[180px]' size='small'>
-            <InputLabel>Category</InputLabel>
-            <Select value={categoryFilter} label='Category' onChange={e => setCategoryFilter(e.target.value)}>
-              <MenuItem value=''>All Categories</MenuItem>
+            <InputLabel>{t('services.fields.category')}</InputLabel>
+            <Select
+              value={categoryFilter}
+              label={t('services.fields.category')}
+              onChange={e => setCategoryFilter(e.target.value)}
+            >
+              <MenuItem value=''>{t('services.all')}</MenuItem>
               <MenuItem value='Consulting'>Consulting</MenuItem>
               <MenuItem value='Development'>Development</MenuItem>
               <MenuItem value='Design'>Design</MenuItem>
@@ -402,7 +416,7 @@ const ServiceListTable = () => {
           <DebouncedInput
             value={globalFilter ?? ''}
             onChange={value => setGlobalFilter(String(value))}
-            placeholder='Search services...'
+            placeholder={t('services.searchService')}
             className='min-w-[200px]'
           />
 
@@ -415,14 +429,14 @@ const ServiceListTable = () => {
             }}
             className='ml-auto h-[40px]'
           >
-            Add New Service
+            {t('services.addNewService')}
           </Button>
         </div>
 
         {fetchLoading ? (
           <div className='flex justify-center items-center p-6'>
             <CircularProgress />
-            <Typography className='ml-4'>Loading Services...</Typography>
+            <Typography className='ml-4'>{t('services.loadingServices')}</Typography>
           </div>
         ) : fetchError ? (
           <Alert severity='error' sx={{ m: 6 }}>
@@ -460,7 +474,7 @@ const ServiceListTable = () => {
                 {table.getFilteredRowModel().rows.length === 0 ? (
                   <tr>
                     <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
-                      No services available
+                      {t('services.noServicesAvailable')}
                     </td>
                   </tr>
                 ) : (
@@ -500,8 +514,8 @@ const ServiceListTable = () => {
         open={deleteDialogOpen}
         setOpen={setDeleteDialogOpen}
         onConfirm={handleDeleteConfirm}
-        title='Delete Service'
-        message={`Are you sure you want to delete "${serviceToDelete?.name}"? This action cannot be undone.`}
+        title={t('services.deleteConfirmation.title')}
+        message={t('services.deleteConfirmation.message')}
         itemName={serviceToDelete?.name}
         loading={deleteLoading}
       />

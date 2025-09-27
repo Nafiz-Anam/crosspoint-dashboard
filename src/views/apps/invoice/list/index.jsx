@@ -23,7 +23,13 @@ import { useSession } from 'next-auth/react'
 import InvoiceListTable from './InvoiceListTable'
 // import InvoiceStatsCard from './InvoiceStatsCard' // Commented out for now
 
+// Util Imports
+import { useTranslation } from '@/hooks/useTranslation'
+
 const InvoiceList = () => {
+  // Hooks
+  const { t } = useTranslation()
+
   // States
   const [invoices, setInvoices] = useState([])
   // const [stats, setStats] = useState(null) // Commented out for now
@@ -43,7 +49,7 @@ const InvoiceList = () => {
   const fetchData = useCallback(async () => {
     if (status === 'loading') return
     if (status === 'unauthenticated' || !session?.accessToken) {
-      setError('Authentication required to fetch invoices. Please log in.')
+      setError(t('auth.authenticationRequired'))
       setLoading(false)
       return
     }
@@ -115,7 +121,7 @@ const InvoiceList = () => {
       // }
     } catch (err) {
       console.error('Error fetching invoice data:', err)
-      setError(err.message || 'Failed to fetch invoice data')
+      setError(err.message || t('common.error'))
     } finally {
       setLoading(false)
     }

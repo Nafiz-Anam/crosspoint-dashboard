@@ -18,7 +18,13 @@ import Divider from '@mui/material/Divider'
 import CustomTextField from '@core/components/mui/TextField'
 import toastService from '@/services/toastService'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
+  // Hooks
+  const { t } = useTranslation()
+
   // States
   const [formData, setFormData] = useState({
     bankName: '',
@@ -53,21 +59,21 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
     const newErrors = {}
 
     if (!formData.bankName.trim()) {
-      newErrors.bankName = 'Bank name is required'
+      newErrors.bankName = t('paymentMethods.bankNameRequired')
     }
 
     if (!formData.bankCountry.trim()) {
-      newErrors.bankCountry = 'Bank country is required'
+      newErrors.bankCountry = t('paymentMethods.currencyRequired')
     }
 
     if (!formData.bankIban.trim()) {
-      newErrors.bankIban = 'IBAN is required'
+      newErrors.bankIban = t('paymentMethods.ibanRequired')
     } else if (formData.bankIban.length < 15 || formData.bankIban.length > 34) {
-      newErrors.bankIban = 'IBAN must be between 15 and 34 characters'
+      newErrors.bankIban = t('paymentMethods.ibanRequired')
     }
 
     if (formData.bankSwiftCode && formData.bankSwiftCode.length < 8) {
-      newErrors.bankSwiftCode = 'SWIFT code must be at least 8 characters'
+      newErrors.bankSwiftCode = t('paymentMethods.swiftCodeRequired')
     }
 
     setErrors(newErrors)
@@ -121,7 +127,7 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
         {/* Header */}
         <Box className='flex items-center justify-between p-6 border-b'>
           <Typography variant='h5' sx={{ fontWeight: 600 }}>
-            Add Bank Account
+            {t('paymentMethods.addNewPaymentMethod')}
           </Typography>
           <Button variant='text' onClick={handleClose} startIcon={<i className='tabler-x' />}>
             Close
@@ -133,54 +139,54 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
           <Box className='space-y-4'>
             <CustomTextField
               fullWidth
-              label='Bank Name'
+              label={t('paymentMethods.fields.bankName')}
               value={formData.bankName}
               onChange={handleChange('bankName')}
               error={!!errors.bankName}
               helperText={errors.bankName}
-              placeholder='Enter bank name'
+              placeholder={t('paymentMethods.enterBankName')}
             />
 
             <CustomTextField
               fullWidth
-              label='Bank Country'
+              label={t('paymentMethods.fields.currency')}
               value={formData.bankCountry}
               onChange={handleChange('bankCountry')}
               error={!!errors.bankCountry}
               helperText={errors.bankCountry}
-              placeholder='Enter country'
+              placeholder={t('paymentMethods.selectCurrency')}
             />
 
             <CustomTextField
               fullWidth
-              label='IBAN'
+              label={t('paymentMethods.fields.iban')}
               value={formData.bankIban}
               onChange={handleChange('bankIban')}
               error={!!errors.bankIban}
               helperText={errors.bankIban || 'International Bank Account Number'}
-              placeholder='Enter IBAN'
+              placeholder={t('paymentMethods.enterIban')}
               sx={{ fontFamily: 'monospace' }}
             />
 
             <CustomTextField
               fullWidth
-              label='SWIFT Code'
+              label={t('paymentMethods.fields.swiftCode')}
               value={formData.bankSwiftCode}
               onChange={handleChange('bankSwiftCode')}
               error={!!errors.bankSwiftCode}
               helperText={errors.bankSwiftCode || 'Optional - Bank Identifier Code'}
-              placeholder='Enter SWIFT code'
+              placeholder={t('paymentMethods.enterSwiftCode')}
               sx={{ fontFamily: 'monospace' }}
             />
 
             <CustomTextField
               fullWidth
-              label='Account Name'
+              label={t('paymentMethods.fields.name')}
               value={formData.accountName}
               onChange={handleChange('accountName')}
               error={!!errors.accountName}
               helperText={errors.accountName || 'Optional - Account holder name'}
-              placeholder='Enter account holder name'
+              placeholder={t('paymentMethods.enterName')}
             />
 
             <Divider />
@@ -188,7 +194,7 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
             <FormControl>
               <FormControlLabel
                 control={<Switch checked={formData.isActive} onChange={handleChange('isActive')} color='primary' />}
-                label='Active'
+                label={t('paymentMethods.status.active')}
               />
             </FormControl>
           </Box>
@@ -197,7 +203,7 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
         {/* Footer */}
         <Box className='flex items-center justify-end gap-3 p-6 border-t'>
           <Button variant='outlined' onClick={handleClose} disabled={loading}>
-            Cancel
+            {t('paymentMethods.cancel')}
           </Button>
           <Button
             type='submit'
@@ -206,7 +212,7 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
             disabled={loading}
             startIcon={loading ? <i className='tabler-loader-2 animate-spin' /> : <i className='tabler-plus' />}
           >
-            {loading ? 'Adding...' : 'Add Bank Account'}
+            {loading ? t('paymentMethods.creating') : t('paymentMethods.create')}
           </Button>
         </Box>
       </Box>

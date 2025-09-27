@@ -41,10 +41,12 @@ import OptionMenu from '@core/components/option-menu'
 import CustomAvatar from '@core/components/mui/Avatar'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
+import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
 
 // Util Imports
 import { getInitials } from '@/utils/getInitials'
 import { getLocalizedUrl } from '@/utils/i18n'
+import { useTranslation } from '@/hooks/useTranslation'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
@@ -99,9 +101,34 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
   const [data, setData] = useState(invoiceData || [])
   const [filteredData, setFilteredData] = useState(data)
   const [globalFilter, setGlobalFilter] = useState('')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [invoiceToDelete, setInvoiceToDelete] = useState(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   // Hooks
   const { lang: locale } = useParams()
+  const { t } = useTranslation()
+
+  // Delete handlers
+  const handleDeleteClick = invoice => {
+    setInvoiceToDelete(invoice)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!invoiceToDelete) return
+
+    try {
+      setDeleteLoading(true)
+      await onInvoiceAction('delete', invoiceToDelete.id)
+      setDeleteDialogOpen(false)
+      setInvoiceToDelete(null)
+    } catch (error) {
+      console.error('Error deleting invoice:', error)
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
 
   const columns = useMemo(
     () => [
@@ -128,7 +155,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         )
       },
       columnHelper.accessor('invoiceNumber', {
-        header: 'Invoice #',
+        header: t('invoices.fields.number'),
         cell: ({ row }) => (
           <Typography
             component={Link}
@@ -140,10 +167,27 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         )
       }),
       columnHelper.accessor('status', {
-        header: 'Status',
+        header: t('invoices.fields.status'),
         cell: ({ row }) => (
           <Chip
-            label={row.original.status}
+            label={(() => {
+              const statusKey = row.original.status?.toLowerCase()
+              let translatedStatus = row.original.status
+
+              // Map status values to translations
+              const statusTranslations = {
+                paid: t('invoices.status.paid'),
+                pending: t('invoices.status.pending'),
+                overdue: t('invoices.status.overdue'),
+                draft: t('invoices.status.draft')
+              }
+
+              if (statusTranslations[statusKey]) {
+                translatedStatus = statusTranslations[statusKey]
+              }
+
+              return translatedStatus
+            })()}
             color={invoiceStatusObj[row.original.status]?.color || 'default'}
             variant='tonal'
             size='small'
@@ -155,7 +199,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         )
       }),
       columnHelper.accessor('client', {
-        header: 'Client',
+        header: t('invoices.fields.client'),
         cell: ({ row }) => (
           <div className='flex items-center gap-3'>
             {getAvatar({ avatar: null, name: row.original.client?.name || 'N/A' })}
@@ -169,22 +213,22 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         )
       }),
       columnHelper.accessor('items', {
-        header: 'Service Name',
+        header: t('invoices.serviceName'),
         cell: ({ row }) => {
           const services = row.original.items?.map(item => item.service?.name).filter(Boolean) || []
           return <Typography variant='body2'>{services.length > 0 ? services.join(', ') : 'N/A'}</Typography>
         }
       }),
       columnHelper.accessor('totalAmount', {
-        header: 'Total',
+        header: t('invoices.fields.amount'),
         cell: ({ row }) => <Typography>{`$${row.original.totalAmount?.toLocaleString() || '0'}`}</Typography>
       }),
       columnHelper.accessor('issuedDate', {
-        header: 'Issued Date',
+        header: t('invoices.fields.date'),
         cell: ({ row }) => <Typography>{new Date(row.original.issuedDate).toLocaleDateString()}</Typography>
       }),
       columnHelper.accessor('dueDate', {
-        header: 'Due Date',
+        header: t('invoices.fields.dueDate'),
         cell: ({ row }) => {
           const dueDate = new Date(row.original.dueDate)
           const isOverdue = dueDate < new Date() && row.original.status === 'UNPAID'
@@ -194,7 +238,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         }
       }),
       columnHelper.accessor('action', {
-        header: 'Action',
+        header: t('invoices.action'),
         cell: ({ row }) => (
           <div className='flex items-center'>
             <IconButton>
@@ -215,7 +259,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
                 ...(row.original.status !== 'PAID'
                   ? [
                       {
-                        text: 'Mark as Paid',
+                        text: t('invoices.markAsPaid'),
                         icon: 'tabler-check',
                         onClick: () => {
                           console.log('Mark as Paid clicked for invoice:', row.original.id)
@@ -229,7 +273,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
                 ...(row.original.status !== 'UNPAID'
                   ? [
                       {
-                        text: 'Mark as Unpaid',
+                        text: t('invoices.markAsUnpaid'),
                         icon: 'tabler-clock',
                         onClick: () => {
                           console.log('Mark as Unpaid clicked for invoice:', row.original.id)
@@ -243,7 +287,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
                 ...(row.original.status !== 'CANCELLED'
                   ? [
                       {
-                        text: 'Mark as Cancelled',
+                        text: t('invoices.markAsCancelled'),
                         icon: 'tabler-x',
                         onClick: () => {
                           console.log('Mark as Cancelled clicked for invoice:', row.original.id)
@@ -255,12 +299,9 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
                   : []),
                 // Always show delete option
                 {
-                  text: 'Delete',
+                  text: t('invoices.delete'),
                   icon: 'tabler-trash',
-                  onClick: () => {
-                    console.log('Delete clicked for invoice:', row.original.id)
-                    onInvoiceAction('delete', row.original.id)
-                  },
+                  onClick: () => handleDeleteClick(row.original),
                   menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
                 }
               ]}
@@ -339,118 +380,130 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
   }
 
   return (
-    <Card>
-      <CardHeader title='Invoice Management' className='pbe-4' />
+    <>
+      <Card>
+        <CardHeader title={t('invoices.invoiceManagement')} className='pbe-4' />
 
-      <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
-        <CustomTextField
-          select
-          label='Status'
-          value={status}
-          onChange={e => handleStatusChange(e.target.value)}
-          className='min-w-[180px]'
-        >
-          <MenuItem value=''>All</MenuItem>
-          <MenuItem value='UNPAID'>Unpaid</MenuItem>
-          <MenuItem value='PAID'>Paid</MenuItem>
-          <MenuItem value='OVERDUE'>Overdue</MenuItem>
-          <MenuItem value='CANCELLED'>Cancelled</MenuItem>
-        </CustomTextField>
+        <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
+          <CustomTextField
+            select
+            label={t('invoices.fields.status')}
+            value={status}
+            onChange={e => handleStatusChange(e.target.value)}
+            className='min-w-[180px]'
+          >
+            <MenuItem value=''>{t('invoices.all')}</MenuItem>
+            <MenuItem value='UNPAID'>{t('invoices.unpaid')}</MenuItem>
+            <MenuItem value='PAID'>{t('invoices.paid')}</MenuItem>
+            <MenuItem value='OVERDUE'>{t('invoices.overdue')}</MenuItem>
+            <MenuItem value='CANCELLED'>{t('invoices.cancelled')}</MenuItem>
+          </CustomTextField>
 
-        <CustomTextField
-          select
-          label='Client'
-          value={filters.client || ''}
-          onChange={e => onFilterChange({ ...filters, client: e.target.value })}
-          className='min-w-[180px]'
-        >
-          <MenuItem value=''>All</MenuItem>
-          {/* Add client options here if needed */}
-        </CustomTextField>
+          <CustomTextField
+            select
+            label={t('invoices.fields.client')}
+            value={filters.client || ''}
+            onChange={e => onFilterChange({ ...filters, client: e.target.value })}
+            className='min-w-[180px]'
+          >
+            <MenuItem value=''>{t('invoices.all')}</MenuItem>
+            {/* Add client options here if needed */}
+          </CustomTextField>
 
-        <DebouncedInput
-          value={globalFilter ?? ''}
-          onChange={value => setGlobalFilter(String(value))}
-          placeholder='Search invoice...'
-          className='min-w-[200px]'
+          <DebouncedInput
+            value={globalFilter ?? ''}
+            onChange={value => setGlobalFilter(String(value))}
+            placeholder={t('invoices.searchInvoice')}
+            className='min-w-[200px]'
+          />
+
+          <Button
+            variant='contained'
+            component={Link}
+            startIcon={<i className='tabler-plus' />}
+            href={getLocalizedUrl('apps/invoice/add', locale)}
+            className='ml-auto h-[40px]'
+          >
+            {t('invoices.createInvoice')}
+          </Button>
+        </div>
+        <div className='overflow-x-auto'>
+          <table className={tableStyles.table}>
+            <thead>
+              {table.getHeaderGroups().map(headerGroup => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map(header => (
+                    <th key={header.id}>
+                      {header.isPlaceholder ? null : (
+                        <>
+                          <div
+                            className={classnames({
+                              'flex items-center': header.column.getIsSorted(),
+                              'cursor-pointer select-none': header.column.getCanSort()
+                            })}
+                            onClick={header.column.getToggleSortingHandler()}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            {{
+                              asc: <i className='tabler-chevron-up text-xl' />,
+                              desc: <i className='tabler-chevron-down text-xl' />
+                            }[header.column.getIsSorted()] ?? null}
+                          </div>
+                        </>
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            {table.getFilteredRowModel().rows.length === 0 ? (
+              <tbody>
+                <tr>
+                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
+                    {t('invoices.noDataAvailable')}
+                  </td>
+                </tr>
+              </tbody>
+            ) : (
+              <tbody>
+                {table
+                  .getRowModel()
+                  .rows.slice(0, table.getState().pagination.pageSize)
+                  .map(row => {
+                    return (
+                      <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
+                        {row.getVisibleCells().map(cell => (
+                          <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                        ))}
+                      </tr>
+                    )
+                  })}
+              </tbody>
+            )}
+          </table>
+        </div>
+        <TablePagination
+          component={() => <TablePaginationComponent table={table} />}
+          count={table.getFilteredRowModel().rows.length}
+          rowsPerPage={table.getState().pagination.pageSize}
+          page={table.getState().pagination.pageIndex}
+          onPageChange={(_, page) => {
+            table.setPageIndex(page)
+          }}
+          onRowsPerPageChange={e => table.setPageSize(Number(e.target.value))}
         />
+      </Card>
 
-        <Button
-          variant='contained'
-          component={Link}
-          startIcon={<i className='tabler-plus' />}
-          href={getLocalizedUrl('apps/invoice/add', locale)}
-          className='ml-auto h-[40px]'
-        >
-          Create Invoice
-        </Button>
-      </div>
-      <div className='overflow-x-auto'>
-        <table className={tableStyles.table}>
-          <thead>
-            {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <th key={header.id}>
-                    {header.isPlaceholder ? null : (
-                      <>
-                        <div
-                          className={classnames({
-                            'flex items-center': header.column.getIsSorted(),
-                            'cursor-pointer select-none': header.column.getCanSort()
-                          })}
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {{
-                            asc: <i className='tabler-chevron-up text-xl' />,
-                            desc: <i className='tabler-chevron-down text-xl' />
-                          }[header.column.getIsSorted()] ?? null}
-                        </div>
-                      </>
-                    )}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          {table.getFilteredRowModel().rows.length === 0 ? (
-            <tbody>
-              <tr>
-                <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
-                  No data available
-                </td>
-              </tr>
-            </tbody>
-          ) : (
-            <tbody>
-              {table
-                .getRowModel()
-                .rows.slice(0, table.getState().pagination.pageSize)
-                .map(row => {
-                  return (
-                    <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
-                      {row.getVisibleCells().map(cell => (
-                        <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
-                      ))}
-                    </tr>
-                  )
-                })}
-            </tbody>
-          )}
-        </table>
-      </div>
-      <TablePagination
-        component={() => <TablePaginationComponent table={table} />}
-        count={table.getFilteredRowModel().rows.length}
-        rowsPerPage={table.getState().pagination.pageSize}
-        page={table.getState().pagination.pageIndex}
-        onPageChange={(_, page) => {
-          table.setPageIndex(page)
-        }}
-        onRowsPerPageChange={e => table.setPageSize(Number(e.target.value))}
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        setOpen={setDeleteDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        title={t('invoices.deleteConfirmation.title')}
+        message={t('invoices.deleteConfirmation.message')}
+        itemName={invoiceToDelete?.invoiceNumber || `Invoice #${invoiceToDelete?.id}`}
+        loading={deleteLoading}
       />
-    </Card>
+    </>
   )
 }
 

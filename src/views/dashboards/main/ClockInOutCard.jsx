@@ -20,8 +20,12 @@ import ClockOutNoteDialog from '@/components/ClockOutNoteDialog'
 // Service Imports
 import { attendanceService } from '@/services/attendanceService'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const ClockInOutCard = () => {
   const { data: session } = useSession()
+  const { t } = useTranslation()
   const [isClockedIn, setIsClockedIn] = useState(false)
   const [clockInTime, setClockInTime] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -46,7 +50,7 @@ const ClockInOutCard = () => {
       }
     } catch (err) {
       console.error('Error fetching attendance:', err)
-      setError('Failed to fetch attendance data')
+      setError(t('dashboard.common.error'))
     } finally {
       setLoading(false)
     }
@@ -61,7 +65,7 @@ const ClockInOutCard = () => {
 
   const handleClockInOut = async () => {
     if (!session?.accessToken) {
-      setError('Authentication required')
+      setError(t('dashboard.common.error'))
       return
     }
 
@@ -82,7 +86,7 @@ const ClockInOutCard = () => {
         }
       } catch (err) {
         console.error('Clock in error:', err)
-        setError(err.message || 'Failed to clock in')
+        setError(err.message || t('dashboard.common.error'))
       } finally {
         setLoading(false)
       }
@@ -91,7 +95,7 @@ const ClockInOutCard = () => {
 
   const handleClockOutWithNote = async note => {
     if (!session?.accessToken) {
-      setError('Authentication required')
+      setError(t('dashboard.common.error'))
       return
     }
 
@@ -108,7 +112,7 @@ const ClockInOutCard = () => {
       }
     } catch (err) {
       console.error('Clock out error:', err)
-      setError(err.message || 'Failed to clock out')
+      setError(err.message || t('dashboard.common.error'))
     } finally {
       setClockOutLoading(false)
     }
@@ -135,7 +139,7 @@ const ClockInOutCard = () => {
         <CardContent className='flex flex-col gap-y-4 items-center justify-center h-full'>
           <CircularProgress size={40} />
           <Typography variant='body2' color='text.secondary'>
-            Loading attendance...
+            {t('dashboard.common.loading')}
           </Typography>
         </CardContent>
       </Card>
@@ -157,7 +161,7 @@ const ClockInOutCard = () => {
 
         <div className='flex flex-col gap-y-1'>
           <Typography variant='h6' color='text.primary'>
-            {isClockedIn ? 'You are currently clocked in' : 'You are currently clocked out'}
+            {isClockedIn ? t('dashboard.clockInOut.currentlyClockedIn') : t('dashboard.clockInOut.currentlyClockedOut')}
           </Typography>
           {isClockedIn && clockInTime && (
             <Typography variant='body2' color='text.secondary'>
@@ -180,7 +184,11 @@ const ClockInOutCard = () => {
           }
           sx={{ mt: 1 }}
         >
-          {loading ? 'Processing...' : isClockedIn ? 'Clock Out' : 'Clock In'}
+          {loading
+            ? t('dashboard.common.loading')
+            : isClockedIn
+              ? t('dashboard.clockInOut.clockOut')
+              : t('dashboard.clockInOut.clockIn')}
         </Button>
 
         {/* Clock Out Note Dialog */}

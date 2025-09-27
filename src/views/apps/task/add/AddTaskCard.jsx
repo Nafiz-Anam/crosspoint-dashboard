@@ -61,7 +61,9 @@ const AddTaskCard = () => {
       status: 'PENDING',
       startDate: '',
       dueDate: ''
-    }
+    },
+    mode: 'onChange', // Enable real-time validation
+    reValidateMode: 'onChange' // Re-validate on change
   })
 
   const watchedClientId = watch('clientId')
@@ -220,14 +222,67 @@ const AddTaskCard = () => {
       return
     }
 
+    // Check if form has validation errors
+    if (Object.keys(errors).length > 0) {
+      toastService.showError('Please fix validation errors before submitting')
+      setLoading(false)
+      return
+    }
+
+    // Validate all required fields before API call
+    const requiredFields = {
+      description: data.description?.trim(),
+      clientId: data.clientId,
+      categoryId: data.categoryId,
+      serviceId: data.serviceId,
+      assignedEmployeeId: data.assignedEmployeeId,
+      status: data.status,
+      startDate: data.startDate,
+      dueDate: data.dueDate
+    }
+
+    // Check if any required field is empty
+    const emptyFields = Object.entries(requiredFields).filter(
+      ([key, value]) => !value || (typeof value === 'string' && !value.trim())
+    )
+
+    if (emptyFields.length > 0) {
+      const fieldNames = emptyFields.map(([key]) => {
+        const fieldLabels = {
+          description: 'Description',
+          clientId: 'Client',
+          categoryId: 'Category',
+          serviceId: 'Service',
+          assignedEmployeeId: 'Assigned Employee',
+          status: 'Status',
+          startDate: 'Start Date',
+          dueDate: 'Due Date'
+        }
+        return fieldLabels[key] || key
+      })
+
+      toastService.showError(`Please fill all required fields: ${fieldNames.join(', ')}`)
+      setLoading(false)
+      return
+    }
+
+    // Validate date order
+    const startDate = new Date(data.startDate)
+    const dueDate = new Date(data.dueDate)
+    if (startDate >= dueDate) {
+      toastService.showError('Start date must be before due date')
+      setLoading(false)
+      return
+    }
+
     const payload = {
-      description: data.description || null,
+      description: data.description.trim(),
       clientId: data.clientId,
       serviceId: data.serviceId,
       assignedEmployeeId: data.assignedEmployeeId,
       status: data.status,
-      startDate: data.startDate ? new Date(data.startDate).toISOString() : null,
-      dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : null
+      startDate: data.startDate,
+      dueDate: data.dueDate
     }
 
     try {
@@ -290,7 +345,7 @@ const AddTaskCard = () => {
                   <CustomTextField
                     select
                     fullWidth
-                    label='Select Client'
+                    label='Select Client *'
                     {...field}
                     {...(errors.clientId && { error: true, helperText: errors.clientId.message })}
                     InputProps={{
@@ -325,7 +380,7 @@ const AddTaskCard = () => {
                   <CustomTextField
                     select
                     fullWidth
-                    label='Select Category'
+                    label='Select Category *'
                     {...field}
                     {...(errors.categoryId && { error: true, helperText: errors.categoryId.message })}
                     InputProps={{
@@ -360,7 +415,7 @@ const AddTaskCard = () => {
                   <CustomTextField
                     select
                     fullWidth
-                    label='Select Service'
+                    label='Select Service *'
                     {...field}
                     {...(errors.serviceId && { error: true, helperText: errors.serviceId.message })}
                     InputProps={{
@@ -400,7 +455,7 @@ const AddTaskCard = () => {
                   <CustomTextField
                     select
                     fullWidth
-                    label='Assign To Employee'
+                    label='Assign To Employee *'
                     {...field}
                     {...(errors.assignedEmployeeId && { error: true, helperText: errors.assignedEmployeeId.message })}
                     InputProps={{
@@ -430,13 +485,15 @@ const AddTaskCard = () => {
               <Controller
                 name='startDate'
                 control={control}
+                rules={{ required: 'Start date is required.' }}
                 render={({ field }) => (
                   <CustomTextField
                     {...field}
                     fullWidth
                     type='date'
-                    label='Start Date (Optional)'
+                    label='Start Date *'
                     InputLabelProps={{ shrink: true }}
+                    {...(errors.startDate && { error: true, helperText: errors.startDate.message })}
                   />
                 )}
               />
@@ -446,13 +503,15 @@ const AddTaskCard = () => {
               <Controller
                 name='dueDate'
                 control={control}
+                rules={{ required: 'Due date is required.' }}
                 render={({ field }) => (
                   <CustomTextField
                     {...field}
                     fullWidth
                     type='date'
-                    label='Due Date (Optional)'
+                    label='Due Date *'
                     InputLabelProps={{ shrink: true }}
+                    {...(errors.dueDate && { error: true, helperText: errors.dueDate.message })}
                   />
                 )}
               />
@@ -467,7 +526,7 @@ const AddTaskCard = () => {
                   <CustomTextField
                     select
                     fullWidth
-                    label='Status'
+                    label='Status *'
                     {...field}
                     {...(errors.status && { error: true, helperText: errors.status.message })}
                   >
@@ -485,14 +544,16 @@ const AddTaskCard = () => {
               <Controller
                 name='description'
                 control={control}
+                rules={{ required: 'Description is required.' }}
                 render={({ field }) => (
                   <CustomTextField
                     {...field}
                     fullWidth
                     multiline
                     rows={3}
-                    label='Description (Optional)'
+                    label='Description *'
                     placeholder='Enter task description'
+                    {...(errors.description && { error: true, helperText: errors.description.message })}
                   />
                 )}
               />
@@ -505,7 +566,7 @@ const AddTaskCard = () => {
                   type='submit'
                   loading={loading}
                   loadingText='Creating...'
-                  disabled={loading}
+                  disabled={loading || Object.keys(errors).length > 0}
                 >
                   Create Task
                 </LoadingButton>

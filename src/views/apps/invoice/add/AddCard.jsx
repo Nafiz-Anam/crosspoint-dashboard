@@ -29,6 +29,9 @@ import CompanyInfoSection from '@/components/CompanyInfoSection'
 // Styled Component Imports
 import AppReactDatepicker from '@/libs/styles/AppReactDatepicker'
 
+// Util Imports
+import { useTranslation } from '@/hooks/useTranslation'
+
 const AddCard = ({
   invoiceData,
   invoiceState,
@@ -40,6 +43,9 @@ const AddCard = ({
   companyInfo = null,
   onCompanyInfoChange = () => {}
 }) => {
+  // Hooks
+  const { t } = useTranslation()
+
   // Destructure from shared state
   const {
     selectedClient,
@@ -226,7 +232,8 @@ const AddCard = ({
 
   const calculateTax = () => {
     const subtotal = calculateInvoiceTotal()
-    const tax = subtotal * 0.21
+    const taxRate = parseFloat(invoiceState.taxRate) || 0
+    const tax = subtotal * (taxRate / 100)
     return isNaN(tax) ? 0 : tax
   }
 
@@ -243,7 +250,7 @@ const AddCard = ({
       <Card>
         <CardContent className='sm:!p-12'>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-            <Typography>Loading invoice data...</Typography>
+            <Typography>{t('invoices.loadingInvoiceData')}</Typography>
           </div>
         </CardContent>
       </Card>
@@ -271,12 +278,12 @@ const AddCard = ({
                 <div className='flex flex-col gap-2'>
                   <div className='flex items-center gap-4'>
                     <Typography variant='h5' className='min-is-[95px]'>
-                      Invoice
+                      {t('invoices.title')}
                     </Typography>
                     <CustomTextField
                       fullWidth
                       value={invoiceNumber || ''}
-                      placeholder='Invoice number will be generated'
+                      placeholder={t('invoices.invoiceNumberGenerated')}
                       slotProps={{
                         input: {
                           disabled: true,
@@ -287,7 +294,7 @@ const AddCard = ({
                   </div>
                   <div className='flex items-center'>
                     <Typography className='min-is-[95px] mie-4' color='text.primary'>
-                      Date Issued:
+                      {t('invoices.dateIssued')}
                     </Typography>
                     <AppReactDatepicker
                       boxProps={{ className: 'is-full' }}
@@ -300,7 +307,7 @@ const AddCard = ({
                   </div>
                   <div className='flex items-center'>
                     <Typography className='min-is-[95px] mie-4' color='text.primary'>
-                      Date Due:
+                      {t('invoices.dateDue')}
                     </Typography>
                     <AppReactDatepicker
                       boxProps={{ className: 'is-full' }}
@@ -321,17 +328,17 @@ const AddCard = ({
             <div className='flex justify-between flex-col gap-4 flex-wrap sm:flex-row'>
               <div className='flex flex-col gap-4'>
                 <Typography className='font-medium' color='text.primary'>
-                  Invoice To:
+                  {t('invoices.invoiceTo')}
                 </Typography>
                 <CustomTextField
                   select
                   className={classnames('min-is-[220px]', { 'is-1/2': isBelowSmScreen })}
                   value={selectedClient?.id || ''}
                   onChange={e => handleClientChange(e.target.value)}
-                  label='Select Client'
+                  label={t('invoices.selectClient')}
                 >
                   <MenuItem value=''>
-                    <em>Choose a client</em>
+                    <em>{t('invoices.chooseClient')}</em>
                   </MenuItem>
                   {clients &&
                     clients.length > 0 &&
@@ -358,7 +365,7 @@ const AddCard = ({
                   </div>
                 ) : (
                   <div>
-                    <Typography color='textSecondary'>No client selected</Typography>
+                    <Typography color='textSecondary'>{t('invoices.noClientSelected')}</Typography>
                     <Typography color='textSecondary' variant='caption'>
                       Debug: selectedClient = {JSON.stringify(selectedClient)}
                     </Typography>
@@ -366,39 +373,39 @@ const AddCard = ({
                 )}
               </div>
 
-              {/* Bill To Section - Show bank details */}
+              {/* Payment Method Section - Show bank details */}
               <div className='flex flex-col gap-4'>
                 <Typography className='font-medium' color='text.primary'>
-                  Bill To:
+                  Payment Method:
                 </Typography>
                 <div>
                   <div className='flex items-center gap-4'>
-                    <Typography className='min-is-[100px]'>Total Due:</Typography>
+                    <Typography className='min-is-[100px]'>{t('invoices.totalDue')}</Typography>
                     <Typography className='font-medium text-primary'>${calculateFinalTotal().toFixed(2)}</Typography>
                   </div>
                   {bankDetails ? (
                     <>
                       <div className='flex items-center gap-4'>
-                        <Typography className='min-is-[100px]'>Bank name:</Typography>
+                        <Typography className='min-is-[100px]'>{t('invoices.bankName')}</Typography>
                         <Typography>{bankDetails.bankName}</Typography>
                       </div>
                       <div className='flex items-center gap-4'>
-                        <Typography className='min-is-[100px]'>Country:</Typography>
+                        <Typography className='min-is-[100px]'>{t('invoices.country')}</Typography>
                         <Typography>{bankDetails.country}</Typography>
                       </div>
                       <div className='flex items-center gap-4'>
-                        <Typography className='min-is-[100px]'>IBAN:</Typography>
+                        <Typography className='min-is-[100px]'>{t('invoices.iban')}</Typography>
                         <Typography>{bankDetails.iban}</Typography>
                       </div>
                       <div className='flex items-center gap-4'>
-                        <Typography className='min-is-[100px]'>SWIFT code:</Typography>
+                        <Typography className='min-is-[100px]'>{t('invoices.swiftCode')}</Typography>
                         <Typography>{bankDetails.swiftCode}</Typography>
                       </div>
                     </>
                   ) : (
                     <div className='flex items-center gap-4'>
-                      <Typography className='min-is-[100px]'>Bank name:</Typography>
-                      <Typography color='textSecondary'>No bank account selected</Typography>
+                      <Typography className='min-is-[100px]'>{t('invoices.bankName')}</Typography>
+                      <Typography color='textSecondary'>{t('invoices.noBankAccountSelected')}</Typography>
                     </div>
                   )}
                 </div>
@@ -414,10 +421,10 @@ const AddCard = ({
           <Grid size={{ xs: 12 }}>
             <div className='flex justify-between items-center mb-4'>
               <Typography variant='h6' color='text.primary'>
-                Services
+                {t('invoices.services')}
               </Typography>
               <Typography variant='body2' color='text.secondary'>
-                Payment Method: {paymentMethod}
+                {t('invoices.paymentMethod')} {paymentMethod}
               </Typography>
             </div>
 
@@ -432,7 +439,7 @@ const AddCard = ({
                     {/* Service Category */}
                     <Grid size={{ xs: 12, md: 3 }}>
                       <Typography className='font-medium mb-2' color='text.primary'>
-                        Service Category
+                        {t('invoices.serviceCategory')}
                       </Typography>
                       <Controller
                         name={`items.${index}.categoryId`}
@@ -451,10 +458,10 @@ const AddCard = ({
                             }}
                           >
                             <MenuItem value=''>
-                              <em>Select Category</em>
+                              <em>{t('invoices.selectCategory')}</em>
                             </MenuItem>
                             {!categoriesLoaded ? (
-                              <MenuItem disabled>Loading categories...</MenuItem>
+                              <MenuItem disabled>{t('invoices.loadingCategories')}</MenuItem>
                             ) : categories.length > 0 ? (
                               categories.map(category => (
                                 <MenuItem key={category} value={category}>
@@ -462,7 +469,7 @@ const AddCard = ({
                                 </MenuItem>
                               ))
                             ) : (
-                              <MenuItem disabled>No categories available</MenuItem>
+                              <MenuItem disabled>{t('invoices.noCategoriesAvailable')}</MenuItem>
                             )}
                           </CustomTextField>
                         )}
@@ -472,7 +479,7 @@ const AddCard = ({
                     {/* Service Name */}
                     <Grid size={{ xs: 12, md: 3 }}>
                       <Typography className='font-medium mb-2' color='text.primary'>
-                        Service Name
+                        {t('invoices.serviceName')}
                       </Typography>
                       <Controller
                         name={`items.${index}.serviceId`}
@@ -490,7 +497,11 @@ const AddCard = ({
                             disabled={!watchedItems[index]?.categoryId}
                           >
                             <MenuItem value=''>
-                              <em>{watchedItems[index]?.categoryId ? 'Select Service' : 'Select Category First'}</em>
+                              <em>
+                                {watchedItems[index]?.categoryId
+                                  ? t('invoices.selectService')
+                                  : t('invoices.selectCategoryFirst')}
+                              </em>
                             </MenuItem>
                             {watchedItems[index]?.categoryId &&
                               getFilteredServices(watchedItems[index].categoryId).map(service => (
@@ -506,7 +517,7 @@ const AddCard = ({
                     {/* Rate */}
                     <Grid size={{ xs: 6, md: 1.5 }}>
                       <Typography className='font-medium mb-2' color='text.primary'>
-                        Rate
+                        {t('invoices.rate')}
                       </Typography>
                       <div className='bg-gray-50 rounded border text-center min-h-[40px] flex items-center justify-center'>
                         <Typography variant='body1' className='font-medium'>
@@ -518,7 +529,7 @@ const AddCard = ({
                     {/* Discount */}
                     <Grid size={{ xs: 6, md: 1.5 }}>
                       <Typography className='font-medium mb-2' color='text.primary'>
-                        Discount
+                        {t('invoices.discount')}
                       </Typography>
                       <CustomTextField
                         type='number'
@@ -553,7 +564,7 @@ const AddCard = ({
                     {/* Total */}
                     <Grid size={{ xs: 6, md: 2 }}>
                       <Typography className='font-medium mb-2' color='text.primary'>
-                        Total
+                        {t('invoices.total')}
                       </Typography>
                       <div className='bg-primary-50 rounded border text-center min-h-[40px] flex items-center justify-center border-primary-200'>
                         <Typography variant='h6' color='primary' className='font-semibold'>
@@ -591,7 +602,7 @@ const AddCard = ({
                   <Grid container spacing={2} sx={{ mt: 2 }}>
                     <Grid size={{ xs: 12 }}>
                       <Typography className='font-medium mb-2' color='text.primary'>
-                        Description
+                        {t('invoices.description')}
                       </Typography>
                       <CustomTextField
                         fullWidth
@@ -607,7 +618,7 @@ const AddCard = ({
               ))
             ) : (
               <div className='text-center p-4'>
-                <Typography color='textSecondary'>No invoice items found</Typography>
+                <Typography color='textSecondary'>{t('invoices.noInvoiceItemsFound')}</Typography>
                 <Typography color='textSecondary' variant='caption'>
                   Debug: invoiceItems = {JSON.stringify(invoiceItems)}
                 </Typography>
@@ -621,7 +632,7 @@ const AddCard = ({
                 onClick={addInvoiceItem}
                 startIcon={<i className='tabler-plus' />}
               >
-                Add Service
+                {t('invoices.addService')}
               </Button>
             </Grid>
           </Grid>
@@ -637,7 +648,7 @@ const AddCard = ({
               <div className='flex flex-col gap-4 lg:w-[70%] lg:pr-6'>
                 <div className='flex flex-col gap-2'>
                   <Typography className='font-medium' color='text.primary'>
-                    Salesperson:
+                    {t('invoices.salesperson')}
                   </Typography>
                   <CustomTextField
                     select
@@ -647,7 +658,7 @@ const AddCard = ({
                     size='small'
                   >
                     <MenuItem value=''>
-                      <em>Select Salesperson</em>
+                      <em>{t('invoices.selectSalesperson')}</em>
                     </MenuItem>
                     {employees &&
                       employees.length > 0 &&
@@ -661,8 +672,8 @@ const AddCard = ({
 
                 <CustomTextField
                   fullWidth
-                  placeholder='Thanks for your business'
-                  label='Thanks Message *'
+                  placeholder={t('invoices.thanksForBusiness')}
+                  label={`${t('invoices.thanksMessage')} *`}
                   value={thanksMessage || ''}
                   onChange={e => updateInvoiceState({ thanksMessage: e.target.value })}
                   required
@@ -672,7 +683,7 @@ const AddCard = ({
                 {paymentTerms && (
                   <div>
                     <InputLabel htmlFor='payment-terms-field' className='inline-flex mbe-1 text-textPrimary'>
-                      Payment Terms:
+                      {t('invoices.paymentTerms')}
                     </InputLabel>
                     <CustomTextField
                       id='payment-terms-field'
@@ -680,7 +691,7 @@ const AddCard = ({
                       fullWidth
                       multiline
                       className='border rounded'
-                      placeholder='Enter payment terms (e.g., Payment due within 30 days of invoice date)'
+                      placeholder={t('invoices.enterPaymentTerms')}
                       value={paymentTermsText || ''}
                       onChange={e => updateInvoiceState({ paymentTermsText: e.target.value })}
                     />
@@ -692,26 +703,28 @@ const AddCard = ({
               <div className='lg:w-[30%] lg:pl-6'>
                 <div className='flex flex-col gap-2 bg-gray-50 p-4 rounded'>
                   <div className='flex items-center justify-between'>
-                    <Typography>Subtotal:</Typography>
+                    <Typography>{t('invoices.subtotalLabel')}</Typography>
                     <Typography className='font-medium' color='text.primary'>
                       ${calculateSubtotal().toFixed(2)}
                     </Typography>
                   </div>
                   <div className='flex items-center justify-between'>
-                    <Typography>Discount:</Typography>
+                    <Typography>{t('invoices.discountLabel')}</Typography>
                     <Typography className='font-medium' color='text.primary'>
                       ${calculateTotalDiscount().toFixed(2)}
                     </Typography>
                   </div>
                   <div className='flex items-center justify-between'>
-                    <Typography>Tax ({taxRate || 0}%):</Typography>
+                    <Typography>
+                      {t('invoices.taxLabel')} ({taxRate || 0}%):
+                    </Typography>
                     <Typography className='font-medium' color='text.primary'>
                       ${calculateTax().toFixed(2)}
                     </Typography>
                   </div>
                   <Divider className='my-2' />
                   <div className='flex items-center justify-between'>
-                    <Typography className='font-medium'>Total:</Typography>
+                    <Typography className='font-medium'>{t('invoices.totalLabel')}</Typography>
                     <Typography className='font-medium text-lg' color='primary'>
                       ${calculateFinalTotal().toFixed(2)}
                     </Typography>
@@ -728,7 +741,7 @@ const AddCard = ({
                 <Divider className='border-dashed my-4' />
                 <div>
                   <InputLabel htmlFor='client-notes-field' className='inline-flex mbe-1 text-textPrimary'>
-                    Client Notes:
+                    {t('invoices.clientNotes')}
                   </InputLabel>
                   <CustomTextField
                     id='client-notes-field'
@@ -736,7 +749,7 @@ const AddCard = ({
                     fullWidth
                     multiline
                     className='border rounded'
-                    placeholder='Add notes that will be visible to the client on the invoice'
+                    placeholder={t('invoices.addClientNotes')}
                     value={clientNotesText || ''}
                     onChange={e => updateInvoiceState({ clientNotesText: e.target.value })}
                   />

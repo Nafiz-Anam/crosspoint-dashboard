@@ -22,7 +22,12 @@ import clientService from '@/libs/clientService'
 import serviceService from '@/libs/serviceService'
 import branchService from '@/libs/branchService'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const AddInvoice = () => {
+  const { t } = useTranslation()
+
   // States
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -47,7 +52,7 @@ const AddInvoice = () => {
       setBranches(branchesRes.data?.branches || [])
     } catch (err) {
       console.error('Error fetching data:', err)
-      setError(err.message || 'Failed to fetch required data')
+      setError(err.message || t('common.error'))
     } finally {
       setLoading(false)
     }
@@ -66,7 +71,7 @@ const AddInvoice = () => {
       window.location.href = '/apps/invoice/list'
     } catch (err) {
       console.error('Error creating invoice:', err)
-      setError(err.message || 'Failed to create invoice')
+      setError(err.message || t('common.error'))
     } finally {
       setLoading(false)
     }
@@ -97,10 +102,10 @@ const AddInvoice = () => {
             <Box display='flex' justifyContent='space-between' alignItems='center'>
               <Box>
                 <Typography variant='h5' sx={{ fontWeight: 600 }}>
-                  Create New Invoice
+                  {t('invoices.createNewInvoice')}
                 </Typography>
                 <Typography variant='body2' color='text.secondary'>
-                  Fill in the details to create a new invoice
+                  {t('invoices.fillDetailsToCreate')}
                 </Typography>
               </Box>
               <Button
@@ -108,7 +113,7 @@ const AddInvoice = () => {
                 startIcon={<i className='tabler-arrow-left' />}
                 onClick={() => window.history.back()}
               >
-                Back
+                {t('common.back')}
               </Button>
             </Box>
           </CardContent>

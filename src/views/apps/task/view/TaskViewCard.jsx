@@ -25,6 +25,9 @@ import toastService from '@/services/toastService'
 // Utils
 import { getLocalizedUrl } from '@/utils/i18n'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const taskStatusObj = {
   PENDING: 'warning',
   IN_PROGRESS: 'info',
@@ -43,6 +46,7 @@ const TaskViewCard = () => {
   const router = useRouter()
   const params = useParams()
   const taskId = params.id
+  const { t } = useTranslation()
 
   // Function to fetch task data
   const fetchTaskData = async () => {
@@ -62,10 +66,10 @@ const TaskViewCard = () => {
         const data = await response.json()
         setTask(data.data.task)
       } else {
-        await toastService.handleApiError(response, 'Failed to fetch task data')
+        await toastService.handleApiError(response, t('tasks.failedToCreateTask'))
       }
     } catch (error) {
-      await toastService.handleApiError(error, 'Network error fetching task data')
+      await toastService.handleApiError(error, t('tasks.networkError'))
     } finally {
       setLoading(false)
     }
@@ -106,7 +110,7 @@ const TaskViewCard = () => {
         <CardContent>
           <div className='flex justify-center items-center p-6'>
             <CircularProgress />
-            <Typography className='ml-4'>Loading task details...</Typography>
+            <Typography className='ml-4'>{t('tasks.loadingTasks')}</Typography>
           </div>
         </CardContent>
       </Card>
@@ -118,7 +122,7 @@ const TaskViewCard = () => {
       <Card>
         <CardContent>
           <Typography variant='h6' color='error'>
-            Task not found or you don&apos;t have permission to view this task.
+            {t('tasks.taskDetails')} not found or you don&apos;t have permission to view this task.
           </Typography>
         </CardContent>
       </Card>
@@ -128,7 +132,7 @@ const TaskViewCard = () => {
   return (
     <Card>
       <CardHeader
-        title={`Task: ${task.title}`}
+        title={`${t('tasks.title')}: ${task.title}`}
         action={
           <Box className='flex gap-2'>
             <Button
@@ -136,14 +140,14 @@ const TaskViewCard = () => {
               onClick={() => router.push(getLocalizedUrl(`/apps/task/edit/${task.id}`, params.lang))}
               startIcon={<i className='tabler-edit' />}
             >
-              Edit Task
+              {t('tasks.edit')}
             </Button>
             <Button
               variant='contained'
               onClick={() => router.push(getLocalizedUrl('/apps/task/list', params.lang))}
               startIcon={<i className='tabler-arrow-left' />}
             >
-              Back to List
+              {t('common.back')}
             </Button>
           </Box>
         }
@@ -153,13 +157,13 @@ const TaskViewCard = () => {
           {/* Basic Information */}
           <Grid item xs={12}>
             <Typography variant='h6' gutterBottom>
-              Basic Information
+              {t('tasks.basicInformation')}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Task ID
+                  {t('tasks.taskId')}
                 </Typography>
                 <Typography variant='body1' className='font-medium'>
                   {task.taskId || '-'}
@@ -167,12 +171,30 @@ const TaskViewCard = () => {
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Status
+                  {t('tasks.fields.status')}
                 </Typography>
                 <Box sx={{ mt: 0.5 }}>
                   <Chip
                     variant='tonal'
-                    label={task.status}
+                    label={(() => {
+                      const statusKey = task.status?.toLowerCase()
+                      let translatedStatus = task.status
+
+                      // Map status values to translations
+                      const statusTranslations = {
+                        pending: t('tasks.status.pending'),
+                        in_progress: t('tasks.status.inProgress'),
+                        completed: t('tasks.status.completed'),
+                        cancelled: t('tasks.status.cancelled'),
+                        on_hold: t('tasks.status.onHold')
+                      }
+
+                      if (statusTranslations[statusKey]) {
+                        translatedStatus = statusTranslations[statusKey]
+                      }
+
+                      return translatedStatus
+                    })()}
                     size='small'
                     color={taskStatusObj[task.status]}
                     className='capitalize'
@@ -181,7 +203,7 @@ const TaskViewCard = () => {
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Created Date
+                  {t('tasks.createdDate')}
                 </Typography>
                 <Typography variant='body1'>{formatDateTime(task.createdAt)}</Typography>
               </Grid>
@@ -192,7 +214,7 @@ const TaskViewCard = () => {
           {task.description && (
             <Grid item xs={12}>
               <Typography variant='h6' gutterBottom>
-                Description
+                {t('tasks.description')}
               </Typography>
               <Divider sx={{ mb: 2 }} />
               <Typography variant='body1' sx={{ whiteSpace: 'pre-wrap' }}>
@@ -204,13 +226,13 @@ const TaskViewCard = () => {
           {/* Client Information */}
           <Grid item xs={12}>
             <Typography variant='h6' gutterBottom>
-              Client Information
+              {t('tasks.clientInformation')}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Client Name
+                  {t('tasks.clientName')}
                 </Typography>
                 <Typography variant='body1' className='font-medium'>
                   {task.client?.name || '-'}
@@ -218,19 +240,19 @@ const TaskViewCard = () => {
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Client Email
+                  {t('tasks.clientEmail')}
                 </Typography>
                 <Typography variant='body1'>{task.client?.email || '-'}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Client Phone
+                  {t('tasks.clientPhone')}
                 </Typography>
                 <Typography variant='body1'>{task.client?.phone || '-'}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Branch
+                  {t('employees.fields.branch')}
                 </Typography>
                 <Typography variant='body1'>{task.client?.branch?.name || '-'}</Typography>
               </Grid>
@@ -240,13 +262,13 @@ const TaskViewCard = () => {
           {/* Service Information */}
           <Grid item xs={12}>
             <Typography variant='h6' gutterBottom>
-              Service Information
+              {t('tasks.serviceInformation')}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Service Name
+                  {t('tasks.serviceName')}
                 </Typography>
                 <Typography variant='body1' className='font-medium'>
                   {task.service?.name || '-'}
@@ -254,13 +276,13 @@ const TaskViewCard = () => {
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Service Price
+                  {t('tasks.servicePrice')}
                 </Typography>
                 <Typography variant='body1'>{task.service?.price ? `€${task.service.price}` : '-'}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Service Category
+                  {t('tasks.serviceCategory')}
                 </Typography>
                 <Typography variant='body1'>{task.service?.category || '-'}</Typography>
               </Grid>
@@ -270,13 +292,13 @@ const TaskViewCard = () => {
           {/* Assignment Information */}
           <Grid item xs={12}>
             <Typography variant='h6' gutterBottom>
-              Assignment Information
+              {t('tasks.assignmentInformation')}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Assigned Employee
+                  {t('tasks.assignedEmployee')}
                 </Typography>
                 <Typography variant='body1' className='font-medium'>
                   {task.assignedEmployee?.name || '-'}
@@ -284,13 +306,13 @@ const TaskViewCard = () => {
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Employee Role
+                  {t('tasks.employeeRole')}
                 </Typography>
                 <Typography variant='body1'>{task.assignedEmployee?.role || '-'}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Employee Email
+                  {t('tasks.employeeEmail')}
                 </Typography>
                 <Typography variant='body1'>{task.assignedEmployee?.email || '-'}</Typography>
               </Grid>
@@ -300,33 +322,37 @@ const TaskViewCard = () => {
           {/* Timeline Information */}
           <Grid item xs={12}>
             <Typography variant='h6' gutterBottom>
-              Timeline
+              {t('tasks.timeline')}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Start Date
+                  {t('tasks.startDate')}
                 </Typography>
                 <Typography variant='body1'>{formatDate(task.startDate)}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Due Date
+                  {t('tasks.dueDate')}
                 </Typography>
                 <Typography variant='body1'>{formatDate(task.dueDate)}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Estimated Hours
+                  {t('tasks.estimatedHours')}
                 </Typography>
-                <Typography variant='body1'>{task.estimatedHours ? `${task.estimatedHours} hours` : '-'}</Typography>
+                <Typography variant='body1'>
+                  {task.estimatedHours ? `${task.estimatedHours} ${t('tasks.hours')}` : '-'}
+                </Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
-                  Actual Hours
+                  {t('tasks.actualHours')}
                 </Typography>
-                <Typography variant='body1'>{task.actualHours ? `${task.actualHours} hours` : '-'}</Typography>
+                <Typography variant='body1'>
+                  {task.actualHours ? `${task.actualHours} ${t('tasks.hours')}` : '-'}
+                </Typography>
               </Grid>
             </Grid>
           </Grid>
@@ -334,13 +360,13 @@ const TaskViewCard = () => {
           {/* Additional Information */}
           <Grid item xs={12}>
             <Typography variant='h6' gutterBottom>
-              Additional Information
+              {t('tasks.additionalInformation')}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 <Typography variant='body2' color='text.secondary'>
-                  Last Updated
+                  {t('tasks.lastUpdated')}
                 </Typography>
                 <Typography variant='body1'>{formatDateTime(task.updatedAt)}</Typography>
               </Grid>

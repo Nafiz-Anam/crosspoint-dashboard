@@ -21,6 +21,9 @@ import { useSession } from 'next-auth/react'
 import CustomTextField from '@core/components/mui/TextField'
 import toastService from '@/services/toastService'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const AddServiceDrawer = props => {
   // Props
   const { open, handleClose, currentService, onServiceAdded } = props
@@ -30,6 +33,7 @@ const AddServiceDrawer = props => {
 
   // Hooks
   const { data: session } = useSession()
+  const { t } = useTranslation()
   const {
     control,
     reset: resetForm,
@@ -66,7 +70,7 @@ const AddServiceDrawer = props => {
     setLoading(true)
 
     if (!session?.accessToken) {
-      toastService.showError('Authentication token not found. Please log in again.')
+      toastService.showError(t('services.authenticationTokenNotFound'))
       setLoading(false)
       return
     }
@@ -74,7 +78,7 @@ const AddServiceDrawer = props => {
     // Convert price to float
     const priceValue = parseFloat(data.price)
     if (isNaN(priceValue) || priceValue < 0) {
-      toastService.showError('Please enter a valid positive price.')
+      toastService.showError(t('services.priceInvalid'))
       setLoading(false)
       return
     }
@@ -139,7 +143,7 @@ const AddServiceDrawer = props => {
       sx={{ '& .MuiDrawer-paper': { width: { xs: 300, sm: 400 } } }}
     >
       <div className='flex items-center justify-between plb-5 pli-6'>
-        <Typography variant='h5'>{currentService ? 'Edit Service' : 'Add New Service'}</Typography>
+        <Typography variant='h5'>{currentService ? t('services.editService') : t('services.addNewService')}</Typography>
         <IconButton size='small' onClick={handleReset}>
           <i className='tabler-x text-2xl text-textPrimary' />
         </IconButton>
@@ -166,8 +170,8 @@ const AddServiceDrawer = props => {
                 {...field}
                 fullWidth
                 select
-                label='Category'
-                placeholder='Select a category'
+                label={t('services.fields.category')}
+                placeholder={t('services.selectCategory')}
                 value={field.value || ''}
               >
                 <MenuItem value=''>None</MenuItem>
@@ -181,13 +185,13 @@ const AddServiceDrawer = props => {
           <Controller
             name='name'
             control={control}
-            rules={{ required: 'Service Name is required.' }}
+            rules={{ required: t('services.serviceNameRequired') }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label='Service Name'
-                placeholder='Contract Review and Analysis'
+                label={t('services.fields.name')}
+                placeholder={t('services.enterName')}
                 {...(errors.name && { error: true, helperText: errors.name.message })}
               />
             )}
@@ -197,10 +201,10 @@ const AddServiceDrawer = props => {
             name='price'
             control={control}
             rules={{
-              required: 'Price is required.',
+              required: t('services.priceRequired'),
               pattern: {
                 value: /^\d+(\.\d{0,2})?$/,
-                message: 'Please enter a valid price (e.g., 150.00)'
+                message: t('services.priceInvalid')
               },
               validate: {
                 positive: value => {
@@ -214,8 +218,8 @@ const AddServiceDrawer = props => {
                 {...field}
                 fullWidth
                 type='text'
-                label='Price'
-                placeholder='150.00'
+                label={t('services.fields.price')}
+                placeholder={t('services.enterPrice')}
                 onKeyPress={e => {
                   // Allow only numbers, decimal point, and backspace
                   const char = String.fromCharCode(e.which)
@@ -250,13 +254,13 @@ const AddServiceDrawer = props => {
               variant='contained'
               type='submit'
               loading={loading}
-              loadingText={currentService ? 'Updating...' : 'Creating...'}
+              loadingText={currentService ? t('services.updating') : t('services.creating')}
               disabled={loading}
             >
-              {currentService ? 'Update' : 'Submit'}
+              {currentService ? t('services.update') : t('services.create')}
             </LoadingButton>
             <LoadingButton variant='tonal' color='error' type='reset' onClick={handleReset} disabled={loading}>
-              Cancel
+              {t('services.cancel')}
             </LoadingButton>
           </div>
         </form>

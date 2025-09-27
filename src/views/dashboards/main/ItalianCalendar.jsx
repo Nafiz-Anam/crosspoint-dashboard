@@ -45,32 +45,36 @@ const ItalianCalendar = ({ height = '600px', showTitle = true }) => {
   // Get language-specific configuration
   const langConfig = calendarConfig.languages[currentLang] || calendarConfig.languages.en
 
+  // Custom month names for Italian - use uppercase names
+  const customMonthNames = currentLang === 'it' ? langConfig.monthNames : null
+  const customMonthNamesShort = currentLang === 'it' ? langConfig.monthNames?.map(name => name.substring(0, 3)) : null
+
   // Language-specific text
   const getText = key => {
     const texts = {
       en: {
-        title: 'Italian Calendar',
-        subtitle: 'Italian national holidays',
+        title: 'Yearly Calendar',
+        subtitle: '',
         apiWarning: 'Google Calendar API key not configured. Holidays will not be displayed.',
-        error: 'Unable to load Italian holidays. Please check API configuration.'
+        error: 'Unable to load holidays. Please check API configuration.'
       },
       fr: {
-        title: 'Calendrier Italien',
-        subtitle: 'Fêtes nationales italiennes',
+        title: 'Calendrier Annuel',
+        subtitle: '',
         apiWarning: 'Clé API Google Calendar non configurée. Les fêtes ne seront pas affichées.',
-        error: "Impossible de charger les fêtes italiennes. Vérifiez la configuration de l'API."
+        error: "Impossible de charger les fêtes. Vérifiez la configuration de l'API."
       },
       ar: {
-        title: 'التقويم الإيطالي',
-        subtitle: 'العطل الوطنية الإيطالية',
+        title: 'التقويم السنوي',
+        subtitle: '',
         apiWarning: 'مفتاح API لتقويم Google غير مُكوَّن. لن تظهر العطل.',
-        error: 'تعذر تحميل العطل الإيطالية. تحقق من إعدادات API.'
+        error: 'تعذر تحميل العطل. تحقق من إعدادات API.'
       },
       it: {
-        title: 'Calendario Italiano',
-        subtitle: 'Festività nazionali italiane',
+        title: 'Calendario Annuale',
+        subtitle: '',
         apiWarning: 'Chiave API Google Calendar non configurata. Le festività non verranno mostrate.',
-        error: "Impossibile caricare le festività italiane. Verifica la configurazione dell'API."
+        error: "Impossibile caricare le festività. Verifica la configurazione dell'API."
       }
     }
     return texts[currentLang]?.[key] || texts.en[key]
@@ -89,7 +93,7 @@ const ItalianCalendar = ({ height = '600px', showTitle = true }) => {
       right: '' // Remove view options
     },
     height: height,
-    locale: langConfig.locale,
+    locale: currentLang === 'it' ? 'it' : langConfig.locale,
     timeZone: 'Europe/Rome',
     events: calendarEvents,
     eventClick: handleEventClick,
@@ -120,13 +124,31 @@ const ItalianCalendar = ({ height = '600px', showTitle = true }) => {
     // Ensure all events are visible
     eventDisplay: 'block',
     dayMaxEvents: false,
-    moreLinkClick: 'popover'
+    moreLinkClick: 'popover',
+    // Custom month names for Italian - force override
+    ...(currentLang === 'it' && {
+      monthNames: [
+        'GENNAIO',
+        'FEBBRAIO',
+        'MARZO',
+        'APRILE',
+        'MAGGIO',
+        'GIUGNO',
+        'LUGLIO',
+        'AGOSTO',
+        'SETTEMBRE',
+        'OTTOBRE',
+        'NOVEMBRE',
+        'DICEMBRE'
+      ],
+      monthNamesShort: ['GEN', 'FEB', 'MAR', 'APR', 'MAG', 'GIU', 'LUG', 'AGO', 'SET', 'OTT', 'NOV', 'DIC']
+    })
   }
 
   if (loading) {
     return (
       <Card>
-        {showTitle && <CardHeader title={getText('title')} subheader={getText('subtitle')} />}
+        {showTitle && <CardHeader title={getText('title')} subheader={getText('subtitle') || undefined} />}
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
             <CircularProgress />
@@ -138,7 +160,7 @@ const ItalianCalendar = ({ height = '600px', showTitle = true }) => {
 
   return (
     <Card>
-      {showTitle && <CardHeader title={getText('title')} subheader={getText('subtitle')} />}
+      {showTitle && <CardHeader title={getText('title')} subheader={getText('subtitle') || undefined} />}
       <CardContent>
         {error && (
           <Alert severity='warning' sx={{ mb: 2 }}>
@@ -152,7 +174,15 @@ const ItalianCalendar = ({ height = '600px', showTitle = true }) => {
           </Alert>
         )}
 
-        <FullCalendar ref={calendarRef} {...calendarOptions} />
+        <Box
+          sx={{
+            '& .fc-toolbar-title': {
+              textTransform: 'uppercase !important'
+            }
+          }}
+        >
+          <FullCalendar ref={calendarRef} {...calendarOptions} />
+        </Box>
       </CardContent>
     </Card>
   )

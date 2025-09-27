@@ -41,6 +41,9 @@ import CustomTextField from '@core/components/mui/TextField'
 import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
 import toastService from '@/services/toastService'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
 
@@ -84,6 +87,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
 
   // Hooks
   const { lang: locale } = useParams()
+  const { t } = useTranslation()
 
   // Handle delete click
   const handleDeleteClick = bankAccount => {
@@ -133,7 +137,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
         )
       },
       columnHelper.accessor('bankName', {
-        header: 'Bank Name',
+        header: t('paymentMethods.fields.bankName'),
         cell: ({ row }) => (
           <Typography className='font-medium' color='text.primary'>
             {row.original.bankName}
@@ -161,14 +165,14 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
         )
       }),
       columnHelper.accessor('accountName', {
-        header: 'Account Name',
+        header: t('paymentMethods.fields.name'),
         cell: ({ row }) => <Typography variant='body2'>{row.original.accountName || 'N/A'}</Typography>
       }),
       columnHelper.accessor('isActive', {
-        header: 'Status',
+        header: t('paymentMethods.fields.status'),
         cell: ({ row }) => (
           <Chip
-            label={row.original.isActive ? 'Active' : 'Inactive'}
+            label={row.original.isActive ? t('paymentMethods.status.active') : t('paymentMethods.status.inactive')}
             color={row.original.isActive ? 'success' : 'default'}
             size='small'
             variant='tonal'
@@ -182,7 +186,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
         )
       }),
       columnHelper.accessor('action', {
-        header: 'Action',
+        header: t('paymentMethods.fields.action'),
         cell: ({ row }) => (
           <div className='flex items-center'>
             <OptionMenu
@@ -190,7 +194,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
               iconClassName='text-textSecondary'
               options={[
                 {
-                  text: 'Edit',
+                  text: t('paymentMethods.edit'),
                   icon: 'tabler-pencil',
                   menuItemProps: {
                     className: 'flex items-center gap-2 text-textSecondary',
@@ -209,7 +213,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
                   }
                 },
                 {
-                  text: 'Delete',
+                  text: t('paymentMethods.delete'),
                   icon: 'tabler-trash',
                   menuItemProps: {
                     className: 'flex items-center gap-2 text-textSecondary',
@@ -277,7 +281,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
 
   return (
     <Card>
-      <CardHeader title='Payment Method Management' className='pbe-4' />
+      <CardHeader title={t('paymentMethods.paymentMethodManagement')} className='pbe-4' />
 
       <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
         <CustomTextField
@@ -287,7 +291,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
           onChange={e => onFilterChange({ ...filters, country: e.target.value })}
           className='min-w-[180px]'
         >
-          <MenuItem value=''>All</MenuItem>
+          <MenuItem value=''>{t('paymentMethods.all')}</MenuItem>
           <MenuItem value='bangladesh'>Bangladesh</MenuItem>
           <MenuItem value='usa'>USA</MenuItem>
           <MenuItem value='uk'>UK</MenuItem>
@@ -300,15 +304,15 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
           onChange={e => handleStatusChange(e.target.value)}
           className='min-w-[180px]'
         >
-          <MenuItem value=''>All</MenuItem>
-          <MenuItem value='true'>Active</MenuItem>
-          <MenuItem value='false'>Inactive</MenuItem>
+          <MenuItem value=''>{t('paymentMethods.all')}</MenuItem>
+          <MenuItem value='true'>{t('paymentMethods.status.active')}</MenuItem>
+          <MenuItem value='false'>{t('paymentMethods.status.inactive')}</MenuItem>
         </CustomTextField>
 
         <DebouncedInput
           value={globalFilter ?? ''}
           onChange={value => setGlobalFilter(String(value))}
-          placeholder='Search bank account...'
+          placeholder={t('paymentMethods.searchPaymentMethod')}
           className='min-w-[200px]'
         />
 
@@ -318,7 +322,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
           onClick={onAddBankAccount}
           className='ml-auto h-[40px]'
         >
-          Add New Bank Account
+          {t('paymentMethods.addNewPaymentMethod')}
         </Button>
       </div>
       <div className='overflow-x-auto'>
@@ -354,7 +358,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
             <tbody>
               <tr>
                 <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
-                  No bank accounts found
+                  {t('paymentMethods.noPaymentMethodsAvailable')}
                 </td>
               </tr>
             </tbody>
@@ -392,8 +396,8 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
         open={deleteDialogOpen}
         setOpen={setDeleteDialogOpen}
         onConfirm={handleDeleteConfirm}
-        title='Delete Bank Account'
-        message={`Are you sure you want to delete "${bankAccountToDelete?.bankName}"? This action cannot be undone.`}
+        title={t('paymentMethods.deleteConfirmation.title')}
+        message={t('paymentMethods.deleteConfirmation.message')}
         itemName={bankAccountToDelete?.bankName}
         loading={deleteLoading}
       />

@@ -14,16 +14,20 @@ import { useTheme } from '@mui/material/styles'
 // Styled Component Imports
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'))
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const AverageWeeklyEarnings = () => {
   // Hook
   const theme = useTheme()
+  const { t } = useTranslation()
 
   // Mock data for weekly earnings chart
   const weeklyEarningsData = [0, 50, 100, 150, 200, 250, 38] // Mon to Sun
 
   const series = [
     {
-      name: 'Weekly Earnings',
+      name: t('earnings.weeklyEarnings'),
       data: weeklyEarningsData
     }
   ]
@@ -63,7 +67,15 @@ const AverageWeeklyEarnings = () => {
       }
     },
     xaxis: {
-      categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      categories: [
+        t('dashboard.timePeriods.monday'),
+        t('dashboard.timePeriods.tuesday'),
+        t('dashboard.timePeriods.wednesday'),
+        t('dashboard.timePeriods.thursday'),
+        t('dashboard.timePeriods.friday'),
+        t('dashboard.timePeriods.saturday'),
+        t('dashboard.timePeriods.sunday')
+      ],
       labels: {
         style: {
           colors: 'var(--mui-palette-text-disabled)',
@@ -96,7 +108,7 @@ const AverageWeeklyEarnings = () => {
 
   return (
     <Card>
-      <CardHeader title='Average Weekly Earnings' subheader='This Week Average' />
+      <CardHeader title={t('earnings.averageWeeklyEarnings')} subheader={t('earnings.thisWeekAverage')} />
       <CardContent>
         <Box className='flex flex-col gap-y-4'>
           {/* Main Stats */}
@@ -107,7 +119,7 @@ const AverageWeeklyEarnings = () => {
             <Box className='flex items-center gap-1'>
               <i className='tabler-trending-up text-success' />
               <Typography variant='body2' color='success.main'>
-                +0.0% vs last week
+                +0.0% {t('earnings.vsLastWeek')}
               </Typography>
             </Box>
           </Box>
@@ -120,17 +132,17 @@ const AverageWeeklyEarnings = () => {
           {/* Invoice Summary */}
           <Box className='flex flex-col gap-y-2'>
             <Typography variant='body2' color='text.secondary'>
-              Total Invoices This Week: 1 invoices
+              {t('earnings.totalInvoicesThisWeek')}: 1 {t('earnings.invoices')}
             </Typography>
             <Box className='flex flex-wrap gap-4'>
               <Typography variant='body2' color='success.main'>
-                Paid Invoices: 0 paid
+                {t('earnings.paidInvoices')}: 0 {t('earnings.paid')}
               </Typography>
               <Typography variant='body2' color='warning.main'>
-                Unpaid Invoices: 1 unpaid
+                {t('earnings.unpaidInvoices')}: 1 {t('earnings.unpaid')}
               </Typography>
               <Typography variant='body2' color='error.main'>
-                Overdue Invoices: 0 overdue
+                {t('earnings.overdueInvoices')}: 0 {t('earnings.overdue')}
               </Typography>
             </Box>
           </Box>

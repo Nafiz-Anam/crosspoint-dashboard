@@ -25,10 +25,12 @@ const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexChart
 
 // Hook Imports
 import { useEarningsData } from '@/hooks/useEarningsData'
+import { useTranslation } from '@/hooks/useTranslation'
 
 const LineAreaDailySalesChart = ({ data, loading, error }) => {
   // Hooks
   const theme = useTheme()
+  const { t } = useTranslation()
   const { data: earningsData, loading: earningsLoading, error: earningsError, period, changePeriod } = useEarningsData()
 
   // Handle loading and error states
@@ -37,7 +39,7 @@ const LineAreaDailySalesChart = ({ data, loading, error }) => {
       <Card className='h-[100%] flex flex-col justify-center items-center'>
         <CircularProgress />
         <Typography variant='body2' sx={{ mt: 2 }}>
-          Loading dashboard data...
+          {t('earnings.loadingEarnings')}
         </Typography>
       </Card>
     )
@@ -58,34 +60,76 @@ const LineAreaDailySalesChart = ({ data, loading, error }) => {
   const periodTotal = earningsData?.periodTotal || 0
   const periodAverage = earningsData?.periodAverage || 0
   const growthPercentage = earningsData?.growthPercentage || 0
-  const labels = earningsData?.labels || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const labels = earningsData?.labels || [
+    t('dashboard.timePeriods.monday'),
+    t('dashboard.timePeriods.tuesday'),
+    t('dashboard.timePeriods.wednesday'),
+    t('dashboard.timePeriods.thursday'),
+    t('dashboard.timePeriods.friday'),
+    t('dashboard.timePeriods.saturday'),
+    t('dashboard.timePeriods.sunday')
+  ]
 
   // Get period-specific labels and series name
   const getPeriodInfo = period => {
     switch (period) {
       case 'week':
         return {
-          seriesName: 'Daily Earnings',
-          xAxisLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-          periodLabel: 'This Week Average'
+          seriesName: t('earnings.dailyEarnings'),
+          xAxisLabels: [
+            t('dashboard.timePeriods.monday'),
+            t('dashboard.timePeriods.tuesday'),
+            t('dashboard.timePeriods.wednesday'),
+            t('dashboard.timePeriods.thursday'),
+            t('dashboard.timePeriods.friday'),
+            t('dashboard.timePeriods.saturday'),
+            t('dashboard.timePeriods.sunday')
+          ],
+          periodLabel: t('earnings.thisWeekAverage')
         }
       case 'month':
         return {
-          seriesName: 'Weekly Earnings',
-          xAxisLabels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-          periodLabel: 'This Month Average'
+          seriesName: t('earnings.weeklyEarnings'),
+          xAxisLabels: [
+            t('dashboard.timePeriods.week1'),
+            t('dashboard.timePeriods.week2'),
+            t('dashboard.timePeriods.week3'),
+            t('dashboard.timePeriods.week4')
+          ],
+          periodLabel: t('earnings.thisMonthAverage')
         }
       case 'year':
         return {
-          seriesName: 'Monthly Earnings',
-          xAxisLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-          periodLabel: 'This Year Average'
+          seriesName: t('earnings.monthlyEarnings'),
+          xAxisLabels: [
+            t('dashboard.timePeriods.january'),
+            t('dashboard.timePeriods.february'),
+            t('dashboard.timePeriods.march'),
+            t('dashboard.timePeriods.april'),
+            t('dashboard.timePeriods.may'),
+            t('dashboard.timePeriods.june'),
+            t('dashboard.timePeriods.july'),
+            t('dashboard.timePeriods.august'),
+            t('dashboard.timePeriods.september'),
+            t('dashboard.timePeriods.october'),
+            t('dashboard.timePeriods.november'),
+            t('dashboard.timePeriods.december')
+          ],
+          periodLabel: t('earnings.thisYearAverage')
         }
       default:
         return {
-          seriesName: 'Daily Earnings',
-          xAxisLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-          periodLabel: 'This Week Average'
+          seriesName: t('earnings.dailyEarnings'),
+          xAxisLabels: [
+            t('dashboard.timePeriods.monday'),
+            t('dashboard.timePeriods.tuesday'),
+            t('dashboard.timePeriods.wednesday'),
+            t('dashboard.timePeriods.thursday'),
+            t('dashboard.timePeriods.friday'),
+            t('dashboard.timePeriods.saturday'),
+            t('dashboard.timePeriods.sunday')
+          ],
+          periodLabel: t('earnings.thisWeekAverage')
         }
     }
   }
@@ -219,18 +263,18 @@ const LineAreaDailySalesChart = ({ data, loading, error }) => {
   return (
     <Card className='h-[100%] flex flex-col justify-between'>
       <CardHeader
-        title={`Average ${period.charAt(0).toUpperCase() + period.slice(1)}ly Earnings`}
+        title={periodInfo.periodLabel}
         className='pbe-0'
         action={
           <ButtonGroup size='small' variant='outlined'>
             <Button variant={period === 'week' ? 'contained' : 'outlined'} onClick={() => changePeriod('week')}>
-              Week
+              {t('earnings.week')}
             </Button>
             <Button variant={period === 'month' ? 'contained' : 'outlined'} onClick={() => changePeriod('month')}>
-              Month
+              {t('earnings.month')}
             </Button>
             <Button variant={period === 'year' ? 'contained' : 'outlined'} onClick={() => changePeriod('year')}>
-              Year
+              {t('earnings.year')}
             </Button>
           </ButtonGroup>
         }
@@ -253,7 +297,7 @@ const LineAreaDailySalesChart = ({ data, loading, error }) => {
             ${periodAverage.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </Typography>
           <Chip
-            label={`↗ ${growthPercentage >= 0 ? '+' : ''}${growthPercentage.toFixed(1)}% vs last ${period}`}
+            label={`↗ ${growthPercentage >= 0 ? '+' : ''}${growthPercentage.toFixed(1)}% ${t('earnings.vsLastWeek')}`}
             size='small'
             sx={{
               bgcolor: growthPercentage >= 0 ? theme.palette.success.light + '20' : theme.palette.error.light + '20',
@@ -275,7 +319,7 @@ const LineAreaDailySalesChart = ({ data, loading, error }) => {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant='body2' color='text.secondary'>
-              Total {period.charAt(0).toUpperCase() + period.slice(1)}ly Revenue
+              {t('earnings.totalWeeklyRevenue')}
             </Typography>
             <Typography variant='body2' fontWeight={600}>
               ${periodTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
@@ -284,7 +328,7 @@ const LineAreaDailySalesChart = ({ data, loading, error }) => {
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant='body2' color='text.secondary'>
-              Average per {period === 'week' ? 'Day' : period === 'month' ? 'Week' : 'Month'}
+              {t('earnings.averagePerDay')}
             </Typography>
             <Typography variant='body2' fontWeight={600} color='success.main'>
               ${periodAverage.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
@@ -293,7 +337,7 @@ const LineAreaDailySalesChart = ({ data, loading, error }) => {
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant='body2' color='text.secondary'>
-              Growth vs Previous {period.charAt(0).toUpperCase() + period.slice(1)}
+              {t('earnings.growthVsPreviousWeek')}
             </Typography>
             <Typography variant='body2' fontWeight={600} color={growthPercentage >= 0 ? 'success.main' : 'error.main'}>
               {growthPercentage >= 0 ? '+' : ''}

@@ -1,6 +1,9 @@
 // MUI Imports
 import Grid from '@mui/material/Grid2'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 // Component Imports
 import ClockInOutCard from '@views/dashboards/main/ClockInOutCard'
 import TaskStatisticsCard from '@views/dashboards/main/TaskStatisticsCard'
@@ -11,6 +14,8 @@ import TicketStatus from '@views/dashboards/main/TicketStatus'
 import CardStatVertical from '@/components/card-statistics/Vertical'
 
 const MainDashboard = async () => {
+  const { t } = useTranslation()
+
   return (
     <Grid container spacing={6}>
       {/* Top Row - Clock In/Out and Task Statistics */}
@@ -22,8 +27,8 @@ const MainDashboard = async () => {
       </Grid>
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <CardStatVertical
-          title='Events Today'
-          subtitle='Calendar'
+          title={t('dashboard.calendar.eventsToday')}
+          subtitle={t('dashboard.calendar.title')}
           stats='0'
           avatarColor='info'
           avatarIcon='tabler-calendar'
@@ -33,8 +38,8 @@ const MainDashboard = async () => {
       </Grid>
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <CardStatVertical
-          title='Total Clients'
-          subtitle='All Time'
+          title={t('dashboard.clients.totalClients')}
+          subtitle={t('dashboard.clients.allTime')}
           stats='0'
           avatarColor='success'
           avatarIcon='tabler-briefcase'

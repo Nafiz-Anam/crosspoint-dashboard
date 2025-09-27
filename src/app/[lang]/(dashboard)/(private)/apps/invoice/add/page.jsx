@@ -20,7 +20,12 @@ import { companyInfoService } from '@/services/companyInfoService'
 import AddCard from '@views/apps/invoice/add/AddCard'
 import AddActions from '@views/apps/invoice/add/AddActions'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const InvoiceContainer = ({ initialData }) => {
+  const { t } = useTranslation()
+
   // States
   const [bankAccounts, setBankAccounts] = useState([])
   const [clients, setClients] = useState([])
@@ -170,12 +175,12 @@ const InvoiceContainer = ({ initialData }) => {
       console.log('Data set successfully')
     } catch (err) {
       console.error('Error fetching data:', err)
-      setError('Failed to fetch required data: ' + err.message)
+      setError(t('common.error') + ': ' + err.message)
     } finally {
       setLoading(false)
       console.log('Loading set to false')
     }
-  }, [session?.accessToken])
+  }, [session?.accessToken, t])
 
   useEffect(() => {
     if (session?.accessToken) {
@@ -236,7 +241,7 @@ const InvoiceContainer = ({ initialData }) => {
           >
             <CircularProgress />
             <div style={{ marginTop: '16px', textAlign: 'center' }}>
-              <div>Loading invoice data...</div>
+              <div>{t('invoices.loadingInvoiceData')}</div>
               <div style={{ fontSize: '12px', color: '#666' }}>
                 Session: {session ? 'Yes' : 'No'} | Token: {session?.accessToken ? 'Yes' : 'No'}
               </div>

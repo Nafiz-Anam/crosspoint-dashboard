@@ -205,7 +205,7 @@ const GenerateInvoiceDrawer = ({ open, handleClose, task, onInvoiceGenerated }) 
                 fullWidth
                 multiline
                 rows={3}
-                label='Notes (Optional)'
+                label='Notes'
                 placeholder={`Invoice for task: ${task.title}`}
               />
             )}

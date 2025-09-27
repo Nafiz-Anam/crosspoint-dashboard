@@ -23,6 +23,9 @@ import { useSession } from 'next-auth/react' // Import useSession to get token
 import CustomTextField from '@core/components/mui/TextField'
 import toastService from '@/services/toastService'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const AddBranchDrawer = props => {
   // Props
   const { open, handleClose, currentBranch, onBranchAdded } = props
@@ -32,6 +35,7 @@ const AddBranchDrawer = props => {
 
   // Hooks
   const { data: session } = useSession()
+  const { t } = useTranslation()
   const {
     control,
     reset: resetForm,
@@ -83,7 +87,7 @@ const AddBranchDrawer = props => {
     setLoading(true)
 
     if (!session?.accessToken) {
-      toastService.showError('Authentication token not found. Please log in again.')
+      toastService.showError(t('branches.authenticationTokenNotFound'))
       setLoading(false)
       return
     }
@@ -161,7 +165,7 @@ const AddBranchDrawer = props => {
       sx={{ '& .MuiDrawer-paper': { width: { xs: 300, sm: 400 } } }}
     >
       <div className='flex items-center justify-between plb-5 pli-6'>
-        <Typography variant='h5'>{currentBranch ? 'Edit Branch' : 'Add New Branch'}</Typography>
+        <Typography variant='h5'>{currentBranch ? t('branches.editBranch') : t('branches.addNewBranch')}</Typography>
         <IconButton size='small' onClick={handleReset}>
           <i className='tabler-x text-2xl text-textPrimary' />
         </IconButton>
@@ -183,13 +187,13 @@ const AddBranchDrawer = props => {
           <Controller
             name='name'
             control={control}
-            rules={{ required: 'Branch Name is required.' }}
+            rules={{ required: t('branches.branchNameRequired') }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label='Branch Name'
-                placeholder='Main Branch'
+                label={t('branches.fields.name')}
+                placeholder={t('branches.enterName')}
                 {...(errors.name && { error: true, helperText: errors.name.message })}
               />
             )}
@@ -197,13 +201,13 @@ const AddBranchDrawer = props => {
           <Controller
             name='address'
             control={control}
-            rules={{ required: 'Address is required.' }}
+            rules={{ required: t('branches.addressRequired') }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label='Address'
-                placeholder='123 Main St'
+                label={t('branches.fields.address')}
+                placeholder={t('branches.enterAddress')}
                 {...(errors.address && { error: true, helperText: errors.address.message })}
               />
             )}
@@ -211,13 +215,13 @@ const AddBranchDrawer = props => {
           <Controller
             name='city'
             control={control}
-            rules={{ required: 'City is required.' }}
+            rules={{ required: t('branches.cityRequired') }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label='City'
-                placeholder='Rome'
+                label={t('branches.fields.city')}
+                placeholder={t('branches.enterCity')}
                 {...(errors.city && { error: true, helperText: errors.city.message })}
               />
             )}
@@ -225,13 +229,13 @@ const AddBranchDrawer = props => {
           <Controller
             name='postalCode'
             control={control}
-            rules={{ required: 'Postal Code is required.' }}
+            rules={{ required: t('branches.postalCodeRequired') }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label='Postal Code'
-                placeholder='00100'
+                label={t('branches.fields.postalCode')}
+                placeholder={t('branches.enterPostalCode')}
                 {...(errors.postalCode && { error: true, helperText: errors.postalCode.message })}
               />
             )}
@@ -239,13 +243,13 @@ const AddBranchDrawer = props => {
           <Controller
             name='province'
             control={control}
-            rules={{ required: 'Province is required.' }}
+            rules={{ required: t('branches.provinceRequired') }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label='Province (2-letter code)'
-                placeholder='RM'
+                label={t('branches.fields.province')}
+                placeholder={t('branches.enterProvince')}
                 {...(errors.province && { error: true, helperText: errors.province.message })}
               />
             )}
@@ -258,22 +262,22 @@ const AddBranchDrawer = props => {
                 {...field}
                 fullWidth
                 type='tel'
-                label='Phone (Optional)'
-                placeholder='+39 123 456 7890'
+                label={t('branches.fields.phone')}
+                placeholder={t('branches.enterPhone')}
               />
             )}
           />
           <Controller
             name='email'
             control={control}
-            rules={{ pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address.' } }}
+            rules={{ pattern: { value: /^\S+@\S+\.\S+$/, message: t('branches.emailInvalid') } }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
                 type='email'
-                label='Email (Optional)'
-                placeholder='branch@example.com'
+                label={t('branches.fields.email')}
+                placeholder={t('branches.enterEmail')}
               />
             )}
           />
@@ -281,7 +285,10 @@ const AddBranchDrawer = props => {
             name='isActive'
             control={control}
             render={({ field }) => (
-              <FormControlLabel control={<Checkbox {...field} checked={field.value} />} label='Is Active' />
+              <FormControlLabel
+                control={<Checkbox {...field} checked={field.value} />}
+                label={t('branches.fields.isActive')}
+              />
             )}
           />
 
@@ -290,13 +297,13 @@ const AddBranchDrawer = props => {
               variant='contained'
               type='submit'
               loading={loading}
-              loadingText={currentBranch ? 'Updating...' : 'Creating...'}
+              loadingText={currentBranch ? t('branches.updating') : t('branches.creating')}
               disabled={loading}
             >
-              {currentBranch ? 'Update' : 'Submit'}
+              {currentBranch ? t('branches.update') : t('branches.create')}
             </LoadingButton>
             <LoadingButton variant='tonal' color='error' type='reset' onClick={handleReset} disabled={loading}>
-              Cancel
+              {t('branches.cancel')}
             </LoadingButton>
           </div>
         </form>

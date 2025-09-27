@@ -21,14 +21,19 @@ import CustomAvatar from '@core/components/mui/Avatar'
 // Styled Component Imports
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'))
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const EarningReports = ({ data, loading, error }) => {
+  const { t } = useTranslation()
+
   // Handle loading and error states
   if (loading) {
     return (
       <Card className='h-[100%] flex flex-col justify-center items-center'>
         <CircularProgress />
         <Typography variant='body2' sx={{ mt: 2 }}>
-          Loading earnings data...
+          {t('earnings.loadingEarnings')}
         </Typography>
       </Card>
     )
@@ -65,7 +70,7 @@ const EarningReports = ({ data, loading, error }) => {
 
   const metricsData = [
     {
-      title: 'Earnings',
+      title: t('earnings.title'),
       progress: earningsProgress,
       stats: `$${revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       progressColor: 'primary',
@@ -73,7 +78,7 @@ const EarningReports = ({ data, loading, error }) => {
       avatarIcon: 'tabler-currency-dollar'
     },
     {
-      title: 'Paid',
+      title: t('earnings.paid'),
       progress: paidProgress,
       stats: `$${paidAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       progressColor: 'success',
@@ -81,7 +86,7 @@ const EarningReports = ({ data, loading, error }) => {
       avatarIcon: 'tabler-check'
     },
     {
-      title: 'Outstanding',
+      title: t('earnings.unpaid'),
       progress: outstandingProgress,
       stats: `$${(unpaidAmount + overdueAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       progressColor: 'warning',
@@ -105,13 +110,21 @@ const EarningReports = ({ data, loading, error }) => {
       x: {
         show: true,
         formatter: (val, { dataPointIndex }) => {
-          const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+          const days = [
+            t('dashboard.timePeriods.monday'),
+            t('dashboard.timePeriods.tuesday'),
+            t('dashboard.timePeriods.wednesday'),
+            t('dashboard.timePeriods.thursday'),
+            t('dashboard.timePeriods.friday'),
+            t('dashboard.timePeriods.saturday'),
+            t('dashboard.timePeriods.sunday')
+          ]
           return days[dataPointIndex] || `Day ${dataPointIndex + 1}`
         }
       },
       y: {
         formatter: (val, { seriesIndex, dataPointIndex }) => {
-          return `Earnings: $${val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+          return `${t('earnings.title')}: $${val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
         }
       },
       marker: { show: true },
@@ -120,13 +133,21 @@ const EarningReports = ({ data, loading, error }) => {
         fontFamily: 'inherit'
       },
       custom: function ({ series, seriesIndex, dataPointIndex, w }) {
-        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        const days = [
+          t('dashboard.timePeriods.monday'),
+          t('dashboard.timePeriods.tuesday'),
+          t('dashboard.timePeriods.wednesday'),
+          t('dashboard.timePeriods.thursday'),
+          t('dashboard.timePeriods.friday'),
+          t('dashboard.timePeriods.saturday'),
+          t('dashboard.timePeriods.sunday')
+        ]
         const day = days[dataPointIndex] || `Day ${dataPointIndex + 1}`
         const value = series[seriesIndex][dataPointIndex]
         return `
           <div style="padding: 8px 12px; background: white; border: 1px solid #e0e0e0; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
             <div style="font-weight: 600; margin-bottom: 4px;">${day}</div>
-            <div style="color: #666;">Earnings: $${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+            <div style="color: #666;">${t('earnings.title')}: $${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
           </div>
         `
       }
@@ -169,7 +190,15 @@ const EarningReports = ({ data, loading, error }) => {
       }
     },
     xaxis: {
-      categories: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'],
+      categories: [
+        t('dashboard.timePeriods.monday'),
+        t('dashboard.timePeriods.tuesday'),
+        t('dashboard.timePeriods.wednesday'),
+        t('dashboard.timePeriods.thursday'),
+        t('dashboard.timePeriods.friday'),
+        t('dashboard.timePeriods.saturday'),
+        t('dashboard.timePeriods.sunday')
+      ],
       axisTicks: { show: false },
       axisBorder: { show: false },
       labels: {
@@ -197,9 +226,17 @@ const EarningReports = ({ data, loading, error }) => {
   return (
     <Card className='h-[100%] flex flex-col justify-between'>
       <CardHeader
-        title='Earning Reports'
-        subheader='Weekly Earnings Overview'
-        action={<OptionMenu options={['Last Week', 'Last Month', 'Last Year']} />}
+        title={t('earnings.title')}
+        subheader={t('earnings.weeklyEarnings')}
+        action={
+          <OptionMenu
+            options={[
+              t('dashboard.timePeriods.lastWeek'),
+              t('dashboard.timePeriods.lastMonth'),
+              t('dashboard.timePeriods.lastYear')
+            ]}
+          />
+        }
         className='pbe-0'
       />
       <CardContent className='flex flex-col gap-5 max-md:gap-5 max-[1015px]:gap-[62px] max-[1051px]:gap-10 max-[1200px]:gap-5 max-[1310px]:gap-10'>
@@ -217,7 +254,7 @@ const EarningReports = ({ data, loading, error }) => {
               />
             </div>
             <Typography variant='body2' className='text-balance'>
-              Weekly earnings compared to last week
+              {t('earnings.weeklyEarnings')} {t('earnings.vsLastWeek')}
             </Typography>
           </div>
           <AppReactApexCharts type='bar' height={163} width='100%' series={series} options={options} />

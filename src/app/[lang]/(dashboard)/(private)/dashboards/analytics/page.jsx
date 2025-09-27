@@ -15,11 +15,13 @@ import TaskStatisticsCard from '@views/dashboards/main/TaskStatisticsCard'
 import TimesheetChart from '@views/dashboards/main/TimesheetChart'
 import LineAreaDailySalesChart from '@views/dashboards/analytics/LineAreaDailySalesChart'
 import EarningReports from '@views/dashboards/analytics/EarningReports'
+import MinimalTaskListTable from '@views/dashboards/main/MinimalTaskListTable'
 import MinimalInvoiceListTable from '@/views/apps/ecommerce/dashboard/MinimalInvoiceListTable'
 import ItalianCalendar from '@views/dashboards/main/ItalianCalendar'
 
 // Hooks Imports
 import { useDashboardData } from '@/hooks/useDashboardData'
+import { useTranslation } from '@/hooks/useTranslation'
 
 /**
  * ! If you need data using an API call, uncomment the below API code, update the `process.env.API_URL` variable in the
@@ -40,6 +42,7 @@ import { useDashboardData } from '@/hooks/useDashboardData'
 const DashboardAnalytics = () => {
   // Get dashboard data using custom hook
   const { data, loading, error, refetch } = useDashboardData()
+  const { t } = useTranslation()
 
   // Handle loading state
   if (loading) {
@@ -59,7 +62,7 @@ const DashboardAnalytics = () => {
         </Alert>
         <Box sx={{ display: 'flex', justifyContent: 'center' }}>
           <button onClick={refetch} style={{ padding: '8px 16px', marginTop: '16px' }}>
-            Retry
+            {t('dashboard.common.retry')}
           </button>
         </Box>
       </Box>
@@ -81,10 +84,29 @@ const DashboardAnalytics = () => {
         <LineAreaDailySalesChart data={data} loading={loading} error={error} />
       </Grid>
 
-      {/* Bottom Row - Timesheet Chart and Invoice List (50/50) */}
+      {/* Bottom Row - Timesheet Chart */}
       <Grid size={{ xs: 12, md: 6 }}>
         <TimesheetChart />
       </Grid>
+
+      {/* Task List Row */}
+      <Grid size={{ xs: 12, md: 12 }}>
+        <MinimalTaskListTable
+          taskData={
+            data?.tasks?.map(task => ({
+              id: task.id,
+              title: task.title,
+              clientName: task.client?.name || 'N/A',
+              serviceName: task.service?.name || 'N/A',
+              status: task.status,
+              dueDate: task.dueDate,
+              assignedTo: task.assignedTo?.name || 'N/A'
+            })) || []
+          }
+        />
+      </Grid>
+
+      {/* Invoice List Row */}
       <Grid size={{ xs: 12, md: 12 }}>
         <MinimalInvoiceListTable
           invoiceData={

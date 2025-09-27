@@ -42,6 +42,9 @@ import enhancedClientService from '@/services/enhancedClientService'
 // Component Imports
 import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const columnHelper = createColumnHelper()
 const clientStatusObj = {
   ACTIVE: 'success',
@@ -95,6 +98,7 @@ const ClientListTable = () => {
   // Hooks
   const { lang: locale } = useParams()
   const { data: session, status: sessionStatus } = useSession()
+  const { t } = useTranslation()
 
   // Function to fetch client data from API
   const fetchClients = useCallback(async () => {
@@ -103,7 +107,7 @@ const ClientListTable = () => {
 
     if (sessionStatus === 'loading') return
     if (sessionStatus === 'unauthenticated' || !session?.accessToken) {
-      setFetchError('Authentication required to fetch clients. Please log in.')
+      setFetchError(t('clients.authenticationRequired'))
       setFetchLoading(false)
       return
     }
@@ -119,7 +123,7 @@ const ClientListTable = () => {
 
       setClients(result.data?.clients || result.data || [])
     } catch (error) {
-      const errorMessage = error.message || 'Failed to fetch clients. Please try again.'
+      const errorMessage = error.message || t('clients.networkError')
       setFetchError(errorMessage)
       console.error('Fetch error clients:', error)
     } finally {
@@ -132,7 +136,7 @@ const ClientListTable = () => {
     if (sessionStatus === 'authenticated') {
       fetchClients()
     } else if (sessionStatus === 'unauthenticated') {
-      setFetchError('Not authenticated. Please log in to view clients.')
+      setFetchError(t('clients.notAuthenticated'))
       setFetchLoading(false)
     }
   }, [sessionStatus, session?.accessToken])
@@ -224,7 +228,7 @@ const ClientListTable = () => {
   const columns = useMemo(
     () => [
       columnHelper.accessor('clientId', {
-        header: 'Client ID',
+        header: t('clients.fields.clientId'),
         cell: ({ row }) => (
           <Typography color='text.primary' className='font-medium'>
             {row.original.clientId || '-'}
@@ -232,7 +236,7 @@ const ClientListTable = () => {
         )
       }),
       columnHelper.accessor('name', {
-        header: 'Client',
+        header: t('clients.fields.name'),
         cell: ({ row }) => (
           <div className='flex flex-col'>
             <Typography color='text.primary' className='font-medium'>
@@ -248,11 +252,11 @@ const ClientListTable = () => {
         )
       }),
       columnHelper.accessor('phone', {
-        header: 'Phone',
+        header: t('clients.fields.phone'),
         cell: ({ row }) => <Typography color='text.primary'>{row.original.phone || '-'}</Typography>
       }),
       columnHelper.accessor('address', {
-        header: 'Address',
+        header: t('clients.fields.address'),
         cell: ({ row }) => {
           const address = row.original.address
           const city = row.original.city
@@ -277,11 +281,11 @@ const ClientListTable = () => {
         }
       }),
       columnHelper.accessor('branch', {
-        header: 'Branch',
+        header: t('clients.fields.branch'),
         cell: ({ row }) => <Typography color='text.primary'>{row.original.branch?.name || '-'}</Typography>
       }),
       columnHelper.accessor('status', {
-        header: 'Status',
+        header: t('clients.fields.status'),
         cell: ({ row }) => (
           <div className='flex items-center gap-3'>
             <Chip
@@ -295,7 +299,7 @@ const ClientListTable = () => {
         )
       }),
       columnHelper.accessor('action', {
-        header: 'Action',
+        header: t('clients.fields.action'),
         cell: ({ row }) => (
           <div className='flex items-center'>
             <OptionMenu
@@ -303,7 +307,7 @@ const ClientListTable = () => {
               iconClassName='text-textSecondary'
               options={[
                 {
-                  text: 'View',
+                  text: t('clients.view'),
                   icon: 'tabler-eye',
                   menuItemProps: {
                     component: Link,
@@ -321,7 +325,7 @@ const ClientListTable = () => {
                   }
                 },
                 {
-                  text: 'Edit',
+                  text: t('clients.edit'),
                   icon: 'tabler-edit',
                   menuItemProps: {
                     className: 'flex items-center gap-2 text-textSecondary',
@@ -329,7 +333,7 @@ const ClientListTable = () => {
                   }
                 },
                 {
-                  text: 'Delete',
+                  text: t('clients.delete'),
                   icon: 'tabler-trash',
                   menuItemProps: {
                     className: 'flex items-center gap-2 text-textSecondary',
@@ -366,17 +370,17 @@ const ClientListTable = () => {
   return (
     <>
       <Card>
-        <CardHeader title='Client Management' className='pbe-4' />
+        <CardHeader title={t('clients.clientManagement')} className='pbe-4' />
         <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
           {/* Status Filter */}
           <CustomTextField
             select
-            label='Status'
+            label={t('clients.fields.status')}
             value={filters.status}
             onChange={e => setFilters({ ...filters, status: e.target.value })}
             className='min-w-[180px]'
           >
-            <MenuItem value=''>All</MenuItem>
+            <MenuItem value=''>{t('clients.all')}</MenuItem>
             {statuses.map(status => (
               <MenuItem key={status} value={status}>
                 {status}
@@ -387,12 +391,12 @@ const ClientListTable = () => {
           {/* Branch Filter */}
           <CustomTextField
             select
-            label='Branch'
+            label={t('clients.fields.branch')}
             value={filters.branch}
             onChange={e => setFilters({ ...filters, branch: e.target.value })}
             className='min-w-[180px]'
           >
-            <MenuItem value=''>All</MenuItem>
+            <MenuItem value=''>{t('clients.all')}</MenuItem>
             {branches.map(branch => (
               <MenuItem key={branch} value={branch}>
                 {branch}
@@ -403,7 +407,7 @@ const ClientListTable = () => {
           <DebouncedInput
             value={globalFilter ?? ''}
             onChange={value => setGlobalFilter(String(value))}
-            placeholder='Search Client...'
+            placeholder={t('clients.searchClient')}
             className='min-w-[200px]'
           />
 
@@ -416,14 +420,14 @@ const ClientListTable = () => {
             }}
             className='ml-auto h-[40px]'
           >
-            Add New Client
+            {t('clients.addNewClient')}
           </Button>
         </div>
 
         {fetchLoading ? (
           <div className='flex justify-center items-center p-6'>
             <CircularProgress />
-            <Typography className='ml-4'>Loading Clients...</Typography>
+            <Typography className='ml-4'>{t('clients.loadingClients')}</Typography>
           </div>
         ) : fetchError ? (
           <Alert severity='error' sx={{ m: 6 }}>
@@ -461,7 +465,7 @@ const ClientListTable = () => {
                 <tbody>
                   <tr>
                     <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
-                      No clients available
+                      {t('clients.noClientsAvailable')}
                     </td>
                   </tr>
                 </tbody>
@@ -502,8 +506,8 @@ const ClientListTable = () => {
         open={deleteDialogOpen}
         setOpen={setDeleteDialogOpen}
         onConfirm={handleDeleteClient}
-        title='Delete Client'
-        message={`Are you sure you want to delete "${clientToDelete?.name || clientToDelete?.email}"? This action cannot be undone.`}
+        title={t('clients.deleteConfirmation.title')}
+        message={t('clients.deleteConfirmation.message')}
         itemName={clientToDelete?.name || clientToDelete?.email}
         loading={deleteLoading}
       />

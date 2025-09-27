@@ -48,6 +48,9 @@ import AttendanceReportDialog from '@/components/AttendanceReportDialog'
 import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
 import toastService from '@/services/toastService'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 // Util Imports
 import { getInitials } from '@/utils/getInitials'
 import { getLocalizedUrl } from '@/utils/i18n'
@@ -133,6 +136,7 @@ const EmployeeListTable = () => {
   // Hooks
   const { lang: locale } = useParams()
   const { data: session, status: sessionStatus } = useSession()
+  const { t } = useTranslation()
 
   // Function to fetch employee data from API
   const fetchEmployees = useCallback(async () => {
@@ -141,7 +145,7 @@ const EmployeeListTable = () => {
 
     if (sessionStatus === 'loading') return
     if (sessionStatus === 'unauthenticated' || !session?.accessToken) {
-      setFetchError('Authentication required to fetch employees. Please log in.')
+      setFetchError(t('employees.authenticationRequired'))
       setFetchLoading(false)
       return
     }
@@ -161,13 +165,10 @@ const EmployeeListTable = () => {
       if (response.ok) {
         setEmployees(responseData.data || responseData)
       } else {
-        await toastService.handleApiError(response, 'Failed to fetch employees')
+        await toastService.handleApiError(response, t('employees.failedToCreateEmployee'))
       }
     } catch (error) {
-      await toastService.handleApiError(
-        error,
-        'Network error or unexpected issue fetching employees. Please try again.'
-      )
+      await toastService.handleApiError(error, t('employees.networkError'))
       console.error('Fetch error employees:', error)
     } finally {
       setFetchLoading(false)
@@ -179,7 +180,7 @@ const EmployeeListTable = () => {
     if (sessionStatus === 'authenticated') {
       fetchEmployees()
     } else if (sessionStatus === 'unauthenticated') {
-      setFetchError('Not authenticated. Please log in to view employees.')
+      setFetchError(t('employees.notAuthenticated'))
       setFetchLoading(false)
     }
   }, [sessionStatus, session?.accessToken])
@@ -260,7 +261,7 @@ const EmployeeListTable = () => {
   const handleGenerateReport = useCallback(
     async reportData => {
       if (!selectedEmployee || !session?.accessToken) {
-        setFetchError('Authentication required or employee not selected')
+        setFetchError(t('employees.authenticationRequired'))
         return
       }
 
@@ -274,7 +275,7 @@ const EmployeeListTable = () => {
         setSelectedEmployee(null)
       } catch (error) {
         console.error('Error generating report:', error)
-        setFetchError(error.message || 'Failed to generate attendance report')
+        setFetchError(error.message || t('employees.failedToGenerateReport'))
       } finally {
         setReportLoading(false)
       }
@@ -293,7 +294,7 @@ const EmployeeListTable = () => {
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
-        header: 'Employee',
+        header: t('employees.fields.name'),
         cell: ({ row }) => (
           <div className='flex items-center gap-4'>
             {row.original.avatar ? (
@@ -316,15 +317,15 @@ const EmployeeListTable = () => {
         )
       }),
       columnHelper.accessor('employeeId', {
-        header: 'Employee ID',
+        header: t('employees.fields.employeeId'),
         cell: info => <Typography color='text.primary'>{info.getValue() || '-'}</Typography>
       }),
       columnHelper.accessor('email', {
-        header: 'Email',
+        header: t('employees.fields.email'),
         cell: info => <Typography color='text.primary'>{info.getValue()}</Typography>
       }),
       columnHelper.accessor('role', {
-        header: 'Role',
+        header: t('employees.fields.role'),
         cell: ({ row }) => (
           <div className='flex items-center gap-2'>
             <Icon
@@ -338,12 +339,12 @@ const EmployeeListTable = () => {
         )
       }),
       columnHelper.accessor('isActive', {
-        header: 'Status',
+        header: t('employees.fields.status'),
         cell: ({ row }) => (
           <div className='flex items-center gap-3'>
             <Chip
               variant='tonal'
-              label={row.original.isActive ? 'Active' : 'Inactive'}
+              label={row.original.isActive ? t('employees.status.active') : t('employees.status.inactive')}
               size='small'
               color={employeeStatusObj[row.original.isActive]}
               className='capitalize'
@@ -352,7 +353,7 @@ const EmployeeListTable = () => {
         )
       }),
       columnHelper.accessor('action', {
-        header: 'Action',
+        header: t('employees.fields.action'),
         cell: ({ row }) => (
           <div className='flex items-center'>
             <OptionMenu
@@ -360,7 +361,7 @@ const EmployeeListTable = () => {
               iconClassName='text-textSecondary'
               options={[
                 {
-                  text: 'View',
+                  text: t('employees.view'),
                   icon: 'tabler-eye',
                   menuItemProps: {
                     component: Link,
@@ -377,7 +378,7 @@ const EmployeeListTable = () => {
                   }
                 },
                 {
-                  text: 'Edit',
+                  text: t('employees.edit'),
                   icon: 'tabler-edit',
                   menuItemProps: {
                     className: 'flex items-center gap-2 text-textSecondary',
@@ -385,7 +386,7 @@ const EmployeeListTable = () => {
                   }
                 },
                 {
-                  text: 'Delete',
+                  text: t('employees.delete'),
                   icon: 'tabler-trash',
                   menuItemProps: {
                     className: 'flex items-center gap-2 text-textSecondary',
@@ -433,17 +434,17 @@ const EmployeeListTable = () => {
   return (
     <>
       <Card>
-        <CardHeader title='Employee Management' className='pbe-4' />
+        <CardHeader title={t('employees.employeeManagement')} className='pbe-4' />
         <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
           {/* Role Filter */}
           <CustomTextField
             select
-            label='Role'
+            label={t('employees.fields.role')}
             value={filters.role}
             onChange={e => setFilters({ ...filters, role: e.target.value })}
             className='min-w-[180px]'
           >
-            <MenuItem value=''>All</MenuItem>
+            <MenuItem value=''>{t('employees.all')}</MenuItem>
             {roles.map(role => (
               <MenuItem key={role} value={role}>
                 {role}
@@ -454,20 +455,20 @@ const EmployeeListTable = () => {
           {/* Status Filter (isActive) */}
           <CustomTextField
             select
-            label='Status'
+            label={t('employees.fields.status')}
             value={filters.isActive}
             onChange={e => setFilters({ ...filters, isActive: e.target.value })}
             className='min-w-[180px]'
           >
-            <MenuItem value=''>All</MenuItem>
-            <MenuItem value='true'>Active</MenuItem>
-            <MenuItem value='false'>Inactive</MenuItem>
+            <MenuItem value=''>{t('employees.all')}</MenuItem>
+            <MenuItem value='true'>{t('employees.status.active')}</MenuItem>
+            <MenuItem value='false'>{t('employees.status.inactive')}</MenuItem>
           </CustomTextField>
 
           <DebouncedInput
             value={globalFilter ?? ''}
             onChange={value => setGlobalFilter(String(value))}
-            placeholder='Search Employee...'
+            placeholder={t('employees.searchEmployee')}
             className='min-w-[200px]'
           />
 
@@ -480,13 +481,13 @@ const EmployeeListTable = () => {
             }}
             className='ml-auto h-[40px]'
           >
-            Add New Employee
+            {t('employees.addNewEmployee')}
           </Button>
         </div>
         {fetchLoading ? (
           <div className='flex justify-center items-center p-6'>
             <CircularProgress />
-            <Typography className='ml-4'>Loading Employees...</Typography>
+            <Typography className='ml-4'>{t('employees.loadingEmployees')}</Typography>
           </div>
         ) : fetchError ? (
           <Alert severity='error' sx={{ m: 6 }}>
@@ -526,7 +527,7 @@ const EmployeeListTable = () => {
                 <tbody>
                   <tr>
                     <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
-                      No data available
+                      {t('employees.noEmployeesAvailable')}
                     </td>
                   </tr>
                 </tbody>
@@ -580,8 +581,8 @@ const EmployeeListTable = () => {
         open={deleteDialogOpen}
         setOpen={setDeleteDialogOpen}
         onConfirm={handleDeleteConfirm}
-        title='Delete Employee'
-        message={`Are you sure you want to delete "${employeeToDelete?.name}"? This action cannot be undone.`}
+        title={t('employees.deleteConfirmation.title')}
+        message={t('employees.deleteConfirmation.message')}
         itemName={employeeToDelete?.name}
         loading={deleteLoading}
       />

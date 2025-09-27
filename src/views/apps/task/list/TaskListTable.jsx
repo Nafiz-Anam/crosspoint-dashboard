@@ -29,7 +29,6 @@ import {
 } from '@tanstack/react-table'
 import { useSession } from 'next-auth/react'
 import CustomTextField from '@core/components/mui/TextField'
-import AddTaskDrawer from './AddTaskDrawer'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import { getLocalizedUrl } from '@/utils/i18n'
 import tableStyles from '@core/styles/table.module.css'
@@ -40,6 +39,9 @@ import enhancedTaskService from '@/services/enhancedTaskService'
 
 // Component Imports
 import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
+
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
 
 const columnHelper = createColumnHelper()
 
@@ -72,13 +74,14 @@ const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...prop
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
 
-const TaskListTable = () => {
-  // States for Drawer
-  const [addTaskOpen, setAddTaskOpen] = useState(false)
-  const [editingTask, setEditingTask] = useState(null)
-
+const TaskListTable = ({
+  tasks: externalTasks = null,
+  showTitle = true,
+  showAddButton = true,
+  limitActions = false
+}) => {
   // States for Table Data and API Operations
-  const [tasks, setTasks] = useState([])
+  const [tasks, setTasks] = useState(externalTasks || [])
   const [branches, setBranches] = useState([])
   const [fetchLoading, setFetchLoading] = useState(true)
   const [fetchError, setFetchError] = useState(null)
@@ -96,6 +99,7 @@ const TaskListTable = () => {
   // Hooks
   const { lang: locale } = useParams()
   const { data: session, status: sessionStatus } = useSession()
+  const { t } = useTranslation()
 
   // Function to fetch branches
   const fetchBranches = useCallback(async () => {
@@ -129,7 +133,7 @@ const TaskListTable = () => {
 
     if (sessionStatus === 'loading') return
     if (sessionStatus === 'unauthenticated' || !session?.accessToken) {
-      setFetchError('Authentication required to fetch tasks. Please log in.')
+      setFetchError(t('tasks.authenticationRequired'))
       setFetchLoading(false)
       return
     }
@@ -154,7 +158,7 @@ const TaskListTable = () => {
         await toastService.handleApiError(response, errorMessage)
       }
     } catch (error) {
-      const errorMessage = 'Network error or unexpected issue fetching tasks. Please try again.'
+      const errorMessage = t('tasks.networkError')
       setFetchError(errorMessage)
       await toastService.handleApiError(error, errorMessage)
     } finally {
@@ -164,14 +168,21 @@ const TaskListTable = () => {
 
   // Effect to fetch data on component mount or when session/token changes
   useEffect(() => {
+    if (externalTasks) {
+      // Use external tasks, no need to fetch
+      setFetchLoading(false)
+      setFetchError(null)
+      return
+    }
+
     if (sessionStatus === 'authenticated') {
       fetchTasks()
       fetchBranches()
     } else if (sessionStatus === 'unauthenticated') {
-      setFetchError('Not authenticated. Please log in to view tasks.')
+      setFetchError(t('tasks.notAuthenticated'))
       setFetchLoading(false)
     }
-  }, [sessionStatus, session?.accessToken, fetchTasks, fetchBranches])
+  }, [sessionStatus, session?.accessToken, fetchTasks, fetchBranches, externalTasks])
 
   // Effect for client-side filtering
   useEffect(() => {
@@ -244,18 +255,6 @@ const TaskListTable = () => {
     }
   }, [session?.accessToken, fetchTasks, taskToDelete])
 
-  // Function to open drawer for editing
-  const handleEditClick = useCallback(task => {
-    setEditingTask(task)
-    setAddTaskOpen(true)
-  }, [])
-
-  // Function to close drawer and clear editing state
-  const handleDrawerClose = () => {
-    setAddTaskOpen(false)
-    setEditingTask(null)
-  }
-
   // Function to handle generate invoice - redirect to invoice add page with pre-filled data
   const handleGenerateInvoiceClick = useCallback(
     task => {
@@ -316,33 +315,56 @@ const TaskListTable = () => {
   // Column definitions
   const columns = useMemo(
     () => [
-      columnHelper.accessor('title', {
-        header: 'Title',
-        cell: ({ row }) => (
-          <Typography color='text.primary' className='font-medium'>
-            {row.original.title}
-          </Typography>
-        )
-      }),
+      // Only show title column if not in minimal mode
+      ...(showTitle
+        ? [
+            columnHelper.accessor('title', {
+              header: t('tasks.fields.title'),
+              cell: ({ row }) => (
+                <Typography color='text.primary' className='font-medium'>
+                  {row.original.title}
+                </Typography>
+              )
+            })
+          ]
+        : []),
       columnHelper.accessor('client', {
-        header: 'Client',
+        header: t('tasks.fields.client'),
         cell: ({ row }) => <Typography color='text.primary'>{row.original.client?.name || '-'}</Typography>
       }),
       columnHelper.accessor('service', {
-        header: 'Service',
+        header: t('tasks.fields.service'),
         cell: ({ row }) => <Typography color='text.primary'>{row.original.service?.name || '-'}</Typography>
       }),
       columnHelper.accessor('assignedEmployee', {
-        header: 'Assigned To',
+        header: t('tasks.fields.assignedTo'),
         cell: ({ row }) => <Typography color='text.primary'>{row.original.assignedEmployee?.name || '-'}</Typography>
       }),
       columnHelper.accessor('status', {
-        header: 'Status',
+        header: t('tasks.fields.status'),
         cell: ({ row }) => (
           <div className='flex items-center gap-3'>
             <Chip
               variant='tonal'
-              label={row.original.status}
+              label={(() => {
+                const statusKey = row.original.status?.toLowerCase()
+                let translatedStatus = row.original.status
+
+                // Map status values to translations
+                const statusTranslations = {
+                  pending: t('tasks.status.pending'),
+                  in_progress: t('tasks.status.inProgress'),
+                  completed: t('tasks.status.completed'),
+                  cancelled: t('tasks.status.cancelled'),
+                  on_hold: t('tasks.status.onHold')
+                }
+
+                if (statusTranslations[statusKey]) {
+                  translatedStatus = statusTranslations[statusKey]
+                }
+
+                return translatedStatus
+              })()}
               size='small'
               color={taskStatusObj[row.original.status]}
               className='capitalize'
@@ -351,57 +373,71 @@ const TaskListTable = () => {
         )
       }),
       columnHelper.accessor('dueDate', {
-        header: 'Due Date',
+        header: t('tasks.fields.dueDate'),
         cell: ({ row }) => <Typography color='text.primary'>{formatDate(row.original.dueDate)}</Typography>
       }),
       columnHelper.accessor('action', {
-        header: 'Action',
+        header: t('tasks.fields.action'),
         cell: ({ row }) => (
           <div className='flex items-center'>
-            <OptionMenu
-              iconButtonProps={{ size: 'medium' }}
-              iconClassName='text-textSecondary'
-              options={[
-                {
-                  text: 'View',
-                  icon: 'tabler-eye',
-                  menuItemProps: {
-                    component: Link,
-                    href: getLocalizedUrl(`/apps/task/view/${row.original.id}`, locale),
-                    className: 'flex items-center gap-2 text-textSecondary'
-                  }
-                },
-                {
-                  text: 'Edit',
-                  icon: 'tabler-edit',
-                  menuItemProps: {
-                    component: Link,
-                    href: getLocalizedUrl(`/apps/task/edit/${row.original.id}`, locale),
-                    className: 'flex items-center gap-2 text-textSecondary'
-                  }
-                },
-                ...(!row.original.invoices || row.original.invoices.length === 0
-                  ? [
-                      {
-                        text: 'Generate Invoice',
-                        icon: 'tabler-file-invoice',
-                        menuItemProps: {
-                          className: 'flex items-center gap-2 text-textSecondary',
-                          onClick: () => handleGenerateInvoiceClick(row.original)
+            {limitActions ? (
+              // Direct button for minimal mode
+              <IconButton
+                size='medium'
+                component={Link}
+                href={getLocalizedUrl(`/apps/task/view/${row.original.id}`, locale)}
+                className='text-textSecondary'
+              >
+                <i className='tabler-eye' />
+              </IconButton>
+            ) : (
+              // Full dropdown for normal mode
+              <OptionMenu
+                iconButtonProps={{ size: 'medium' }}
+                iconClassName='text-textSecondary'
+                options={[
+                  // Full actions in normal mode
+                  {
+                    text: t('tasks.view'),
+                    icon: 'tabler-eye',
+                    menuItemProps: {
+                      component: Link,
+                      href: getLocalizedUrl(`/apps/task/view/${row.original.id}`, locale),
+                      className: 'flex items-center gap-2 text-textSecondary'
+                    }
+                  },
+                  {
+                    text: t('tasks.edit'),
+                    icon: 'tabler-edit',
+                    menuItemProps: {
+                      component: Link,
+                      href: getLocalizedUrl(`/apps/task/edit/${row.original.id}`, locale),
+                      className: 'flex items-center gap-2 text-textSecondary'
+                    }
+                  },
+                  ...(!row.original.invoices || row.original.invoices.length === 0
+                    ? [
+                        {
+                          text: t('tasks.generateInvoice'),
+                          icon: 'tabler-file-invoice',
+                          menuItemProps: {
+                            className: 'flex items-center gap-2 text-textSecondary',
+                            onClick: () => handleGenerateInvoiceClick(row.original)
+                          }
                         }
-                      }
-                    ]
-                  : []),
-                {
-                  text: 'Delete',
-                  icon: 'tabler-trash',
-                  menuItemProps: {
-                    className: 'flex items-center gap-2 text-textSecondary',
-                    onClick: () => handleDeleteClick(row.original.id)
+                      ]
+                    : []),
+                  {
+                    text: t('tasks.delete'),
+                    icon: 'tabler-trash',
+                    menuItemProps: {
+                      className: 'flex items-center gap-2 text-textSecondary',
+                      onClick: () => handleDeleteClick(row.original.id)
+                    }
                   }
-                }
-              ]}
-            />
+                ]}
+              />
+            )}
           </div>
         ),
         enableSorting: false
@@ -430,33 +466,51 @@ const TaskListTable = () => {
   return (
     <>
       <Card>
-        <CardHeader title='Task Management' className='pbe-4' />
+        <CardHeader title={t('tasks.taskManagement')} className='pbe-4' />
         <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
           {/* Status Filter */}
           <CustomTextField
             select
-            label='Status'
+            label={t('tasks.fields.status')}
             value={filters.status}
             onChange={e => setFilters({ ...filters, status: e.target.value })}
             className='min-w-[180px]'
           >
-            <MenuItem value=''>All</MenuItem>
-            {statuses.map(status => (
-              <MenuItem key={status} value={status}>
-                {status}
-              </MenuItem>
-            ))}
+            <MenuItem value=''>{t('tasks.all')}</MenuItem>
+            {statuses.map(status => {
+              const statusKey = typeof status === 'string' ? status.toLowerCase() : status
+              let translatedStatus = status
+
+              // Map status values to translations
+              const statusTranslations = {
+                pending: t('tasks.status.pending'),
+                in_progress: t('tasks.status.inProgress'),
+                completed: t('tasks.status.completed'),
+                cancelled: t('tasks.status.cancelled'),
+                on_hold: t('tasks.status.onHold')
+              }
+
+              if (statusTranslations[statusKey]) {
+                translatedStatus = statusTranslations[statusKey]
+              }
+
+              return (
+                <MenuItem key={status} value={status}>
+                  {translatedStatus}
+                </MenuItem>
+              )
+            })}
           </CustomTextField>
 
           {/* Assigned Employee Filter */}
           <CustomTextField
             select
-            label='Assigned To'
+            label={t('tasks.fields.assignedTo')}
             value={filters.assignedEmployee}
             onChange={e => setFilters({ ...filters, assignedEmployee: e.target.value })}
             className='min-w-[180px]'
           >
-            <MenuItem value=''>All</MenuItem>
+            <MenuItem value=''>{t('tasks.all')}</MenuItem>
             {assignedEmployees.map(employee => (
               <MenuItem key={employee} value={employee}>
                 {employee}
@@ -467,12 +521,12 @@ const TaskListTable = () => {
           {/* Branch Filter */}
           <CustomTextField
             select
-            label='Branch'
+            label={t('employees.fields.branch')}
             value={filters.branch}
             onChange={e => setFilters({ ...filters, branch: e.target.value })}
             className='min-w-[180px]'
           >
-            <MenuItem value=''>All</MenuItem>
+            <MenuItem value=''>{t('tasks.all')}</MenuItem>
             {branchNames.map(branch => (
               <MenuItem key={branch} value={branch}>
                 {branch}
@@ -483,25 +537,27 @@ const TaskListTable = () => {
           <DebouncedInput
             value={globalFilter ?? ''}
             onChange={value => setGlobalFilter(String(value))}
-            placeholder='Search Task...'
+            placeholder={t('tasks.searchTask')}
             className='min-w-[200px]'
           />
 
-          <Button
-            variant='contained'
-            startIcon={<i className='tabler-plus' />}
-            component={Link}
-            href={getLocalizedUrl('/apps/task/add', locale)}
-            className='ml-auto h-[40px]'
-          >
-            Add New Task
-          </Button>
+          {showAddButton && (
+            <Button
+              variant='contained'
+              startIcon={<i className='tabler-plus' />}
+              component={Link}
+              href={getLocalizedUrl('/apps/task/add', locale)}
+              className='ml-auto h-[40px]'
+            >
+              {t('tasks.addNewTask')}
+            </Button>
+          )}
         </div>
 
         {fetchLoading ? (
           <div className='flex justify-center items-center p-6'>
             <CircularProgress />
-            <Typography className='ml-4'>Loading Tasks...</Typography>
+            <Typography className='ml-4'>{t('tasks.loadingTasks')}</Typography>
           </div>
         ) : (
           <div className='overflow-x-auto'>
@@ -535,7 +591,7 @@ const TaskListTable = () => {
                 <tbody>
                   <tr>
                     <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
-                      No tasks available
+                      {t('tasks.noTasksAvailable')}
                     </td>
                   </tr>
                 </tbody>
@@ -564,20 +620,14 @@ const TaskListTable = () => {
           }}
         />
       </Card>
-      <AddTaskDrawer
-        open={addTaskOpen}
-        handleClose={handleDrawerClose}
-        currentTask={editingTask}
-        onTaskAdded={fetchTasks}
-      />
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog
         open={deleteDialogOpen}
         setOpen={setDeleteDialogOpen}
         onConfirm={handleDeleteTask}
-        title='Delete Task'
-        message={`Are you sure you want to delete "${taskToDelete?.title || taskToDelete?.description}"? This action cannot be undone.`}
+        title={t('tasks.deleteConfirmation.title')}
+        message={t('tasks.deleteConfirmation.message')}
         itemName={taskToDelete?.title || taskToDelete?.description}
         loading={deleteLoading}
       />

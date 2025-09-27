@@ -22,10 +22,14 @@ const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexChart
 // Service Imports
 import { attendanceService } from '@/services/attendanceService'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const TimesheetChart = () => {
   // Hook
   const theme = useTheme()
   const { data: session } = useSession()
+  const { t } = useTranslation()
   const [timesheetData, setTimesheetData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -47,7 +51,7 @@ const TimesheetChart = () => {
       }
     } catch (err) {
       console.error('Error fetching timesheet data:', err)
-      setError('Failed to fetch timesheet data')
+      setError(t('dashboard.common.error'))
       // Fallback to mock data
       setTimesheetData(generateMockData())
     } finally {
@@ -101,7 +105,7 @@ const TimesheetChart = () => {
 
   const series = [
     {
-      name: 'Hours Worked',
+      name: t('dashboard.timesheet.totalHours'),
       data: timesheetData
     }
   ]
@@ -146,10 +150,10 @@ const TimesheetChart = () => {
       enabled: true,
       x: {
         show: true,
-        formatter: val => `Day ${val}`
+        formatter: val => `${t('dashboard.common.today')} ${val}`
       },
       y: {
-        formatter: val => `${val} hours`
+        formatter: val => `${val} ${t('dashboard.timesheet.hoursPerDay')}`
       }
     },
     xaxis: {
@@ -186,7 +190,10 @@ const TimesheetChart = () => {
   if (loading) {
     return (
       <Card sx={{ height: '100%' }}>
-        <CardHeader title='My Timesheet' subheader={`Hours worked in ${getCurrentMonthName()}`} />
+        <CardHeader
+          title={t('dashboard.timesheet.title')}
+          subheader={`${t('dashboard.timesheet.hoursWorkedIn')} ${getCurrentMonthName()}`}
+        />
         <CardContent
           sx={{
             height: '100%',
@@ -198,7 +205,7 @@ const TimesheetChart = () => {
         >
           <CircularProgress size={40} />
           <Typography variant='body2' color='text.secondary' sx={{ mt: 2 }}>
-            Loading timesheet data...
+            {t('dashboard.common.loading')}
           </Typography>
         </CardContent>
       </Card>
@@ -207,7 +214,10 @@ const TimesheetChart = () => {
 
   return (
     <Card sx={{ height: '100%' }}>
-      <CardHeader title='My Timesheet' subheader={`Hours worked in ${getCurrentMonthName()}`} />
+      <CardHeader
+        title={t('dashboard.timesheet.title')}
+        subheader={`${t('dashboard.timesheet.hoursWorkedIn')} ${getCurrentMonthName()}`}
+      />
       <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         {error && (
           <Alert severity='error' sx={{ mb: 2 }}>

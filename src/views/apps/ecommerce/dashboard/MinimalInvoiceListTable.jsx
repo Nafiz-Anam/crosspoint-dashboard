@@ -46,6 +46,9 @@ import tableStyles from '@core/styles/table.module.css'
 
 import { getInitials } from '@/utils/getInitials'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const fuzzyFilter = (row, columnId, value, addMeta) => {
   // Rank the item
   const itemRank = rankItem(row.getValue(columnId), value)
@@ -114,11 +117,12 @@ const MinimalInvoiceListTable = ({ invoiceData }) => {
 
   // Hooks
   const { lang: locale } = useParams()
+  const { t } = useTranslation()
 
   const columns = useMemo(
     () => [
       columnHelper.accessor('invoiceId', {
-        header: 'Invoice ID',
+        header: t('invoices.fields.invoiceId'),
         cell: ({ row }) => (
           <Typography
             component={Link}
@@ -131,7 +135,7 @@ const MinimalInvoiceListTable = ({ invoiceData }) => {
         )
       }),
       columnHelper.accessor('name', {
-        header: 'Client',
+        header: t('invoices.fields.client'),
         cell: ({ row }) => (
           <div className='flex flex-col'>
             <Typography className='font-medium' color='text.primary'>
@@ -144,7 +148,7 @@ const MinimalInvoiceListTable = ({ invoiceData }) => {
         )
       }),
       columnHelper.accessor('serviceName', {
-        header: 'Service',
+        header: t('invoices.fields.service'),
         cell: ({ row }) => (
           <div className='flex flex-col'>
             <Typography variant='body2'>{row.original.serviceName || 'N/A'}</Typography>
@@ -155,7 +159,7 @@ const MinimalInvoiceListTable = ({ invoiceData }) => {
         )
       }),
       columnHelper.accessor('invoiceStatus', {
-        header: 'Status',
+        header: t('invoices.fields.status'),
         cell: ({ row }) => (
           <Chip
             label={row.original.invoiceStatus}
@@ -166,14 +170,32 @@ const MinimalInvoiceListTable = ({ invoiceData }) => {
         )
       }),
       columnHelper.accessor('dueDate', {
-        header: 'Due Date',
-        cell: ({ row }) => <Typography variant='body2'>{row.original.dueDate}</Typography>
+        header: t('invoices.fields.dueDate'),
+        cell: ({ row }) => {
+          const dueDate = row.original.dueDate
+          if (!dueDate) return <Typography variant='body2'>-</Typography>
+
+          try {
+            const dateObj = new Date(dueDate)
+            return (
+              <Typography variant='body2'>
+                {dateObj.toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit'
+                })}
+              </Typography>
+            )
+          } catch (error) {
+            return <Typography variant='body2'>{dueDate}</Typography>
+          }
+        }
       }),
       columnHelper.accessor('action', {
-        header: 'Actions',
+        header: t('invoices.fields.action'),
         cell: ({ row }) => (
           <div className='flex items-center gap-2'>
-            <Tooltip title='View Invoice'>
+            <Tooltip title={t('invoices.view')}>
               <IconButton size='small'>
                 <Link href={getLocalizedUrl(`apps/invoice/preview/${row.original.id}`, locale)} className='flex'>
                   <i className='tabler-eye text-textSecondary' />
@@ -218,12 +240,12 @@ const MinimalInvoiceListTable = ({ invoiceData }) => {
     <Card sx={{ height: '100%' }}>
       <CardHeader
         className='flex-wrap gap-x-4 gap-y-2'
-        title='Invoice List'
+        title={t('invoices.title')}
         action={
           <DebouncedInput
             value={globalFilter ?? ''}
             onChange={value => setGlobalFilter(String(value))}
-            placeholder='Search Invoice'
+            placeholder={t('invoices.searchInvoice')}
           />
         }
       />

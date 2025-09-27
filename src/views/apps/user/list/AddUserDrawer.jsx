@@ -24,6 +24,9 @@ import { useSession } from 'next-auth/react' // Import useSession to get token
 import CustomTextField from '@core/components/mui/TextField'
 import toastService from '@/services/toastService'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const AddEmployeeDrawer = props => {
   const { open, handleClose, currentEmployee, onEmployeeAdded } = props
 
@@ -40,6 +43,7 @@ const AddEmployeeDrawer = props => {
 
   // Hooks
   const { data: session, status: sessionStatus } = useSession()
+  const { t } = useTranslation()
 
   // Helper functions for role-based field restrictions
   const canEditEmail = () => {
@@ -106,7 +110,7 @@ const AddEmployeeDrawer = props => {
 
     if (sessionStatus === 'loading') return
     if (sessionStatus === 'unauthenticated' || !session?.accessToken) {
-      setBranchesError('Authentication required to load branches.')
+      setBranchesError(t('employees.authenticationRequired'))
       setBranchesLoading(false)
       return
     }
@@ -141,7 +145,7 @@ const AddEmployeeDrawer = props => {
   const fetchPermissions = useCallback(async () => {
     if (sessionStatus === 'loading') return
     if (sessionStatus === 'unauthenticated' || !session?.accessToken) {
-      toastService.showError('Authentication required to load permissions.')
+      toastService.showError(t('employees.authenticationRequired'))
       return
     }
 
@@ -305,7 +309,9 @@ const AddEmployeeDrawer = props => {
       sx={{ '& .MuiDrawer-paper': { width: { xs: 300, sm: 400 } } }}
     >
       <div className='flex items-center justify-between plb-5 pli-6'>
-        <Typography variant='h5'>{currentEmployee ? 'Edit Employee' : 'Add New Employee'}</Typography>
+        <Typography variant='h5'>
+          {currentEmployee ? t('employees.editEmployee') : t('employees.addNewEmployee')}
+        </Typography>
         <IconButton size='small' onClick={handleReset}>
           <i className='tabler-x text-2xl text-textPrimary' />
         </IconButton>
@@ -318,15 +324,15 @@ const AddEmployeeDrawer = props => {
             name='name'
             control={control}
             rules={{
-              required: 'Name is required.',
-              validate: value => value.trim() !== '' || 'Name cannot be empty'
+              required: t('employees.employeeNameRequired'),
+              validate: value => value.trim() !== '' || t('employees.employeeNameRequired')
             }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label='Name'
-                placeholder='Jane Doe'
+                label={t('employees.fields.name')}
+                placeholder={t('employees.enterName')}
                 required
                 error={!!errors.name}
                 helperText={errors.name?.message}
@@ -393,20 +399,20 @@ const AddEmployeeDrawer = props => {
             name='email'
             control={control}
             rules={{
-              required: 'Email is required.',
+              required: t('employees.emailRequired'),
               pattern: {
                 value: /^\S+@\S+\.\S+$/,
-                message: 'Invalid email address'
+                message: t('employees.emailInvalid')
               },
-              validate: value => value.trim() !== '' || 'Email cannot be empty'
+              validate: value => value.trim() !== '' || t('employees.emailRequired')
             }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
                 type='email'
-                label='Email'
-                placeholder='employee@example.com'
+                label={t('employees.fields.email')}
+                placeholder={t('employees.enterEmail')}
                 required
                 error={!!errors.email}
                 helperText={
@@ -426,21 +432,21 @@ const AddEmployeeDrawer = props => {
             name='password'
             control={control}
             rules={{
-              required: !currentEmployee && 'Password is required.',
+              required: !currentEmployee && t('employees.passwordRequired'),
               minLength: {
                 value: 8,
-                message: 'Password must be at least 8 characters'
+                message: t('employees.passwordMinLength')
               },
               validate: value =>
-                !currentEmployee || value === '' || value.length >= 8 || 'Password must be at least 8 characters'
+                !currentEmployee || value === '' || value.length >= 8 || t('employees.passwordMinLength')
             }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
                 type='password'
-                label={currentEmployee ? 'New Password (Optional)' : 'Password'}
-                placeholder='············'
+                label={currentEmployee ? t('employees.password') : t('employees.password')}
+                placeholder={t('employees.enterPassword')}
                 required={!currentEmployee}
                 error={!!errors.password}
                 helperText={errors.password?.message}
@@ -452,13 +458,13 @@ const AddEmployeeDrawer = props => {
           <Controller
             name='branchId'
             control={control}
-            rules={{ required: 'Branch is required.' }}
+            rules={{ required: t('employees.branchRequired') }}
             defaultValue=''
             render={({ field }) => (
               <CustomTextField
                 select
                 fullWidth
-                label='Select Branch'
+                label={t('employees.selectBranch')}
                 {...field}
                 value={field.value ?? ''}
                 SelectProps={{
@@ -488,12 +494,12 @@ const AddEmployeeDrawer = props => {
           <Controller
             name='role'
             control={control}
-            rules={{ required: 'Role is required.' }}
+            rules={{ required: t('employees.roleRequired') }}
             render={({ field }) => (
               <CustomTextField
                 select
                 fullWidth
-                label='Select Role'
+                label={t('employees.selectRole')}
                 {...field}
                 required
                 error={!!errors.role}
@@ -514,7 +520,7 @@ const AddEmployeeDrawer = props => {
           {/* Permissions - Required */}
           <Box sx={{ width: '100%' }}>
             <InputLabel required error={!!errors.permissions}>
-              Select Permissions
+              {t('employees.selectPermissions')}
             </InputLabel>
             <Controller
               name='permissions'
@@ -550,12 +556,12 @@ const AddEmployeeDrawer = props => {
                         sx: { maxHeight: 280 }
                       }
                     }}
-                    input={<OutlinedInput label='Select Permissions' />}
+                    input={<OutlinedInput label={t('employees.selectPermissions')} />}
                   >
                     {/* Empty state placeholder */}
                     {permissions.length === 0 && (
                       <MenuItem disabled>
-                        <em>No permissions available</em>
+                        <em>{t('employees.noRolesAvailable')}</em>
                       </MenuItem>
                     )}
 
@@ -600,13 +606,13 @@ const AddEmployeeDrawer = props => {
               variant='contained'
               type='submit'
               loading={loading}
-              loadingText={currentEmployee ? 'Updating...' : 'Creating...'}
+              loadingText={currentEmployee ? t('employees.updating') : t('employees.creating')}
               disabled={loading}
             >
-              {currentEmployee ? 'Update' : 'Submit'}
+              {currentEmployee ? t('employees.update') : t('employees.create')}
             </LoadingButton>
             <LoadingButton variant='tonal' color='error' type='reset' onClick={handleReset} disabled={loading}>
-              Cancel
+              {t('employees.cancel')}
             </LoadingButton>
           </div>
         </form>

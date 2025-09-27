@@ -39,7 +39,7 @@ const TaskStatisticsCard = () => {
       setError(null)
 
       if (!session?.accessToken) {
-        setError(t('auth.authenticationRequired'))
+        setError(t('dashboard.common.error'))
         return
       }
 
@@ -49,11 +49,11 @@ const TaskStatisticsCard = () => {
       if (response && response.data) {
         setTaskStats(response.data.data)
       } else {
-        setError(t('dashboard.taskStatistics.fetchError'))
+        setError(t('dashboard.common.error'))
       }
     } catch (err) {
       console.error('Error fetching task stats:', err)
-      setError('Failed to fetch task statistics. ' + (err.message || ''))
+      setError(t('dashboard.common.error'))
     } finally {
       setLoading(false)
     }
@@ -68,19 +68,19 @@ const TaskStatisticsCard = () => {
 
   const statsData = [
     {
-      title: t('dashboard.taskStatistics.pending'),
+      title: t('dashboard.taskStatistics.pendingActivities'),
       count: taskStats.pending,
       color: 'warning',
       icon: 'tabler-clock'
     },
     {
-      title: t('dashboard.taskStatistics.completed'),
+      title: t('dashboard.taskStatistics.completedActivities'),
       count: taskStats.completed,
       color: 'success',
       icon: 'tabler-check'
     },
     {
-      title: t('dashboard.taskStatistics.cancelled'),
+      title: t('dashboard.taskStatistics.cancelledActivities'),
       count: taskStats.cancelled,
       color: 'error',
       icon: 'tabler-x'
@@ -101,7 +101,7 @@ const TaskStatisticsCard = () => {
         >
           <CircularProgress size={40} />
           <Typography variant='body2' color='text.secondary' sx={{ mt: 2 }}>
-            {t('dashboard.taskStatistics.loading')}
+            {t('dashboard.common.loading')}
           </Typography>
         </CardContent>
       </Card>
@@ -119,7 +119,7 @@ const TaskStatisticsCard = () => {
             {error}
           </Alert>
         )}
-        <Grid container spacing={3}>
+        <Grid container spacing={3} justifyContent='space-between'>
           {statsData.map((stat, index) => (
             <Grid key={index} xs={12} sm={4}>
               <Box className='flex items-center gap-3'>

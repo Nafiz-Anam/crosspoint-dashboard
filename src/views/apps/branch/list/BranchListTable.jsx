@@ -46,6 +46,9 @@ import AddBranchDrawer from './AddBranchDrawer' // Ensure this is the updated dr
 import CustomTextField from '@core/components/mui/TextField'
 import toastService from '@/services/toastService'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
 
@@ -103,6 +106,7 @@ const BranchListTable = () => {
 
   const { lang: locale } = useParams()
   const { data: session, status } = useSession() // Get session and status
+  const { t } = useTranslation()
 
   // Function to fetch branch data from API
   const fetchBranches = useCallback(async () => {
@@ -111,7 +115,7 @@ const BranchListTable = () => {
 
     if (status === 'loading') return // Wait for session to load
     if (status === 'unauthenticated' || !session?.accessToken) {
-      setFetchError('Authentication required to fetch branches. Please log in.')
+      setFetchError(t('branches.authenticationRequired'))
       setFetchLoading(false)
       return
     }
@@ -135,7 +139,7 @@ const BranchListTable = () => {
         const errorMessage = responseData.message || `Failed to fetch branches: ${response.status}`
         setFetchError(errorMessage)
         // Show error toast for fetch errors
-        await toastService.handleApiError(response, 'Failed to fetch branches')
+        await toastService.handleApiError(response, t('branches.failedToCreateBranch'))
         console.error('API Error fetching branches:', responseData)
       }
     } catch (error) {
@@ -154,7 +158,7 @@ const BranchListTable = () => {
     if (status === 'authenticated') {
       fetchBranches()
     } else if (status === 'unauthenticated') {
-      setFetchError('Not authenticated. Please log in to view branches.')
+      setFetchError(t('branches.notAuthenticated'))
       setFetchLoading(false)
     }
   }, [status, session?.accessToken]) // Re-fetch if session status or token changes
@@ -258,7 +262,7 @@ const BranchListTable = () => {
         )
       }),
       columnHelper.accessor('name', {
-        header: 'Branch Name',
+        header: t('branches.fields.name'),
         cell: info => (
           <Typography color='text.primary' className='font-medium'>
             {info.getValue()}
@@ -301,10 +305,10 @@ const BranchListTable = () => {
         )
       }),
       columnHelper.accessor('isActive', {
-        header: 'Status',
+        header: t('branches.fields.status'),
         cell: info => (
           <Chip
-            label={info.getValue() ? 'Active' : 'Inactive'}
+            label={info.getValue() ? t('branches.status.active') : t('branches.status.inactive')}
             color={info.getValue() ? 'success' : 'default'}
             variant='tonal'
             size='small'
@@ -312,7 +316,7 @@ const BranchListTable = () => {
         )
       }),
       columnHelper.accessor('action', {
-        header: 'Action',
+        header: t('branches.fields.action'),
         cell: ({ row }) => (
           <div className='flex items-center gap-2'>
             <IconButton onClick={() => handleEditClick(row.original)} size='small'>
@@ -349,17 +353,17 @@ const BranchListTable = () => {
   return (
     <>
       <Card>
-        <CardHeader title='Branch Management' className='pbe-4' />
+        <CardHeader title={t('branches.branchManagement')} className='pbe-4' />
 
         <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
           <CustomTextField
             select
-            label='City'
+            label={t('branches.fields.city')}
             value={filters.city}
             onChange={e => setFilters({ ...filters, city: e.target.value })}
             className='min-w-[180px]'
           >
-            <MenuItem value=''>All</MenuItem>
+            <MenuItem value=''>{t('branches.all')}</MenuItem>
             {cities.map(city => (
               <MenuItem key={city} value={city}>
                 {city}
@@ -369,12 +373,12 @@ const BranchListTable = () => {
 
           <CustomTextField
             select
-            label='Province'
+            label={t('branches.fields.province')}
             value={filters.province}
             onChange={e => setFilters({ ...filters, province: e.target.value })}
             className='min-w-[180px]'
           >
-            <MenuItem value=''>All</MenuItem>
+            <MenuItem value=''>{t('branches.all')}</MenuItem>
             {provinces.map(province => (
               <MenuItem key={province} value={province}>
                 {province}
@@ -384,20 +388,20 @@ const BranchListTable = () => {
 
           <CustomTextField
             select
-            label='Status'
+            label={t('branches.fields.status')}
             value={filters.isActive}
             onChange={e => setFilters({ ...filters, isActive: e.target.value })}
             className='min-w-[180px]'
           >
-            <MenuItem value=''>All</MenuItem>
-            <MenuItem value='true'>Active</MenuItem>
-            <MenuItem value='false'>Inactive</MenuItem>
+            <MenuItem value=''>{t('branches.all')}</MenuItem>
+            <MenuItem value='true'>{t('branches.status.active')}</MenuItem>
+            <MenuItem value='false'>{t('branches.status.inactive')}</MenuItem>
           </CustomTextField>
 
           <DebouncedInput
             value={globalFilter ?? ''}
             onChange={value => setGlobalFilter(String(value))}
-            placeholder='Search branch...'
+            placeholder={t('branches.searchBranch')}
             className='min-w-[200px]'
           />
 
@@ -410,14 +414,14 @@ const BranchListTable = () => {
             }}
             className='ml-auto h-[40px]'
           >
-            Add New Branch
+            {t('branches.addNewBranch')}
           </Button>
         </div>
 
         {fetchLoading ? (
           <div className='flex justify-center items-center p-6'>
             <CircularProgress />
-            <Typography className='ml-4'>Loading Branches...</Typography>
+            <Typography className='ml-4'>{t('branches.loadingBranches')}</Typography>
           </div>
         ) : fetchError ? (
           <Alert severity='error' sx={{ m: 6 }}>
@@ -494,8 +498,8 @@ const BranchListTable = () => {
         open={deleteDialogOpen}
         setOpen={setDeleteDialogOpen}
         onConfirm={handleDeleteBranch}
-        title='Delete Branch'
-        message={`Are you sure you want to delete "${branchToDelete?.name}"? This action cannot be undone.`}
+        title={t('branches.deleteConfirmation.title')}
+        message={t('branches.deleteConfirmation.message')}
         itemName={branchToDelete?.name}
         loading={deleteLoading}
       />

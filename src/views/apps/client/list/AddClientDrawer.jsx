@@ -25,6 +25,9 @@ import CustomTextField from '@core/components/mui/TextField'
 import toastService from '@/services/toastService'
 import enhancedClientService from '@/services/enhancedClientService'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const AddClientDrawer = props => {
   // Props
   const { open, handleClose, currentClient, onClientAdded } = props
@@ -38,6 +41,7 @@ const AddClientDrawer = props => {
 
   // Hooks
   const { data: session } = useSession()
+  const { t } = useTranslation()
   const {
     control,
     reset: resetForm,
@@ -143,13 +147,13 @@ const AddClientDrawer = props => {
 
     // Validate required fields
     if (!data.name?.trim()) {
-      toastService.showError('Client name is required.')
+      toastService.showError(t('clients.clientNameRequired'))
       setLoading(false)
       return
     }
 
     if (!data.email?.trim()) {
-      toastService.showError('Client email is required.')
+      toastService.showError(t('clients.emailRequired'))
       setLoading(false)
       return
     }
@@ -163,7 +167,7 @@ const AddClientDrawer = props => {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(data.email)) {
-      toastService.showError('Please enter a valid email address.')
+      toastService.showError(t('clients.emailInvalid'))
       setLoading(false)
       return
     }
@@ -183,7 +187,7 @@ const AddClientDrawer = props => {
 
     // Validate status before sending
     if (!validStatuses.includes(data.status)) {
-      toastService.showError(`Invalid status: ${data.status}. Please select a valid status.`)
+      toastService.showError(t('clients.networkError'))
       setLoading(false)
       return
     }
@@ -195,15 +199,15 @@ const AddClientDrawer = props => {
       if (isEditMode) {
         result = await enhancedClientService.updateClient(currentClient.id, payload, session.accessToken, {
           showToast: true,
-          successMessage: `Client "${payload.name}" updated successfully!`,
-          errorMessage: 'Failed to update client',
+          successMessage: t('clients.clientUpdatedSuccessfully'),
+          errorMessage: t('clients.failedToUpdateClient'),
           showLoading: false // We're handling loading state manually
         })
       } else {
         result = await enhancedClientService.createClient(payload, session.accessToken, {
           showToast: true,
-          successMessage: `Client "${payload.name}" created successfully!`,
-          errorMessage: 'Failed to create client',
+          successMessage: t('clients.clientCreatedSuccessfully'),
+          errorMessage: t('clients.failedToCreateClient'),
           showLoading: false // We're handling loading state manually
         })
       }
@@ -243,7 +247,7 @@ const AddClientDrawer = props => {
       sx={{ '& .MuiDrawer-paper': { width: { xs: 300, sm: 400 } } }}
     >
       <div className='flex items-center justify-between plb-5 pli-6'>
-        <Typography variant='h5'>{currentClient ? 'Edit Client' : 'Add New Client'}</Typography>
+        <Typography variant='h5'>{currentClient ? t('clients.editClient') : t('clients.addNewClient')}</Typography>
         <IconButton size='small' onClick={handleReset}>
           <i className='tabler-x text-2xl text-textPrimary' />
         </IconButton>
@@ -265,12 +269,12 @@ const AddClientDrawer = props => {
           <Controller
             name='branchId'
             control={control}
-            rules={{ required: 'Branch is required.' }}
+            rules={{ required: t('clients.branchRequired') }}
             render={({ field }) => (
               <CustomTextField
                 select
                 fullWidth
-                label='Select Branch'
+                label={t('clients.selectBranch')}
                 {...field}
                 {...(errors.branchId && { error: true, helperText: errors.branchId.message })}
                 InputProps={{
@@ -280,10 +284,10 @@ const AddClientDrawer = props => {
                 {branchesLoading ? (
                   <MenuItem disabled>
                     <CircularProgress size={16} sx={{ mr: 1 }} />
-                    Loading branches...
+                    {t('clients.loadingBranches')}
                   </MenuItem>
                 ) : branches.length === 0 ? (
-                  <MenuItem disabled>No branches available</MenuItem>
+                  <MenuItem disabled>{t('clients.noBranchesAvailable')}</MenuItem>
                 ) : (
                   branches.map(branch => (
                     <MenuItem key={branch.id} value={branch.id}>
@@ -299,7 +303,7 @@ const AddClientDrawer = props => {
             name='name'
             control={control}
             rules={{
-              required: 'Client Name is required.',
+              required: t('clients.clientNameRequired'),
               minLength: {
                 value: 2,
                 message: 'Name must be at least 2 characters long.'
@@ -313,8 +317,8 @@ const AddClientDrawer = props => {
               <CustomTextField
                 {...field}
                 fullWidth
-                label='Client Name'
-                placeholder='Mario Rossi'
+                label={t('clients.fields.name')}
+                placeholder={t('clients.enterName')}
                 {...(errors.name && { error: true, helperText: errors.name.message })}
               />
             )}
@@ -345,16 +349,16 @@ const AddClientDrawer = props => {
             name='email'
             control={control}
             rules={{
-              required: 'Email is required.',
-              pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address.' }
+              required: t('clients.emailRequired'),
+              pattern: { value: /^\S+@\S+\.\S+$/, message: t('clients.emailInvalid') }
             }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
                 type='email'
-                label='Email'
-                placeholder='mario.rossi@email.com'
+                label={t('clients.fields.email')}
+                placeholder={t('clients.enterEmail')}
                 {...(errors.email && { error: true, helperText: errors.email.message })}
               />
             )}
@@ -364,7 +368,12 @@ const AddClientDrawer = props => {
             name='phone'
             control={control}
             render={({ field }) => (
-              <CustomTextField {...field} fullWidth label='Phone (Optional)' placeholder='+39 123 456 7890' />
+              <CustomTextField
+                {...field}
+                fullWidth
+                label={t('clients.fields.phone')}
+                placeholder={t('clients.enterPhone')}
+              />
             )}
           />
 
@@ -372,7 +381,12 @@ const AddClientDrawer = props => {
             name='address'
             control={control}
             render={({ field }) => (
-              <CustomTextField {...field} fullWidth label='Address (Optional)' placeholder='Via Roma 123' />
+              <CustomTextField
+                {...field}
+                fullWidth
+                label={t('clients.fields.address')}
+                placeholder={t('clients.enterAddress')}
+              />
             )}
           />
 
@@ -401,7 +415,7 @@ const AddClientDrawer = props => {
           {/* <Controller
             name='status'
             control={control}
-            rules={{ required: 'Status is required.' }}
+            rules={{ required: t('clients.statusRequired') }}
             render={({ field }) => (
               <CustomTextField
                 select
@@ -424,13 +438,13 @@ const AddClientDrawer = props => {
               variant='contained'
               type='submit'
               loading={loading}
-              loadingText={currentClient ? 'Updating...' : 'Creating...'}
+              loadingText={currentClient ? t('clients.updating') : t('clients.creating')}
               disabled={loading}
             >
-              {currentClient ? 'Update' : 'Submit'}
+              {currentClient ? t('clients.update') : t('clients.create')}
             </LoadingButton>
             <LoadingButton variant='tonal' color='error' type='reset' onClick={handleReset} disabled={loading}>
-              Cancel
+              {t('clients.cancel')}
             </LoadingButton>
           </div>
         </form>

@@ -13,7 +13,13 @@ import CompanyInfoSection from '@/components/CompanyInfoSection'
 import tableStyles from '@core/styles/table.module.css'
 import './print.css'
 
+// Util Imports
+import { useTranslation } from '@/hooks/useTranslation'
+
 const PreviewCard = ({ invoiceData, invoiceState, id }) => {
+  // Hooks
+  const { t } = useTranslation()
+
   // Use invoiceData from API instead of invoiceState
   const invoice = invoiceData?.invoice || invoiceData
 
@@ -84,8 +90,33 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
   }
 
   const formatDate = date => {
-    if (!date) return 'Not set'
-    return date instanceof Date ? date.toLocaleDateString() : date
+    if (!date) return t('invoices.notSet')
+
+    try {
+      // Handle ISO date strings
+      if (typeof date === 'string') {
+        const dateObj = new Date(date)
+        return dateObj.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        })
+      }
+
+      // Handle Date objects
+      if (date instanceof Date) {
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        })
+      }
+
+      return date
+    } catch (error) {
+      console.error('Error formatting date:', error)
+      return date
+    }
   }
 
   return (
@@ -100,23 +131,23 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                   <CompanyInfoSection companyInfo={invoiceCompanyInfo} isEditable={false} showEditButton={false} />
                 </div>
                 <div className='flex flex-col gap-6'>
-                  <Typography variant='h5'>{`Invoice #${invoice?.invoiceNumber || invoice?.invoiceId || id || 'INV-001'}`}</Typography>
+                  <Typography variant='h5'>{`${t('invoices.title')} #${invoice?.invoiceNumber || invoice?.invoiceId || id || 'INV-001'}`}</Typography>
                   <div className='flex flex-col gap-1'>
-                    <Typography color='text.primary'>{`Date Issued: ${formatDate(issuedDate)}`}</Typography>
-                    <Typography color='text.primary'>{`Date Due: ${formatDate(dueDate)}`}</Typography>
+                    <Typography color='text.primary'>{`${t('invoices.dateIssued')} ${formatDate(issuedDate)}`}</Typography>
+                    <Typography color='text.primary'>{`${t('invoices.dateDue')} ${formatDate(dueDate)}`}</Typography>
                   </div>
                 </div>
               </div>
             </div>
           </Grid>
 
-          {/* Client and Bill To Section */}
+          {/* Client and Payment Method Section */}
           <Grid size={{ xs: 12 }}>
             <Grid container spacing={6}>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <div className='flex flex-col gap-4'>
                   <Typography className='font-medium' color='text.primary'>
-                    Invoice To:
+                    {t('invoices.invoiceTo')}
                   </Typography>
                   {selectedClient ? (
                     <div>
@@ -133,40 +164,40 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                       )}
                     </div>
                   ) : (
-                    <Typography color='textSecondary'>No client selected</Typography>
+                    <Typography color='textSecondary'>{t('invoices.noClientSelected')}</Typography>
                   )}
                 </div>
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <div className='flex flex-col gap-4'>
                   <Typography className='font-medium' color='text.primary'>
-                    Bill To:
+                    Payment Method:
                   </Typography>
                   <div>
                     <div className='flex items-center gap-4'>
-                      <Typography className='min-is-[100px]'>Payment Method:</Typography>
-                      <Typography className='font-medium'>{paymentMethod || 'Not set'}</Typography>
+                      <Typography className='min-is-[100px]'>{t('invoices.paymentMethod')}</Typography>
+                      <Typography className='font-medium'>{paymentMethod || t('invoices.notSet')}</Typography>
                     </div>
                     <div className='flex items-center gap-4'>
-                      <Typography className='min-is-[100px]'>Total Due:</Typography>
+                      <Typography className='min-is-[100px]'>{t('invoices.totalDue')}</Typography>
                       <Typography className='font-medium'>${calculateFinalTotal().toFixed(2)}</Typography>
                     </div>
                     {bankDetails && (
                       <>
                         <div className='flex items-center gap-4'>
-                          <Typography className='min-is-[100px]'>Bank name:</Typography>
+                          <Typography className='min-is-[100px]'>{t('invoices.bankName')}</Typography>
                           <Typography>{bankDetails.bankName}</Typography>
                         </div>
                         <div className='flex items-center gap-4'>
-                          <Typography className='min-is-[100px]'>Country:</Typography>
+                          <Typography className='min-is-[100px]'>{t('invoices.country')}</Typography>
                           <Typography>{bankDetails.bankCountry}</Typography>
                         </div>
                         <div className='flex items-center gap-4'>
-                          <Typography className='min-is-[100px]'>IBAN:</Typography>
+                          <Typography className='min-is-[100px]'>{t('invoices.iban')}</Typography>
                           <Typography>{bankDetails.bankIban}</Typography>
                         </div>
                         <div className='flex items-center gap-4'>
-                          <Typography className='min-is-[100px]'>SWIFT code:</Typography>
+                          <Typography className='min-is-[100px]'>{t('invoices.swiftCode')}</Typography>
                           <Typography>{bankDetails.bankSwiftCode}</Typography>
                         </div>
                       </>
@@ -183,11 +214,11 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
               <table className={tableStyles.table}>
                 <thead className='border-bs-0'>
                   <tr>
-                    <th className='!bg-transparent'>Service</th>
-                    <th className='!bg-transparent'>Description</th>
-                    <th className='!bg-transparent'>Rate</th>
-                    <th className='!bg-transparent'>Discount</th>
-                    <th className='!bg-transparent'>Total</th>
+                    <th className='!bg-transparent'>{t('invoices.service')}</th>
+                    <th className='!bg-transparent'>{t('invoices.description')}</th>
+                    <th className='!bg-transparent'>{t('invoices.rate')}</th>
+                    <th className='!bg-transparent'>{t('invoices.discount')}</th>
+                    <th className='!bg-transparent'>{t('invoices.total')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -217,7 +248,7 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                     <tr>
                       <td colSpan={5}>
                         <Typography color='textSecondary' align='center'>
-                          No services added
+                          {t('invoices.noServicesAdded')}
                         </Typography>
                       </td>
                     </tr>
@@ -233,10 +264,12 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
               <div className='flex flex-col gap-4 order-2 sm:order-[unset]'>
                 <div className='flex items-center gap-2'>
                   <Typography className='font-medium' color='text.primary'>
-                    Salesperson:
+                    {t('invoices.salesperson')}
                   </Typography>
                   <Typography>
-                    {selectedSalesperson ? `${selectedSalesperson.name} - ${selectedSalesperson.role}` : 'Not assigned'}
+                    {selectedSalesperson
+                      ? `${selectedSalesperson.name} - ${selectedSalesperson.role}`
+                      : t('invoices.notAssigned')}
                   </Typography>
                 </div>
                 {invoice?.thanksMessage && <Typography>{invoice.thanksMessage}</Typography>}
@@ -245,7 +278,7 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                 {paymentTerms && (
                   <div className='flex flex-col gap-1'>
                     <Typography className='font-medium' color='text.primary'>
-                      Payment Terms:
+                      {t('invoices.paymentTerms')}
                     </Typography>
                     <Typography>{paymentTerms}</Typography>
                   </div>
@@ -255,26 +288,28 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
               {/* Totals */}
               <div className='min-is-[200px]'>
                 <div className='flex items-center justify-between'>
-                  <Typography>Subtotal:</Typography>
+                  <Typography>{t('invoices.subtotalLabel')}</Typography>
                   <Typography className='font-medium' color='text.primary'>
                     ${calculateSubtotal().toFixed(2)}
                   </Typography>
                 </div>
                 <div className='flex items-center justify-between'>
-                  <Typography>Discount:</Typography>
+                  <Typography>{t('invoices.discountLabel')}</Typography>
                   <Typography className='font-medium' color='text.primary'>
                     ${calculateTotalDiscount().toFixed(2)}
                   </Typography>
                 </div>
                 <div className='flex items-center justify-between'>
-                  <Typography>Tax ({invoice?.taxRate || 0}%):</Typography>
+                  <Typography>
+                    {t('invoices.taxLabel')} ({invoice?.taxRate || 0}%):
+                  </Typography>
                   <Typography className='font-medium' color='text.primary'>
                     ${calculateTax().toFixed(2)}
                   </Typography>
                 </div>
                 <Divider className='mlb-2' />
                 <div className='flex items-center justify-between'>
-                  <Typography className='font-medium'>Total:</Typography>
+                  <Typography className='font-medium'>{t('invoices.totalLabel')}</Typography>
                   <Typography className='font-medium' color='text.primary'>
                     ${calculateFinalTotal().toFixed(2)}
                   </Typography>
@@ -292,7 +327,7 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
             <Grid size={{ xs: 12 }}>
               <Typography>
                 <Typography component='span' className='font-medium' color='text.primary'>
-                  Note:
+                  {t('invoices.note')}
                 </Typography>{' '}
                 {invoice.notes}
               </Typography>
