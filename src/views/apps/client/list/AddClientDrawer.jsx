@@ -30,7 +30,7 @@ import { useTranslation } from '@/hooks/useTranslation'
 
 const AddClientDrawer = props => {
   // Props
-  const { open, handleClose, currentClient, onClientAdded } = props
+  const { open, handleClose, currentClient, onClientAdded, isViewMode = false } = props
 
   // States
   const [loading, setLoading] = useState(false)
@@ -137,6 +137,11 @@ const AddClientDrawer = props => {
   }, [open, session?.accessToken])
 
   const onSubmit = async data => {
+    // Prevent submission in view mode
+    if (isViewMode) {
+      return
+    }
+
     setLoading(true)
 
     if (!session?.accessToken) {
@@ -247,7 +252,9 @@ const AddClientDrawer = props => {
       sx={{ '& .MuiDrawer-paper': { width: { xs: 300, sm: 400 } } }}
     >
       <div className='flex items-center justify-between plb-5 pli-6'>
-        <Typography variant='h5'>{currentClient ? t('clients.editClient') : t('clients.addNewClient')}</Typography>
+        <Typography variant='h5'>
+          {isViewMode ? t('clients.viewClient') : currentClient ? t('clients.editClient') : t('clients.addNewClient')}
+        </Typography>
         <IconButton size='small' onClick={handleReset}>
           <i className='tabler-x text-2xl text-textPrimary' />
         </IconButton>
@@ -255,7 +262,7 @@ const AddClientDrawer = props => {
       <Divider />
       <div>
         <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6 p-6'>
-          {/* Client ID field, display only if editing */}
+          {/* Client ID field, display only if editing or viewing */}
           {currentClient && (
             <CustomTextField
               fullWidth
@@ -277,6 +284,7 @@ const AddClientDrawer = props => {
                 label={t('clients.selectBranch')}
                 {...field}
                 {...(errors.branchId && { error: true, helperText: errors.branchId.message })}
+                disabled={isViewMode}
                 InputProps={{
                   endAdornment: branchesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
                 }}
@@ -319,6 +327,7 @@ const AddClientDrawer = props => {
                 fullWidth
                 label={t('clients.fields.name')}
                 placeholder={t('clients.enterName')}
+                disabled={isViewMode}
                 {...(errors.name && { error: true, helperText: errors.name.message })}
               />
             )}
@@ -337,6 +346,7 @@ const AddClientDrawer = props => {
                 fullWidth
                 label='National Identification Number'
                 placeholder='1234567890'
+                disabled={isViewMode}
                 {...(errors.nationalIdentificationNumber && {
                   error: true,
                   helperText: errors.nationalIdentificationNumber.message
@@ -359,6 +369,7 @@ const AddClientDrawer = props => {
                 type='email'
                 label={t('clients.fields.email')}
                 placeholder={t('clients.enterEmail')}
+                disabled={isViewMode}
                 {...(errors.email && { error: true, helperText: errors.email.message })}
               />
             )}
@@ -373,6 +384,7 @@ const AddClientDrawer = props => {
                 fullWidth
                 label={t('clients.fields.phone')}
                 placeholder={t('clients.enterPhone')}
+                disabled={isViewMode}
               />
             )}
           />
@@ -386,6 +398,7 @@ const AddClientDrawer = props => {
                 fullWidth
                 label={t('clients.fields.address')}
                 placeholder={t('clients.enterAddress')}
+                disabled={isViewMode}
               />
             )}
           />
@@ -393,14 +406,22 @@ const AddClientDrawer = props => {
           <Controller
             name='city'
             control={control}
-            render={({ field }) => <CustomTextField {...field} fullWidth label='City (Optional)' placeholder='Rome' />}
+            render={({ field }) => (
+              <CustomTextField {...field} fullWidth label='City (Optional)' placeholder='Rome' disabled={isViewMode} />
+            )}
           />
 
           <Controller
             name='postalCode'
             control={control}
             render={({ field }) => (
-              <CustomTextField {...field} fullWidth label='Postal Code (Optional)' placeholder='00100' />
+              <CustomTextField
+                {...field}
+                fullWidth
+                label='Postal Code (Optional)'
+                placeholder='00100'
+                disabled={isViewMode}
+              />
             )}
           />
 
@@ -408,7 +429,13 @@ const AddClientDrawer = props => {
             name='province'
             control={control}
             render={({ field }) => (
-              <CustomTextField {...field} fullWidth label='Province (Optional)' placeholder='RM' />
+              <CustomTextField
+                {...field}
+                fullWidth
+                label='Province (Optional)'
+                placeholder='RM'
+                disabled={isViewMode}
+              />
             )}
           />
 
@@ -434,17 +461,19 @@ const AddClientDrawer = props => {
           /> */}
 
           <div className='flex items-center gap-4'>
-            <LoadingButton
-              variant='contained'
-              type='submit'
-              loading={loading}
-              loadingText={currentClient ? t('clients.updating') : t('clients.creating')}
-              disabled={loading}
-            >
-              {currentClient ? t('clients.update') : t('clients.create')}
-            </LoadingButton>
+            {!isViewMode && (
+              <LoadingButton
+                variant='contained'
+                type='submit'
+                loading={loading}
+                loadingText={currentClient ? t('clients.updating') : t('clients.creating')}
+                disabled={loading}
+              >
+                {currentClient ? t('clients.update') : t('clients.create')}
+              </LoadingButton>
+            )}
             <LoadingButton variant='tonal' color='error' type='reset' onClick={handleReset} disabled={loading}>
-              {t('clients.cancel')}
+              {isViewMode ? t('clients.close') : t('clients.cancel')}
             </LoadingButton>
           </div>
         </form>

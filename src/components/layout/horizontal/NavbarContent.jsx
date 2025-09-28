@@ -14,6 +14,7 @@ import ModeDropdown from '@components/layout/shared/ModeDropdown'
 import ShortcutsDropdown from '@components/layout/shared/ShortcutsDropdown'
 import NotificationsDropdown from '@components/layout/shared/NotificationsDropdown'
 import UserDropdown from '@components/layout/shared/UserDropdown'
+import DateTimeCard from '@views/dashboards/main/DateTimeCard'
 
 // Hook Imports
 import useHorizontalNav from '@menu/hooks/useHorizontalNav'
@@ -127,6 +128,11 @@ const NavbarContent = () => {
             <Logo />
           </Link>
         )}
+      </div>
+
+      {/* Center - Date/Time Display */}
+      <div className='flex-1 flex justify-center'>
+        <DateTimeCard />
       </div>
 
       <div className='flex items-center'>

@@ -9,6 +9,7 @@ import ModeDropdown from '@components/layout/shared/ModeDropdown'
 import ShortcutsDropdown from '@components/layout/shared/ShortcutsDropdown'
 import NotificationsDropdown from '@components/layout/shared/NotificationsDropdown'
 import UserDropdown from '@components/layout/shared/UserDropdown'
+import DateTimeCard from '@views/dashboards/main/DateTimeCard'
 
 // Util Imports
 import { verticalLayoutClasses } from '@layouts/utils/layoutClasses'
@@ -106,12 +107,17 @@ const NavbarContent = () => {
     <div className={classnames(verticalLayoutClasses.navbarContent, 'flex items-center justify-between gap-4 is-full')}>
       <div className='flex items-center gap-4'>
         <NavToggle />
+        <DateTimeCard />
         {/* <NavSearch /> */}
       </div>
+
+      {/* Center - Empty space */}
+      <div className='flex-1'></div>
+
       <div className='flex items-center'>
         <LanguageDropdown />
         <ModeDropdown />
-        
+
         <UserDropdown />
       </div>
     </div>

@@ -67,7 +67,18 @@ const PreviewPage = () => {
     return <div>Error: {error || 'Invoice not found'}</div>
   }
 
-  return <Preview invoiceData={invoiceData} id={params.id} />
+  const handleInvoiceUpdate = newStatus => {
+    // Update local state
+    setInvoiceData(prev => ({
+      ...prev,
+      invoice: {
+        ...prev.invoice,
+        status: newStatus
+      }
+    }))
+  }
+
+  return <Preview invoiceData={invoiceData} id={params.id} onInvoiceUpdate={handleInvoiceUpdate} />
 }
 
 export default PreviewPage

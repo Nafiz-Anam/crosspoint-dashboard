@@ -95,7 +95,13 @@
       "email": "Email",
       "phone": "Telefono",
       "address": "Indirizzo",
-      "assignedEmployee": "Dipendente Assegnato"
+      "assignedEmployee": "Dipendente Assegnato",
+      "clientId": "ID Cliente",
+      "nationalId": "Codice Fiscale",
+      "city": "Città",
+      "postalCode": "Codice Postale",
+      "province": "Provincia",
+      "branch": "Filiale"
     }
   },
   "employees": {
@@ -402,7 +408,12 @@
     "estimatedHours": "Ore Stimate",
     "actualHours": "Ore Effettive",
     "lastUpdated": "Ultimo Aggiornamento",
-    "hours": "ore"
+    "hours": "ore",
+    "markedAsPaid": "Fattura contrassegnata come pagata",
+    "markedAsUnpaid": "Fattura contrassegnata come non pagata",
+    "failedToUpdateStatus": "Impossibile aggiornare lo stato della fattura",
+    "updating": "Aggiornamento...",
+    "authenticationRequired": "Autenticazione richiesta per aggiornare lo stato della fattura"
   },
   "clients": {
     "title": "Clienti",
@@ -455,10 +466,13 @@
     "clientCreatedSuccessfully": "Cliente creato con successo!",
     "clientUpdatedSuccessfully": "Cliente aggiornato con successo!",
     "clientDeletedSuccessfully": "Cliente eliminato con successo!",
+    "viewClient": "Visualizza Cliente",
+    "close": "Chiudi",
     "failedToCreateClient": "Impossibile creare il cliente",
     "failedToUpdateClient": "Impossibile aggiornare il cliente",
+    "failedToFetchClients": "Impossibile recuperare i clienti",
+    "networkError": "Si è verificato un errore di rete",
     "failedToDeleteClient": "Impossibile eliminare il cliente",
-    "networkError": "Errore di rete o problema imprevisto. Riprova.",
     "deleteConfirmation": {
       "title": "Elimina Cliente",
       "message": "Sei sicuro di voler eliminare questo cliente? Questa azione non può essere annullata.",

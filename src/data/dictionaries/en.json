@@ -95,7 +95,13 @@
             "email": "Email",
             "phone": "Phone",
             "address": "Address",
-            "assignedEmployee": "Assigned Employee"
+            "assignedEmployee": "Assigned Employee",
+            "clientId": "Client ID",
+            "nationalId": "National ID",
+            "city": "City",
+            "postalCode": "Postal Code",
+            "province": "Province",
+            "branch": "Branch"
         }
     },
     "employees": {
@@ -402,7 +408,12 @@
         "estimatedHours": "Estimated Hours",
         "actualHours": "Actual Hours",
         "lastUpdated": "Last Updated",
-        "hours": "hours"
+        "hours": "hours",
+        "markedAsPaid": "Invoice marked as paid",
+        "markedAsUnpaid": "Invoice marked as unpaid",
+        "failedToUpdateStatus": "Failed to update invoice status",
+        "updating": "Updating...",
+        "authenticationRequired": "Authentication required to update invoice status"
     },
     "clients": {
         "title": "Clients",
@@ -455,10 +466,13 @@
         "clientCreatedSuccessfully": "Client created successfully!",
         "clientUpdatedSuccessfully": "Client updated successfully!",
         "clientDeletedSuccessfully": "Client deleted successfully!",
+        "viewClient": "View Client",
+        "close": "Close",
         "failedToCreateClient": "Failed to create client",
         "failedToUpdateClient": "Failed to update client",
+        "failedToFetchClients": "Failed to fetch clients",
+        "networkError": "Network error occurred",
         "failedToDeleteClient": "Failed to delete client",
-        "networkError": "Network error or unexpected issue. Please try again.",
         "deleteConfirmation": {
             "title": "Delete Client",
             "message": "Are you sure you want to delete this client? This action cannot be undone.",

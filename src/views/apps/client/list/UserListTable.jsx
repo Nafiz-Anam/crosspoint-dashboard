@@ -46,13 +46,7 @@ import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDial
 import { useTranslation } from '@/hooks/useTranslation'
 
 const columnHelper = createColumnHelper()
-const clientStatusObj = {
-  ACTIVE: 'success',
-  PENDING: 'warning',
-  PROCESSING: 'info',
-  CANCELLED: 'error',
-  COMPLETED: 'success'
-}
+// Removed clientStatusObj - status not used for clients
 
 // Fuzzy filter for search
 const fuzzyFilter = (row, columnId, value, addMeta) => {
@@ -79,6 +73,7 @@ const ClientListTable = () => {
   // States for Drawer
   const [addClientOpen, setAddClientOpen] = useState(false)
   const [editingClient, setEditingClient] = useState(null)
+  const [viewingClient, setViewingClient] = useState(null)
 
   // States for Table Data and API Operations
   const [clients, setClients] = useState([])
@@ -88,17 +83,21 @@ const ClientListTable = () => {
   // States for Filtering and Search
   const [filteredData, setFilteredData] = useState([])
   const [globalFilter, setGlobalFilter] = useState('')
-  const [filters, setFilters] = useState({ status: '', branch: '' })
+  const [filters, setFilters] = useState({ branch: '' })
 
   // States for Delete Dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [clientToDelete, setClientToDelete] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  // Removed invoiceCounts state - using _count.invoices from API response
+
   // Hooks
   const { lang: locale } = useParams()
   const { data: session, status: sessionStatus } = useSession()
   const { t } = useTranslation()
+
+  // Removed fetchInvoiceCounts - using _count.invoices from API response
 
   // Function to fetch client data from API
   const fetchClients = useCallback(async () => {
@@ -121,7 +120,8 @@ const ClientListTable = () => {
         }
       )
 
-      setClients(result.data?.clients || result.data || [])
+      const clientsData = result.data?.clients || result.data || []
+      setClients(clientsData)
     } catch (error) {
       const errorMessage = error.message || t('clients.networkError')
       setFetchError(errorMessage)
@@ -144,10 +144,6 @@ const ClientListTable = () => {
   // Effect for client-side filtering
   useEffect(() => {
     let tempData = [...clients]
-
-    if (filters.status) {
-      tempData = tempData.filter(row => row.status === filters.status)
-    }
 
     if (filters.branch) {
       tempData = tempData.filter(row => row.branch?.name === filters.branch)
@@ -211,18 +207,26 @@ const ClientListTable = () => {
   // Function to open drawer for editing
   const handleEditClick = useCallback(client => {
     setEditingClient(client)
+    setViewingClient(null)
     setAddClientOpen(true)
   }, [])
 
-  // Function to close drawer and clear editing state
+  // Function to open drawer for viewing
+  const handleViewClick = useCallback(client => {
+    setViewingClient(client)
+    setEditingClient(null)
+    setAddClientOpen(true)
+  }, [])
+
+  // Function to close drawer and clear editing/viewing state
   const handleDrawerClose = () => {
     setAddClientOpen(false)
     setEditingClient(null)
+    setViewingClient(null)
   }
 
   // Derive unique values for filter dropdowns from the fetched data
   const branches = useMemo(() => Array.from(new Set(clients.map(item => item.branch?.name).filter(Boolean))), [clients])
-  const statuses = useMemo(() => Array.from(new Set(clients.map(item => item.status))), [clients])
 
   // Column definitions
   const columns = useMemo(
@@ -284,17 +288,13 @@ const ClientListTable = () => {
         header: t('clients.fields.branch'),
         cell: ({ row }) => <Typography color='text.primary'>{row.original.branch?.name || '-'}</Typography>
       }),
-      columnHelper.accessor('status', {
-        header: t('clients.fields.status'),
+      columnHelper.accessor('_count.invoices', {
+        header: 'USAGE',
         cell: ({ row }) => (
           <div className='flex items-center gap-3'>
-            <Chip
-              variant='tonal'
-              label={row.original.status}
-              size='small'
-              color={clientStatusObj[row.original.status]}
-              className='capitalize'
-            />
+            <Typography color='text.primary' className='font-medium'>
+              Invoices: {row.original._count?.invoices || 0}
+            </Typography>
           </div>
         )
       }),
@@ -310,9 +310,8 @@ const ClientListTable = () => {
                   text: t('clients.view'),
                   icon: 'tabler-eye',
                   menuItemProps: {
-                    component: Link,
-                    href: getLocalizedUrl(`/apps/client/view/${row.original.id}`, locale),
-                    className: 'flex items-center gap-2 text-textSecondary'
+                    className: 'flex items-center gap-2 text-textSecondary',
+                    onClick: () => handleViewClick(row.original)
                   }
                 },
                 {
@@ -372,22 +371,6 @@ const ClientListTable = () => {
       <Card>
         <CardHeader title={t('clients.clientManagement')} className='pbe-4' />
         <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
-          {/* Status Filter */}
-          <CustomTextField
-            select
-            label={t('clients.fields.status')}
-            value={filters.status}
-            onChange={e => setFilters({ ...filters, status: e.target.value })}
-            className='min-w-[180px]'
-          >
-            <MenuItem value=''>{t('clients.all')}</MenuItem>
-            {statuses.map(status => (
-              <MenuItem key={status} value={status}>
-                {status}
-              </MenuItem>
-            ))}
-          </CustomTextField>
-
           {/* Branch Filter */}
           <CustomTextField
             select
@@ -497,8 +480,9 @@ const ClientListTable = () => {
       <AddClientDrawer
         open={addClientOpen}
         handleClose={handleDrawerClose}
-        currentClient={editingClient}
+        currentClient={editingClient || viewingClient}
         onClientAdded={fetchClients}
+        isViewMode={!!viewingClient}
       />
 
       {/* Delete Confirmation Dialog */}

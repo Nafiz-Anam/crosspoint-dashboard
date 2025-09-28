@@ -112,11 +112,11 @@ class InvoiceService {
   }
 
   // Update invoice
-  async updateInvoice(id, invoiceData) {
+  async updateInvoice(id, invoiceData, token = null) {
     try {
       const response = await fetch(`${this.baseURL}/${id}`, {
         method: 'PATCH',
-        headers: this.getHeaders(),
+        headers: this.getHeaders(token),
         body: JSON.stringify(invoiceData)
       })
 
@@ -133,11 +133,11 @@ class InvoiceService {
   }
 
   // Delete invoice
-  async deleteInvoice(id) {
+  async deleteInvoice(id, token = null) {
     try {
       const response = await fetch(`${this.baseURL}/${id}`, {
         method: 'DELETE',
-        headers: this.getHeaders()
+        headers: this.getHeaders(token)
       })
 
       if (!response.ok) {
@@ -153,11 +153,11 @@ class InvoiceService {
   }
 
   // Update invoice status
-  async updateInvoiceStatus(id, status) {
+  async updateInvoiceStatus(id, status, token = null) {
     try {
       const response = await fetch(`${this.baseURL}/${id}/status`, {
         method: 'PATCH',
-        headers: this.getHeaders(),
+        headers: this.getHeaders(token),
         body: JSON.stringify({ status })
       })
 
