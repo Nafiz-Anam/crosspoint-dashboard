@@ -1,12 +1,9 @@
 // Third-party Imports
 import { createSlice } from '@reduxjs/toolkit'
 
-// Data Imports
-import { events } from '@/fake-db/apps/calendar'
-
 const initialState = {
-  events: events,
-  filteredEvents: events,
+  events: [],
+  filteredEvents: [],
   selectedEvent: null,
   selectedCalendars: ['Personal', 'Business', 'Family', 'Holiday', 'ETC']
 }

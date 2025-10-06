@@ -1,0 +1,41 @@
+{
+  "pages": {
+    "/[lang]/(dashboard)/(private)/dashboards/analytics/page": [
+      "static/chunks/_a91c21._.js",
+      "static/chunks/src_app_favicon_ico_mjs_ddfdf0._.js",
+      "static/chunks/_eb6f13._.css",
+      "static/chunks/_3aa52d._.js",
+      "static/chunks/src_app_[lang]_layout_jsx_61af54._.js",
+      "static/chunks/src_@core_3f71ef._.js",
+      "static/chunks/src_@menu_bf64d7._.js",
+      "static/chunks/src_components_78df9a._.js",
+      "static/chunks/src_e7466a._.js",
+      "static/chunks/[next]_internal_font_google_bafdfa._.js",
+      "static/chunks/node_modules_@mui_system_esm_375fdd._.js",
+      "static/chunks/node_modules_@mui_material_e9f631._.js",
+      "static/chunks/node_modules_@floating-ui_react_dist_c1a64d._.js",
+      "static/chunks/node_modules_@popperjs_core_lib_b9b8df._.js",
+      "static/chunks/node_modules_ac46cd._.js",
+      "static/chunks/[root of the server]__a78b76._.css",
+      "static/chunks/src_app_[lang]_(dashboard)_(private)_layout_jsx_25f520._.js",
+      "static/chunks/src_3abc9e._.js",
+      "static/chunks/node_modules_@mui_material_a35ac2._.js",
+      "static/chunks/node_modules_axios_lib_c4c49c._.js",
+      "static/chunks/node_modules_@tanstack_table-core_build_lib_index_mjs_dc7bc5._.js",
+      "static/chunks/node_modules_@fullcalendar_core_825b86._.js",
+      "static/chunks/node_modules_@fullcalendar_interaction_index_f0c952.js",
+      "static/chunks/node_modules_ce0a7d._.js",
+      "static/chunks/src_@core_styles_table_module_359424.css",
+      "static/chunks/src_libs_styles_AppReactApexCharts_jsx_cce326._.js",
+      "static/chunks/src_app_[lang]_(dashboard)_(private)_dashboards_analytics_page_jsx_861f7e._.js",
+      "static/chunks/node_modules_next_dist_compiled_react-dom_1f56dc._.js",
+      "static/chunks/node_modules_next_dist_compiled_107ce8._.js",
+      "static/chunks/node_modules_next_dist_client_523921._.js",
+      "static/chunks/node_modules_next_dist_4bb10e._.js",
+      "static/chunks/node_modules_@swc_helpers_cjs_00636a._.js",
+      "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_d0a96d._.js",
+      "static/chunks/_e69f0d._.js",
+      "static/chunks/_d95469._.js"
+    ]
+  }
+}

@@ -10,8 +10,7 @@ import Backdrop from '@mui/material/Backdrop'
 import classnames from 'classnames'
 import PerfectScrollbar from 'react-perfect-scrollbar'
 
-// Slice Imports
-import { getCurrentEmail, moveEmailsToFolder } from '@/redux-store/slices/email'
+// Slice Imports - removed for static export
 
 // Component Imports
 import CustomAvatar from '@core/components/mui/Avatar'

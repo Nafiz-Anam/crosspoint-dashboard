@@ -28,8 +28,8 @@ import { getLocalizedUrl } from '@/utils/i18n'
 // Style Imports
 import './styles.css'
 
-// Data Imports
-import data from '@/data/searchData'
+// Empty search data for cPanel deployment
+const data = []
 
 // Transform the data to group items by their sections
 const transformedData = data.reduce((acc, item) => {

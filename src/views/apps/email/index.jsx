@@ -9,10 +9,6 @@ import Backdrop from '@mui/material/Backdrop'
 
 // Third-party Imports
 import classnames from 'classnames'
-import { useDispatch, useSelector } from 'react-redux'
-
-// Slice Imports
-import { filterEmails } from '@/redux-store/slices/email'
 
 // Component Imports
 import SidebarLeft from './SidebarLeft'
@@ -34,14 +30,13 @@ const EmailWrapper = ({ folder, label }) => {
 
   // Hooks
   const { settings } = useSettings()
-  const emailStore = useSelector(state => state.emailReducer)
-  const dispatch = useDispatch()
   const isBelowLgScreen = useMediaQuery(theme => theme.breakpoints.down('lg'))
   const isBelowMdScreen = useMediaQuery(theme => theme.breakpoints.down('md'))
   const isBelowSmScreen = useMediaQuery(theme => theme.breakpoints.down('sm'))
 
-  // Vars
-  const uniqueLabels = [...new Set(emailStore.emails.flatMap(email => email.labels))]
+  // Vars - empty data for static export
+  const emailStore = { emails: [] }
+  const uniqueLabels = []
 
   // Handle backdrop on click
   const handleBackdropClick = () => {

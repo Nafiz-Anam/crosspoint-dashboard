@@ -15,8 +15,7 @@ import MenuItem from '@mui/material/MenuItem'
 // Third-Party Imports
 import classnames from 'classnames'
 
-// Slice Imports
-import { getCurrentTask, deleteTask } from '@/redux-store/slices/kanban'
+// Slice Imports - removed for static export
 
 // Component Imports
 import CustomAvatar from '@core/components/mui/Avatar'

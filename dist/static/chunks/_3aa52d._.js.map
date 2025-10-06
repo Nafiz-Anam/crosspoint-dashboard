@@ -1,0 +1,11 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 7, "column": 0}, "map": {"version":3,"sources":["file://E%3A/crosspoint/frontend/src/configs/i18n.js"],"sourcesContent":["export const i18n = {\n  defaultLocale: 'en',\n  locales: ['en', 'it'],\n  langDirection: {\n    en: 'ltr',\n    it: 'ltr'\n  }\n}\n"],"names":[],"mappings":";;;AAAO,MAAM,OAAO;IAClB,eAAe;IACf,SAAS;QAAC;QAAM;KAAK;IACrB,eAAe;QACb,IAAI;QACJ,IAAI;IACN;AACF"}},
+    {"offset": {"line": 24, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":"A"}},
+    {"offset": {"line": 30, "column": 0}, "map": {"version":3,"sources":["file://E%3A/crosspoint/frontend/src/components/LangRedirect.jsx"],"sourcesContent":["'use client'\n\n// Next Imports\nimport { redirect, usePathname } from 'next/navigation'\n\n// Config Imports\nimport { i18n } from '@configs/i18n'\n\nconst LangRedirect = () => {\n  const pathname = usePathname()\n  const redirectUrl = `/${i18n.defaultLocale}${pathname}`\n\n  redirect(redirectUrl)\n}\n\nexport default LangRedirect\n"],"names":[],"mappings":";;;AAEA,eAAe;AACf;AAEA,iBAAiB;AACjB;;AANA;;;AAQA,MAAM,eAAe;;IACnB,MAAM,WAAW,CAAA,GAAA,qIAAA,CAAA,cAAW,AAAD;IAC3B,MAAM,cAAc,CAAC,CAAC,EAAE,yHAAA,CAAA,OAAI,CAAC,aAAa,GAAG,UAAU;IAEvD,CAAA,GAAA,qIAAA,CAAA,WAAQ,AAAD,EAAE;AACX;GALM;;QACa,qIAAA,CAAA,cAAW;;;KADxB;uCAOS"}},
+    {"offset": {"line": 59, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":"A"}},
+    {"offset": {"line": 69, "column": 0}, "map": {"version":3,"sources":["file://E%3A/crosspoint/frontend/node_modules/next/navigation.js"],"sourcesContent":["module.exports = require('./dist/client/components/navigation')\n"],"names":[],"mappings":"AAAA,OAAO,OAAO","ignoreList":[0]}},
+    {"offset": {"line": 70, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":"A"}}]
+}

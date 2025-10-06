@@ -1,0 +1,20 @@
+{
+  "src/views/dashboards/main/TimesheetChart.jsx -> @/libs/styles/AppReactApexCharts": {
+    "id": "src/views/dashboards/main/TimesheetChart.jsx -> @/libs/styles/AppReactApexCharts",
+    "files": [
+      "static/chunks/node_modules_d24c68._.js",
+      "static/chunks/src_libs_c92fce._.js",
+      "static/chunks/node_modules_react-apexcharts_dist_react-apexcharts_min_c4e9de.js",
+      "static/chunks/src_libs_styles_AppReactApexCharts_jsx_454d32._.js"
+    ]
+  },
+  "src/views/dashboards/analytics/LineAreaDailySalesChart.jsx -> @/libs/styles/AppReactApexCharts": {
+    "id": "src/views/dashboards/analytics/LineAreaDailySalesChart.jsx -> @/libs/styles/AppReactApexCharts",
+    "files": [
+      "static/chunks/node_modules_d24c68._.js",
+      "static/chunks/src_libs_c92fce._.js",
+      "static/chunks/node_modules_react-apexcharts_dist_react-apexcharts_min_c4e9de.js",
+      "static/chunks/src_libs_styles_AppReactApexCharts_jsx_454d32._.js"
+    ]
+  }
+}

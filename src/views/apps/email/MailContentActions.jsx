@@ -6,8 +6,7 @@ import IconButton from '@mui/material/IconButton'
 // Third-party Imports
 import classnames from 'classnames'
 
-// Slice Imports
-import { deleteTrashEmails, moveEmailsToFolder, toggleLabel, toggleReadEmails } from '@/redux-store/slices/email'
+// Slice Imports - removed for static export
 
 // Component Imports
 import OptionMenu from '@core/components/option-menu'

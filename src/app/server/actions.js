@@ -1,62 +1,48 @@
 /**
- * ! The server actions below are used to fetch the static data from the fake-db. If you're using an ORM
- * ! (Object-Relational Mapping) or a database, you can swap the code below with your own database queries.
+ * ! Server actions for cPanel deployment - returning empty data
  */
 'use server'
 
-// Data Imports
-import { db as eCommerceData } from '@/fake-db/apps/ecommerce'
-import { db as academyData } from '@/fake-db/apps/academy'
-import { db as vehicleData } from '@/fake-db/apps/logistics'
-import { db as invoiceData } from '@/fake-db/apps/invoice'
-import { db as userData } from '@/fake-db/apps/userList'
-import { db as permissionData } from '@/fake-db/apps/permissions'
-import { db as profileData } from '@/fake-db/pages/userProfile'
-import { db as faqData } from '@/fake-db/pages/faq'
-import { db as pricingData } from '@/fake-db/pages/pricing'
-import { db as statisticsData } from '@/fake-db/pages/widgetExamples'
-import { branches } from '@/fake-db/apps/branchList'
-
 export const getEcommerceData = async () => {
-  return eCommerceData
+  return { products: [], categories: [], orders: [] }
 }
 
 export const getAcademyData = async () => {
-  return academyData
+  return { courses: [], categories: [] }
 }
 
 export const getLogisticsData = async () => {
-  return vehicleData
+  return { vehicles: [], routes: [] }
 }
 
 export const getInvoiceData = async () => {
-  return invoiceData
+  return { invoices: [], clients: [] }
 }
 
 export const getUserData = async () => {
-  return userData
+  return { users: [], roles: [] }
 }
 
 export const getPermissionsData = async () => {
-  return permissionData
+  return { permissions: [], roles: [] }
 }
 
 export const getProfileData = async () => {
-  return profileData
+  return { profile: null, activities: [] }
 }
 
 export const getFaqData = async () => {
-  return faqData
+  return { faqs: [] }
 }
 
 export const getPricingData = async () => {
-  return pricingData
+  return { plans: [] }
 }
 
 export const getStatisticsData = async () => {
-  return statisticsData
+  return { statistics: [] }
 }
 
 export const getBranchData = async () => {
-  return branches
+  return { branches: [] }
 }

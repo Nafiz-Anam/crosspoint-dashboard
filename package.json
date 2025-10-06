@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "prebuild:cpanel": "node scripts/prebuild-cpanel.js",
+    "build:cpanel": "next build && npm run postbuild:cpanel",
+    "postbuild:cpanel": "node scripts/cpanel-deploy.js",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",

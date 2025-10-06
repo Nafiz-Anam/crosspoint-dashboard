@@ -18,8 +18,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 import { minLength, nonEmpty, object, pipe, string } from 'valibot'
 
-// Slice Imports
-import { editTask, deleteTask } from '@/redux-store/slices/kanban'
+// Slice Imports - removed for static export
 
 // Component Imports
 import CustomAvatar from '@core/components/mui/Avatar'

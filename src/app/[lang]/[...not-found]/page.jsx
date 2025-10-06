@@ -9,6 +9,11 @@ import { i18n } from '@configs/i18n'
 // Util Imports
 import { getServerMode, getSystemMode } from '@core/utils/serverHelpers'
 
+// Generate static params for supported languages
+export async function generateStaticParams() {
+  return [{ lang: 'en' }, { lang: 'it' }]
+}
+
 const NotFoundPage = async props => {
   const params = await props.params
 

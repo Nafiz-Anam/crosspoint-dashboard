@@ -20,8 +20,7 @@ import { Underline } from '@tiptap/extension-underline'
 import { Placeholder } from '@tiptap/extension-placeholder'
 import { TextAlign } from '@tiptap/extension-text-align'
 
-// Slice Imports
-import { moveEmailsToFolder, navigateEmails, toggleLabel } from '@/redux-store/slices/email'
+// Slice Imports - removed for static export
 
 // Components Imports
 import CustomIconButton from '@core/components/mui/IconButton'

@@ -1,8 +1,7 @@
 // React Imports
 import { useState } from 'react'
 
-// Slice Imports
-import { moveEmailsToFolder, deleteTrashEmails, toggleReadEmails, toggleStarEmail } from '@/redux-store/slices/email'
+// Slice Imports - removed for static export
 
 // Component Imports
 import MailContentSearch from './MailContentSearch'

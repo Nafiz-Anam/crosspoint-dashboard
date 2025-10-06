@@ -1,27 +1,23 @@
-'use client'
-
-// React Imports
-import { useState, useEffect } from 'react'
+// Generate static params for supported languages
+export async function generateStaticParams() {
+  return [
+    { lang: 'en' },
+    { lang: 'it' }
+  ]
+}
 
 // MUI Imports
 import Grid from '@mui/material/Grid2'
 import Box from '@mui/material/Box'
-import CircularProgress from '@mui/material/CircularProgress'
-import Alert from '@mui/material/Alert'
 
 // Components Imports
 import ClockInOutCard from '@views/dashboards/main/ClockInOutCard'
 import TaskStatisticsCard from '@views/dashboards/main/TaskStatisticsCard'
 import TimesheetChart from '@views/dashboards/main/TimesheetChart'
 import LineAreaDailySalesChart from '@views/dashboards/analytics/LineAreaDailySalesChart'
-import EarningReports from '@views/dashboards/analytics/EarningReports'
 import MinimalTaskListTable from '@views/dashboards/main/MinimalTaskListTable'
 import MinimalInvoiceListTable from '@/views/apps/ecommerce/dashboard/MinimalInvoiceListTable'
 import ItalianCalendar from '@views/dashboards/main/ItalianCalendar'
-
-// Hooks Imports
-import { useDashboardData } from '@/hooks/useDashboardData'
-import { useTranslation } from '@/hooks/useTranslation'
 
 /**
  * ! If you need data using an API call, uncomment the below API code, update the `process.env.API_URL` variable in the
@@ -39,35 +35,14 @@ import { useTranslation } from '@/hooks/useTranslation'
 
   return res.json()
 } */
-const DashboardAnalytics = () => {
-  // Get dashboard data using custom hook
-  const { data, loading, error, refetch } = useDashboardData()
-  const { t } = useTranslation()
-
-  // Handle loading state
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress size={60} />
-      </Box>
-    )
+const DashboardAnalytics = async () => {
+  // For static export, we'll use empty data
+  const data = {
+    tasks: [],
+    invoices: []
   }
-
-  // Handle error state
-  if (error) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity='error' sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-          <button onClick={refetch} style={{ padding: '8px 16px', marginTop: '16px' }}>
-            {t('dashboard.common.retry')}
-          </button>
-        </Box>
-      </Box>
-    )
-  }
+  const loading = false
+  const error = null
 
   return (
     <Grid container spacing={6}>

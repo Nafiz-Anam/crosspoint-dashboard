@@ -1,6 +1,3 @@
-// Next Imports
-import { headers } from 'next/headers'
-
 // MUI Imports
 import InitColorSchemeScript from '@mui/material/InitColorSchemeScript'
 
@@ -34,13 +31,12 @@ const RootLayout = async props => {
   const params = await props.params
   const { children } = props
 
-  // Vars
-  const headersList = await headers()
+  // Vars - for static export, we don't use headers
   const systemMode = await getSystemMode()
   const direction = i18n.langDirection[params.lang]
 
   return (
-    <TranslationWrapper headersList={headersList} lang={params.lang}>
+    <TranslationWrapper headersList={null} lang={params.lang}>
       <html id='__next' lang={params.lang} dir={direction} suppressHydrationWarning>
         <body className='flex is-full min-bs-full flex-auto flex-col'>
           <InitColorSchemeScript attribute='data' defaultMode={systemMode} />

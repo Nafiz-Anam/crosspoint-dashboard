@@ -1,0 +1,4 @@
+{
+  "/[lang]/(dashboard)/(private)/dashboards/analytics/page": "app/[lang]/(dashboard)/(private)/dashboards/analytics/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js"
+}
