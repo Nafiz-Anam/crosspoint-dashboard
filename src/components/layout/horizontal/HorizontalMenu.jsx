@@ -172,10 +172,9 @@ const HorizontalMenu = ({ dictionary }) => {
             <MenuItem href={`/${locale}/apps/user/list`}>{dictionary['navigation'].list}</MenuItem>
             <MenuItem href={`/${locale}/apps/user/view`}>{dictionary['navigation'].view}</MenuItem>
           </SubMenu>
-          <SubMenu label={dictionary['navigation'].rolesPermissions} icon={<i className='tabler-lock' />}>
-            <MenuItem href={`/${locale}/apps/roles`}>{dictionary['navigation'].roles}</MenuItem>
-            <MenuItem href={`/${locale}/apps/permissions`}>{dictionary['navigation'].permissions}</MenuItem>
-          </SubMenu>
+          <MenuItem href={`/${locale}/apps/roles`} icon={<i className='tabler-lock' />}>
+            {dictionary['navigation'].roles}
+          </MenuItem>
         </SubMenu>
         <SubMenu label={dictionary['navigation'].pages} icon={<i className='tabler-file' />}>
           <MenuItem href={`/${locale}/pages/account-settings`} icon={<i className='tabler-user' />}>

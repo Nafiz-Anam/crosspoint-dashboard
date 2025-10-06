@@ -9,10 +9,12 @@ import PerfectScrollbar from 'react-perfect-scrollbar'
 
 // Component Imports
 import { Menu, MenuItem } from '@menu/vertical-menu'
+import ConditionalRender from '@/components/auth/ConditionalRender'
 
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
 import { useTranslation } from '@/hooks/useTranslation'
+import useRoleBasedAccess from '@/hooks/useRoleBasedAccess'
 
 // Style Imports
 import menuItemStyles from '@core/styles/vertical/menuItemStyles'
@@ -29,14 +31,37 @@ const VerticalMenu = ({ scrollMenu }) => {
   const verticalNavOptions = useVerticalNav()
   const params = useParams()
   const { t } = useTranslation()
+  const { filterNavigation, isAuthenticated, isLoading } = useRoleBasedAccess()
 
   // Vars
   const { isBreakpointReached, transitionDuration } = verticalNavOptions
   const { lang: locale } = params
   const ScrollWrapper = isBreakpointReached ? 'div' : PerfectScrollbar
 
-  // Get menu items with translations
-  const menuItems = verticalMenuItems(t)
+  // Get menu items with translations and filter based on role
+  const allMenuItems = verticalMenuItems(t)
+  const menuItems = isAuthenticated ? filterNavigation(allMenuItems) : allMenuItems.filter(item => !item.module)
+
+  // Show loading state while authentication is being checked
+  if (isLoading) {
+    return (
+      <ScrollWrapper
+        {...(isBreakpointReached
+          ? {
+              className: 'bs-full overflow-y-auto overflow-x-hidden',
+              onScroll: container => scrollMenu(container, false)
+            }
+          : {
+              options: { wheelPropagation: false, suppressScrollX: true },
+              onScrollY: container => scrollMenu(container, true)
+            })}
+      >
+        <div className='flex items-center justify-center p-4'>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary'></div>
+        </div>
+      </ScrollWrapper>
+    )
+  }
 
   return (
     // eslint-disable-next-line lines-around-comment

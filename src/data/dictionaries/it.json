@@ -31,8 +31,6 @@
     "swiftCode": "Codice SWIFT",
     "created": "Creato il",
     "internationalBankAccountNumber": "Numero internazionale di conto bancario (IBAN)",
-    "optionalBankIdentifierCode": "Opzionale - Codice identificativo bancario",
-    "optionalAccountHolderName": "Opzionale - Nome intestatario conto",
     "toMakeABetterCommunity": "Per creare una comunità migliore",
     "editCompanyInfo": "Modifica Informazioni Aziendali",
     "invoiceNumberWillBeGenerated": "Il numero fattura verrà generato automaticamente",

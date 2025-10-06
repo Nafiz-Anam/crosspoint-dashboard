@@ -44,6 +44,8 @@ const TaskStatisticsCard = () => {
       }
 
       const client = services.tasks.getApiClient(session.accessToken)
+
+      // Use the same endpoint - backend handles role-based logic based on user token
       const response = await client.get(`${services.tasks.endpoint}/statistics`)
 
       if (response && response.data) {

@@ -248,20 +248,9 @@ const verticalMenuData = dictionary => [
         ]
       },
       {
-        label: dictionary['navigation'].rolesPermissions,
+        label: dictionary['navigation'].roles,
         icon: 'tabler-lock',
-        children: [
-          {
-            label: dictionary['navigation'].roles,
-            icon: 'tabler-circle',
-            href: '/apps/roles'
-          },
-          {
-            label: dictionary['navigation'].permissions,
-            icon: 'tabler-circle',
-            href: '/apps/permissions'
-          }
-        ]
+        href: '/apps/roles'
       },
       {
         label: dictionary['navigation'].pages,

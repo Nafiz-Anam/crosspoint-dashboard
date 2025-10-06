@@ -146,12 +146,12 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
       }),
       columnHelper.accessor('bankCountry', {
         header: t('common.country'),
-        cell: ({ row }) => <Typography variant='body2'>{row.original.bankCountry}</Typography>
+        cell: ({ row }) => <Typography color='text.primary'>{row.original.bankCountry}</Typography>
       }),
       columnHelper.accessor('bankIban', {
         header: 'IBAN',
         cell: ({ row }) => (
-          <Typography variant='body2' fontFamily='monospace'>
+          <Typography color='text.primary' fontFamily='monospace'>
             {row.original.bankIban}
           </Typography>
         )
@@ -159,14 +159,14 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
       columnHelper.accessor('bankSwiftCode', {
         header: t('common.swiftCode'),
         cell: ({ row }) => (
-          <Typography variant='body2' fontFamily='monospace'>
+          <Typography color='text.primary' fontFamily='monospace'>
             {row.original.bankSwiftCode || 'N/A'}
           </Typography>
         )
       }),
       columnHelper.accessor('accountName', {
         header: t('paymentMethods.fields.name'),
-        cell: ({ row }) => <Typography variant='body2'>{row.original.accountName || 'N/A'}</Typography>
+        cell: ({ row }) => <Typography color='text.primary'>{row.original.accountName || 'N/A'}</Typography>
       }),
       columnHelper.accessor('isActive', {
         header: t('paymentMethods.fields.status'),
@@ -182,7 +182,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
       columnHelper.accessor('createdAt', {
         header: t('common.created'),
         cell: ({ row }) => (
-          <Typography variant='body2'>{new Date(row.original.createdAt).toLocaleDateString()}</Typography>
+          <Typography color='text.primary'>{new Date(row.original.createdAt).toLocaleDateString()}</Typography>
         )
       }),
       columnHelper.accessor('action', {

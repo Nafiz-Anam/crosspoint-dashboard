@@ -69,11 +69,11 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
     if (!formData.bankIban.trim()) {
       newErrors.bankIban = t('paymentMethods.ibanRequired')
     } else if (formData.bankIban.length < 15 || formData.bankIban.length > 34) {
-      newErrors.bankIban = t('paymentMethods.ibanRequired')
+      newErrors.bankIban = t('paymentMethods.ibanLengthInvalid')
     }
 
-    if (formData.bankSwiftCode && formData.bankSwiftCode.length < 8) {
-      newErrors.bankSwiftCode = t('paymentMethods.swiftCodeRequired')
+    if (formData.bankSwiftCode && formData.bankSwiftCode.length > 11) {
+      newErrors.bankSwiftCode = t('paymentMethods.swiftCodeLengthInvalid')
     }
 
     setErrors(newErrors)
@@ -174,7 +174,7 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
               value={formData.bankSwiftCode}
               onChange={handleChange('bankSwiftCode')}
               error={!!errors.bankSwiftCode}
-              helperText={errors.bankSwiftCode || t('common.optionalBankIdentifierCode')}
+              helperText={errors.bankSwiftCode}
               placeholder={t('paymentMethods.enterSwiftCode')}
               sx={{ fontFamily: 'monospace' }}
             />
@@ -185,7 +185,7 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
               value={formData.accountName}
               onChange={handleChange('accountName')}
               error={!!errors.accountName}
-              helperText={errors.accountName || t('common.optionalAccountHolderName')}
+              helperText={errors.accountName}
               placeholder={t('paymentMethods.enterName')}
             />
 

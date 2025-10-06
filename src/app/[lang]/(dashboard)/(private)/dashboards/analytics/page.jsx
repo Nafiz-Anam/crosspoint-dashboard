@@ -22,6 +22,7 @@ import ItalianCalendar from '@views/dashboards/main/ItalianCalendar'
 // Hooks Imports
 import { useDashboardData } from '@/hooks/useDashboardData'
 import { useTranslation } from '@/hooks/useTranslation'
+import useRoleBasedAccess from '@/hooks/useRoleBasedAccess'
 
 /**
  * ! If you need data using an API call, uncomment the below API code, update the `process.env.API_URL` variable in the
@@ -43,6 +44,12 @@ const DashboardAnalytics = () => {
   // Get dashboard data using custom hook
   const { data, loading, error, refetch } = useDashboardData()
   const { t } = useTranslation()
+  const { userRole, isEmployee, isHR } = useRoleBasedAccess()
+
+  // Debug: Log user role for troubleshooting
+  console.log('Dashboard - User Role:', userRole)
+  console.log('Dashboard - isEmployee():', isEmployee())
+  console.log('Dashboard - isHR():', isHR())
 
   // Handle loading state
   if (loading) {
@@ -72,39 +79,45 @@ const DashboardAnalytics = () => {
   return (
     <Grid container spacing={6}>
       {/* Top Row - Clock In/Out and Task Statistics */}
-      <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+      <Grid size={{ xs: 12, sm: isHR() ? 12 : 6, md: isHR() ? 12 : 6 }}>
         <ClockInOutCard />
       </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-        <TaskStatisticsCard />
-      </Grid>
+      {!isHR() && (
+        <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+          <TaskStatisticsCard />
+        </Grid>
+      )}
 
-      {/* Middle Row - Existing Analytics Cards */}
-      <Grid size={{ xs: 12, md: 6 }}>
-        <LineAreaDailySalesChart data={data} loading={loading} error={error} />
-      </Grid>
+      {/* Middle Row - Analytics Cards (conditional based on role) */}
+      {!isEmployee() && (
+        <Grid size={{ xs: 12, md: 6 }}>
+          <LineAreaDailySalesChart data={data} loading={loading} error={error} />
+        </Grid>
+      )}
 
-      {/* Bottom Row - Timesheet Chart */}
-      <Grid size={{ xs: 12, md: 6 }}>
+      {/* Timesheet Chart - Full width for employees, half width for others */}
+      <Grid size={{ xs: 12, md: isEmployee() ? 12 : 6 }}>
         <TimesheetChart />
       </Grid>
 
-      {/* Task List Row */}
-      <Grid size={{ xs: 12, md: 12 }}>
-        <MinimalTaskListTable
-          taskData={
-            data?.tasks?.map(task => ({
-              id: task.id,
-              title: task.title,
-              clientName: task.client?.name || 'N/A',
-              serviceName: task.service?.name || 'N/A',
-              status: task.status,
-              dueDate: task.dueDate,
-              assignedTo: task.assignedTo?.name || 'N/A'
-            })) || []
-          }
-        />
-      </Grid>
+      {/* Task List Row - Hidden for HR users */}
+      {!isHR() && (
+        <Grid size={{ xs: 12, md: 12 }}>
+          <MinimalTaskListTable
+            taskData={
+              data?.tasks?.map(task => ({
+                id: task.id,
+                title: task.title,
+                clientName: task.client?.name || 'N/A',
+                serviceName: task.service?.name || 'N/A',
+                status: task.status,
+                dueDate: task.dueDate,
+                assignedTo: task.assignedTo?.name || 'N/A'
+              })) || []
+            }
+          />
+        </Grid>
+      )}
 
       {/* Invoice List Row */}
       <Grid size={{ xs: 12, md: 12 }}>

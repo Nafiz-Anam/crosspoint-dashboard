@@ -210,9 +210,8 @@ const AddActions = ({
       const finalEmployeeId = employeeId || selectedSalesperson?.id
 
       if (isEdit) {
-        // For edit mode, we need to make two separate API calls
-        // 1. Update basic invoice details
-        const invoicePayload = {
+        // For edit mode, use single API call like create mode
+        const payload = {
           clientId: selectedClient.id,
           branchId: finalBranchId,
           employeeId: finalEmployeeId,
@@ -224,10 +223,7 @@ const AddActions = ({
           taxRate: taxRate || 0,
           discountAmount: discountAmount || 0,
           paymentMethod: selectedBankAccount ? 'Bank Transfer' : 'Internet Banking',
-          bankName: bankDetails?.bankName || null,
-          bankCountry: bankDetails?.country || null,
-          bankIban: bankDetails?.iban || null,
-          bankSwiftCode: bankDetails?.swiftCode || null,
+          bankAccountId: selectedBankAccount || null,
           // Company Information
           companyName: companyInfo?.companyName || null,
           companyTagline: companyInfo?.tagline || null,
@@ -236,73 +232,53 @@ const AddActions = ({
           companyPhone: companyInfo?.phone || null,
           companyEmail: companyInfo?.email || null,
           companyWebsite: companyInfo?.website || null,
-          companyLogo: companyInfo?.logo || null
-        }
-
-        // 2. Update invoice items
-        const itemsPayload = {
+          companyLogo: companyInfo?.logo || null,
+          // Invoice Items
           items: invoiceItems.map(item => ({
             serviceId: item.serviceId,
             description: item.description,
             rate: parseFloat(item.rate),
             discount: parseFloat(item.discount || 0)
-          })),
-          taxRate: taxRate || 0,
-          discountAmount: discountAmount || 0
+          }))
         }
 
-        console.log('Updating invoice details:', invoicePayload)
-        console.log('Updating invoice items:', itemsPayload)
+        console.log('Updating invoice:', payload)
 
-        // Update invoice details
-        const invoiceResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoiceId}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoiceId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
             'x-client-type': 'web',
             Authorization: `Bearer ${session.accessToken}`
           },
-          body: JSON.stringify(invoicePayload)
+          body: JSON.stringify(payload)
         })
 
-        if (!invoiceResponse.ok) {
-          const errorData = await invoiceResponse.json()
-          throw new Error(errorData.message || `Failed to update invoice: ${invoiceResponse.status}`)
+        const responseData = await response.json()
+
+        if (response.ok) {
+          setApiSuccess(true)
+          setSaveStatus('updated')
+          setCreatedInvoiceId(invoiceId)
+          console.log('Invoice updated successfully:', responseData)
+
+          // Update invoice state with updated invoice data
+          updateInvoiceState({
+            invoiceId: invoiceId,
+            invoiceNumber: currentInvoiceNumber
+          })
+
+          // Clear success message after 3 seconds
+          setTimeout(() => {
+            setSaveStatus('')
+            setApiSuccess(false)
+          }, 3000)
+        } else {
+          const errorMessage = responseData.message || `Failed to update invoice: ${response.status}`
+          setApiError(errorMessage)
+          setSaveStatus('error')
+          console.error('API Error:', responseData)
         }
-
-        // Update invoice items
-        const itemsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoiceId}/items`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          },
-          body: JSON.stringify(itemsPayload)
-        })
-
-        if (!itemsResponse.ok) {
-          const errorData = await itemsResponse.json()
-          throw new Error(errorData.message || `Failed to update invoice items: ${itemsResponse.status}`)
-        }
-
-        const responseData = await itemsResponse.json()
-        setApiSuccess(true)
-        setSaveStatus('updated')
-        setCreatedInvoiceId(invoiceId)
-        console.log('Invoice updated successfully:', responseData)
-
-        // Update invoice state with updated invoice data
-        updateInvoiceState({
-          invoiceId: invoiceId,
-          invoiceNumber: currentInvoiceNumber
-        })
-
-        // Clear success message after 3 seconds
-        setTimeout(() => {
-          setSaveStatus('')
-          setApiSuccess(false)
-        }, 3000)
       } else {
         // For create mode, use the original single API call
         const payload = {

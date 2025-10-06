@@ -6,11 +6,6 @@ import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
-import Checkbox from '@mui/material/Checkbox'
-import Select from '@mui/material/Select'
-import InputLabel from '@mui/material/InputLabel'
-import OutlinedInput from '@mui/material/OutlinedInput'
-import Chip from '@mui/material/Chip'
 import Box from '@mui/material/Box'
 
 // Component Imports
@@ -36,10 +31,6 @@ const AddEmployeeDrawer = props => {
   const [branchesList, setBranchesList] = useState([])
   const [branchesLoading, setBranchesLoading] = useState(true)
   const [branchesError, setBranchesError] = useState(null)
-
-  // Permissions
-  const [permissions, setPermissions] = useState([])
-  const [selectedPermissions, setSelectedPermissions] = useState([])
 
   // Hooks
   const { data: session, status: sessionStatus } = useSession()
@@ -141,40 +132,9 @@ const AddEmployeeDrawer = props => {
     }
   }, [sessionStatus, session?.accessToken])
 
-  // Fetch permissions
-  const fetchPermissions = useCallback(async () => {
-    if (sessionStatus === 'loading') return
-    if (sessionStatus === 'unauthenticated' || !session?.accessToken) {
-      toastService.showError(t('employees.authenticationRequired'))
-      return
-    }
-
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/permissions/all`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-      const responseData = await response.json()
-
-      if (response.ok) {
-        setPermissions(responseData.data.permissions || [])
-      } else {
-        await toastService.handleApiError(response, 'Failed to load permissions')
-      }
-    } catch (error) {
-      await toastService.handleApiError(error, 'Network error loading permissions. Please try again.')
-      console.error('Fetch error loading permissions:', error)
-    }
-  }, [sessionStatus, session?.accessToken])
-
   useEffect(() => {
     if (sessionStatus === 'authenticated') {
       fetchBranchesList()
-      fetchPermissions() // Fetch permissions when authenticated
     }
   }, [sessionStatus, session?.accessToken])
 
@@ -197,7 +157,6 @@ const AddEmployeeDrawer = props => {
           isActive: currentEmployee.isActive ?? true,
           employeeId: currentEmployee.employeeId || '' // Populate employeeId
         })
-        setSelectedPermissions(currentEmployee.permissions || [])
       }, 100)
     } else {
       resetForm({
@@ -212,7 +171,6 @@ const AddEmployeeDrawer = props => {
         isActive: true,
         employeeId: ''
       })
-      setSelectedPermissions([]) // Clear selected permissions in add mode
     }
   }, [open, currentEmployee, resetForm])
 
@@ -236,8 +194,7 @@ const AddEmployeeDrawer = props => {
       nationalIdentificationNumber: data.nationalIdentificationNumber || null,
       dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString() : null,
       branchId: data.branchId || null,
-      isActive: data.isActive,
-      permissions: selectedPermissions // Send selected permissions
+      isActive: data.isActive
     }
 
     // Include role based on permissions
@@ -516,71 +473,6 @@ const AddEmployeeDrawer = props => {
               </CustomTextField>
             )}
           />
-
-          {/* Permissions - Required */}
-          <Box sx={{ width: '100%' }}>
-            <InputLabel required error={!!errors.permissions}>
-              {t('employees.selectPermissions')}
-            </InputLabel>
-            <Controller
-              name='permissions'
-              control={control}
-              rules={{
-                validate: value =>
-                  (selectedPermissions && selectedPermissions.length > 0) || t('employees.permissionRequired')
-              }}
-              render={({ field }) => (
-                <>
-                  <Select
-                    {...field}
-                    multiple
-                    fullWidth
-                    displayEmpty // This ensures the placeholder shows
-                    value={selectedPermissions}
-                    renderValue={selected => {
-                      if (selected.length === 0) {
-                        return <Typography variant='body1'>{t('employees.selectPermissions')}</Typography>
-                      }
-                      return (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                          {selected.map(value => (
-                            <Chip key={value} label={value} size='small' />
-                          ))}
-                        </Box>
-                      )
-                    }}
-                    error={!!errors.permissions}
-                    onChange={e => setSelectedPermissions(e.target.value)}
-                    MenuProps={{
-                      PaperProps: {
-                        sx: { maxHeight: 280 }
-                      }
-                    }}
-                    input={<OutlinedInput label={t('employees.selectPermissions')} />}
-                  >
-                    {/* Empty state placeholder */}
-                    {permissions.length === 0 && (
-                      <MenuItem disabled>
-                        <em>{t('employees.noRolesAvailable')}</em>
-                      </MenuItem>
-                    )}
-
-                    {permissions.map(permission => (
-                      <MenuItem key={permission} value={permission}>
-                        <Checkbox checked={selectedPermissions.includes(permission)} />
-                        <Typography>{permission}</Typography>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {errors.permissions && (
-                    <Typography variant='caption' color='error' sx={{ mt: 1, display: 'block' }}>
-                      {errors.permissions.message}
-                    </Typography>
-                  )}
-                </>
-              )}
-            />
-          </Box>
 
           {/* Status - Active/Inactive Dropdown */}
           <Controller

@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 // MUI Imports
 import Card from '@mui/material/Card'
@@ -18,6 +18,7 @@ import TaskListTable from '@views/apps/task/list/TaskListTable'
 
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
+import useRoleBasedAccess from '@/hooks/useRoleBasedAccess'
 
 const MinimalTaskListTable = ({ taskData = [] }) => {
   // States
@@ -28,12 +29,41 @@ const MinimalTaskListTable = ({ taskData = [] }) => {
   // Hooks
   const { t } = useTranslation()
   const { data: session } = useSession()
+  const { userRole } = useRoleBasedAccess()
 
-  // Fetch tasks if no data provided
+  // Filter tasks based on user role
+  const filterTasksByRole = useCallback(
+    tasks => {
+      if (!tasks || tasks.length === 0) return tasks
+
+      console.log('MinimalTaskListTable - Filtering tasks for role:', userRole)
+      console.log('MinimalTaskListTable - Total tasks before filtering:', tasks.length)
+
+      // For employees, only show tasks assigned to them
+      if (userRole === 'EMPLOYEE') {
+        const filteredTasks = tasks.filter(task => task.assignedTo?.id === session?.user?.id)
+        console.log('MinimalTaskListTable - Employee filtered tasks:', filteredTasks.length)
+        return filteredTasks
+      }
+
+      // For other roles (ADMIN, HR, MANAGER), show all tasks
+      console.log('MinimalTaskListTable - Showing all tasks for role:', userRole)
+      return tasks
+    },
+    [userRole, session?.user?.id]
+  )
+
+  // Handle task data - either filter provided data or fetch from API
   useEffect(() => {
-    const fetchTasks = async () => {
-      if (taskData.length > 0) return // Use provided data
+    const handleTaskData = async () => {
+      // If taskData is provided, filter it based on role
+      if (taskData.length > 0) {
+        const filteredTasks = filterTasksByRole(taskData)
+        setData(filteredTasks)
+        return
+      }
 
+      // If no taskData provided, fetch from API
       try {
         setLoading(true)
         setError(null)
@@ -56,7 +86,8 @@ const MinimalTaskListTable = ({ taskData = [] }) => {
 
         if (response.ok) {
           const tasks = responseData.data?.results || responseData.data || []
-          setData(tasks)
+          const filteredTasks = filterTasksByRole(tasks)
+          setData(filteredTasks)
         } else {
           setError(t('dashboard.common.error'))
         }
@@ -68,8 +99,8 @@ const MinimalTaskListTable = ({ taskData = [] }) => {
       }
     }
 
-    fetchTasks()
-  }, [session?.accessToken, taskData.length])
+    handleTaskData()
+  }, [taskData, session?.accessToken, filterTasksByRole])
 
   if (loading) {
     return (

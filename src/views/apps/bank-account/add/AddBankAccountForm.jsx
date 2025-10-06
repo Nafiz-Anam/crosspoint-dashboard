@@ -28,13 +28,13 @@ const AddBankAccountForm = ({ onSubmit, loading = false }) => {
   const [errors, setErrors] = useState({})
 
   // Handle input change
-  const handleChange = (field) => (event) => {
+  const handleChange = field => event => {
     const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value
     setFormData(prev => ({
       ...prev,
       [field]: value
     }))
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({
@@ -75,9 +75,9 @@ const AddBankAccountForm = ({ onSubmit, loading = false }) => {
   }
 
   // Handle form submission
-  const handleSubmit = (event) => {
+  const handleSubmit = event => {
     event.preventDefault()
-    
+
     if (validateForm()) {
       onSubmit(formData)
     }
@@ -89,7 +89,7 @@ const AddBankAccountForm = ({ onSubmit, loading = false }) => {
         <Typography variant='h6' sx={{ mb: 4 }}>
           Bank Account Information
         </Typography>
-        
+
         <form onSubmit={handleSubmit}>
           <Grid container spacing={4}>
             {/* Bank Name */}
@@ -140,7 +140,7 @@ const AddBankAccountForm = ({ onSubmit, loading = false }) => {
                 value={formData.bankSwiftCode}
                 onChange={handleChange('bankSwiftCode')}
                 error={!!errors.bankSwiftCode}
-                helperText={errors.bankSwiftCode || 'Optional - Bank Identifier Code'}
+                helperText={errors.bankSwiftCode}
                 placeholder='DEUTDEFF'
               />
             </Grid>
@@ -153,7 +153,7 @@ const AddBankAccountForm = ({ onSubmit, loading = false }) => {
                 value={formData.accountName}
                 onChange={handleChange('accountName')}
                 error={!!errors.accountName}
-                helperText={errors.accountName || 'Optional - Account holder name'}
+                helperText={errors.accountName}
                 placeholder='John Doe'
               />
             </Grid>
@@ -161,13 +161,7 @@ const AddBankAccountForm = ({ onSubmit, loading = false }) => {
             {/* Active Status */}
             <Grid size={{ xs: 12 }}>
               <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.isActive}
-                    onChange={handleChange('isActive')}
-                    color='primary'
-                  />
-                }
+                control={<Switch checked={formData.isActive} onChange={handleChange('isActive')} color='primary' />}
                 label='Active Account'
               />
             </Grid>

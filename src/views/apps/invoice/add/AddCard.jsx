@@ -673,7 +673,7 @@ const AddCard = ({
                 <CustomTextField
                   fullWidth
                   placeholder={t('invoices.thanksForBusiness')}
-                  label={`${t('invoices.thanksMessage')} *`}
+                  label={`${t('invoices.thanksMessage')}`}
                   value={thanksMessage || ''}
                   onChange={e => updateInvoiceState({ thanksMessage: e.target.value })}
                   required

@@ -17,7 +17,66 @@
         "submit": "Submit",
         "back": "Back",
         "next": "Next",
-        "previous": "Previous"
+        "previous": "Previous",
+        "pagination": {
+            "showing": "Showing",
+            "to": "to",
+            "of": "of",
+            "entries": "entries"
+        },
+        "branchId": "Branch ID",
+        "location": "Address",
+        "contact": "Contact",
+        "country": "Country",
+        "swiftCode": "SWIFT Code",
+        "created": "Created",
+        "internationalBankAccountNumber": "International Bank Account Number (IBAN)",
+        "toMakeABetterCommunity": "To make a better community",
+        "editCompanyInfo": "Edit Company Information",
+        "invoiceNumberWillBeGenerated": "Invoice number will be generated automatically",
+        "paymentMethod": "Payment Method",
+        "serviceDescriptionAndNotes": "Service description and notes...",
+        "thankYouMessage": "Thank You Message",
+        "thankYouForYourBusiness": "Thank you for your business",
+        "showClientSection": "Show client section",
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "sunday": "Sunday",
+        "january": "January",
+        "february": "February",
+        "march": "March",
+        "april": "April",
+        "may": "May",
+        "june": "June",
+        "july": "July",
+        "august": "August",
+        "september": "September",
+        "october": "October",
+        "november": "November",
+        "december": "December",
+        "companyLogo": "Company Logo",
+        "uploadLogo": "Upload Logo",
+        "recommendedSize": "Recommended size: 200x200px or larger",
+        "companyName": "Company Name",
+        "tagline": "Tagline",
+        "cityStateZip": "City, State, ZIP",
+        "phoneNumbers": "Phone Numbers",
+        "website": "Website",
+        "saveChanges": "Save Changes",
+        "serviceId": "Service ID",
+        "usage": "Usage",
+        "createdAt": "Created At",
+        "updatedAt": "Updated At",
+        "roles": {
+            "EMPLOYEE": "Employee",
+            "ADMIN": "Administrator",
+            "MANAGER": "Manager",
+            "HR": "Human Resources"
+        }
     },
     "auth": {
         "login": "Login",
@@ -38,7 +97,13 @@
         "employee": "Employees",
         "client": "Clients",
         "task": "Tasks",
-        "invoice": "Invoices"
+        "invoice": "Invoices",
+        "roles": "Roles",
+        "permissions": "Permissions",
+        "rolesPermissions": "Roles & Permissions",
+        "user": "User",
+        "list": "List",
+        "pages": "Pages"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -110,13 +175,23 @@
         "editEmployee": "Edit Employee",
         "deleteEmployee": "Delete Employee",
         "employeeDetails": "Employee Details",
+        "employeeManagement": "Employee Management",
+        "searchEmployee": "Search Employee...",
+        "addNewEmployee": "Add New Employee",
+        "noEmployeesAvailable": "No employees available",
         "fields": {
             "name": "Name",
             "email": "Email",
             "phone": "Phone",
             "role": "Role",
             "branch": "Branch",
-            "permissions": "Permissions"
+            "permissions": "Permissions",
+            "employeeId": "Employee ID",
+            "status": "Status"
+        },
+        "status": {
+            "active": "Active",
+            "inactive": "Inactive"
         }
     },
     "services": {
@@ -276,7 +351,26 @@
             "confirm": "Delete",
             "cancel": "Cancel",
             "deleting": "Deleting..."
-        }
+        },
+        "discountAmount": "Discount Amount",
+        "fields": {
+            "number": "Invoice Number",
+            "date": "Invoice Date",
+            "dueDate": "Due Date",
+            "client": "Client",
+            "services": "Services",
+            "amount": "Amount",
+            "status": "Status",
+            "invoiceId": "Invoice ID",
+            "service": "Service",
+            "action": "Action",
+            "branch": "Branch",
+            "bankAccount": "Bank Account"
+        },
+        "download": "Download",
+        "downloading": "Downloading...",
+        "print": "Print",
+        "edit": "Edit"
     },
     "tasks": {
         "title": "Tasks",
@@ -413,7 +507,22 @@
         "markedAsUnpaid": "Invoice marked as unpaid",
         "failedToUpdateStatus": "Failed to update invoice status",
         "updating": "Updating...",
-        "authenticationRequired": "Authentication required to update invoice status"
+        "authenticationRequired": "Authentication required to update invoice status",
+        "enterTaskDescription": "Enter task description",
+        "createNewTask": "Create New Task",
+        "employeeRequired": "Assigned employee is required.",
+        "nameMinLength": "Name must be at least 2 characters.",
+        "nameMaxLength": "Name must not exceed 100 characters.",
+        "nationalIdMinLength": "National ID must be at least 5 characters.",
+        "nationalIdMaxLength": "National ID must be at most 20 characters.",
+        "dateOfBirthRequired": "Date of birth is required.",
+        "dateOfBirthMinAge": "Employee must be at least 16 years old.",
+        "passwordMinLength": "Password must be at least 8 characters.",
+        "optional": "Optional",
+        "enterCity": "Enter city",
+        "enterPostalCode": "Enter postal code",
+        "enterProvince": "Enter province",
+        "enterNationalId": "Enter national identification number"
     },
     "clients": {
         "title": "Clients",
@@ -451,6 +560,11 @@
         "enterPhone": "Enter phone number",
         "enterAddress": "Enter address",
         "enterNationalId": "Enter national identification number",
+        "enterNationalid": "Enter national identification number",
+        "enterCity": "Enter city",
+        "enterPostalCode": "Enter postal code",
+        "enterProvince": "Enter province",
+        "optional": "Optional",
         "loadingBranches": "Loading branches...",
         "noBranchesAvailable": "No branches available",
         "clientNameRequired": "Client name is required.",
@@ -459,6 +573,10 @@
         "phoneRequired": "Phone number is required.",
         "addressRequired": "Address is required.",
         "nationalIdRequired": "National identification number is required.",
+        "nationalIdMinLength": "National ID must be at least 5 characters.",
+        "nationalIdMaxLength": "National ID must be at most 20 characters.",
+        "nameMinLength": "Name must be at least 2 characters.",
+        "nameMaxLength": "Name must not exceed 100 characters.",
         "branchRequired": "Branch is required.",
         "authenticationRequired": "Authentication required to fetch clients. Please log in.",
         "notAuthenticated": "Not authenticated. Please log in to view clients.",
@@ -494,7 +612,12 @@
             "nationalId": "National ID",
             "branch": "Branch",
             "status": "Status",
-            "action": "Action"
+            "action": "Action",
+            "clientId": "Client ID",
+            "nationalIdentificationNumber": "National Identification Number",
+            "city": "City",
+            "postalCode": "Postal Code",
+            "province": "Province"
         },
         "basicInformation": "Basic Information",
         "contactInformation": "Contact Information",
@@ -508,7 +631,12 @@
         "clientAddress": "Client Address",
         "nationalIdentificationNumber": "National Identification Number",
         "branchName": "Branch Name",
-        "clientStatus": "Client Status"
+        "clientStatus": "Client Status",
+        "clientId": "Client ID",
+        "nationalIdentificationNumber": "National Identification Number",
+        "city": "City",
+        "postalCode": "Postal Code (CAP)",
+        "province": "Province"
     },
     "employees": {
         "title": "Employees",
@@ -548,6 +676,8 @@
         "enterPhone": "Enter phone number",
         "enterPassword": "Enter password",
         "confirmPassword": "Confirm password",
+        "enterNationalId": "Enter national identification number",
+        "enterNationalid": "Enter national identification number",
         "loadingBranches": "Loading branches...",
         "noBranchesAvailable": "No branches available",
         "loadingRoles": "Loading roles...",
@@ -593,7 +723,11 @@
             "branch": "Branch",
             "permissions": "Permissions",
             "status": "Status",
-            "action": "Action"
+            "action": "Action",
+            "employeeId": "Employee ID",
+            "nationalIdentificationNumber": "National Identification Number",
+            "dateOfBirth": "Date of Birth",
+            "password": "Password"
         },
         "basicInformation": "Basic Information",
         "contactInformation": "Contact Information",
@@ -615,7 +749,10 @@
         "attendanceReport": "Attendance Report",
         "generateReport": "Generate Report",
         "reportGenerated": "Report generated successfully!",
-        "failedToGenerateReport": "Failed to generate report"
+        "failedToGenerateReport": "Failed to generate report",
+        "nationalIdentificationNumber": "National Identification Number",
+        "dateOfBirth": "Date of Birth",
+        "password": "Password"
     },
     "services": {
         "title": "Services",
@@ -738,7 +875,7 @@
         "updating": "Updating...",
         "selectType": "Select Type",
         "selectCurrency": "Select Currency",
-        "enterName": "Enter payment method name",
+        "enterName": "Enter account holder name",
         "enterAccountNumber": "Enter account number",
         "enterBankName": "Enter bank name",
         "enterRoutingNumber": "Enter routing number",
@@ -746,13 +883,15 @@
         "enterIban": "Enter IBAN",
         "loadingCurrencies": "Loading currencies...",
         "noCurrenciesAvailable": "No currencies available",
-        "paymentMethodNameRequired": "Payment method name is required.",
+        "paymentMethodNameRequired": "Account holder name is required.",
         "typeRequired": "Type is required.",
         "accountNumberRequired": "Account number is required.",
         "bankNameRequired": "Bank name is required.",
         "routingNumberRequired": "Routing number is required.",
         "swiftCodeRequired": "SWIFT code is required.",
+        "swiftCodeLengthInvalid": "SWIFT code cannot exceed 11 characters.",
         "ibanRequired": "IBAN is required.",
+        "ibanLengthInvalid": "IBAN must be between 15 and 34 characters.",
         "currencyRequired": "Currency is required.",
         "authenticationRequired": "Authentication required to fetch payment methods. Please log in.",
         "notAuthenticated": "Not authenticated. Please log in to view payment methods.",
@@ -786,7 +925,7 @@
             "wireTransfer": "Wire Transfer"
         },
         "fields": {
-            "name": "Name",
+            "name": "Account Holder Name",
             "type": "Type",
             "accountNumber": "Account Number",
             "bankName": "Bank Name",
@@ -818,7 +957,9 @@
         "deactivateProvider": "Deactivate Provider",
         "configureProvider": "Configure Provider",
         "providerSettings": "Provider Settings",
-        "paymentSettings": "Payment Settings"
+        "paymentSettings": "Payment Settings",
+        "activate": "Activate",
+        "deactivate": "Deactivate"
     },
     "branches": {
         "title": "Branches",
@@ -1024,7 +1165,8 @@
             "unpaidInvoices": "Unpaid Invoices",
             "overdueInvoices": "Overdue Invoices",
             "totalRevenue": "Total Revenue",
-            "averageInvoiceValue": "Average Invoice Value"
+            "averageInvoiceValue": "Average Invoice Value",
+            "paymentMethod": "Payment Method:"
         },
         "common": {
             "loading": "Loading...",

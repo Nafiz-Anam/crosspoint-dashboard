@@ -53,7 +53,7 @@ const defaultSuggestions = [
         icon: 'tabler-file-invoice'
       },
       {
-        label: 'Roles & Permissions',
+        label: 'Roles',
         href: '/apps/roles',
         icon: 'tabler-lock'
       }

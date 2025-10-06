@@ -264,13 +264,6 @@ const data = [
     section: 'Apps'
   },
   {
-    id: '38',
-    name: 'Permissions',
-    url: '/apps/permissions',
-    icon: 'tabler-lock',
-    section: 'Apps'
-  },
-  {
     id: '39',
     name: 'User Profile',
     url: '/pages/user-profile',
