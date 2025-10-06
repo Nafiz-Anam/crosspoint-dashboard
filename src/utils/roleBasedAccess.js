@@ -67,21 +67,21 @@ export const MODULE_PERMISSIONS = {
  * @returns {boolean} - Whether the user has access to the module
  */
 export const hasModuleAccess = (moduleName, userRole, userPermissions = []) => {
-  const module = MODULE_PERMISSIONS[moduleName]
+  const moduleConfig = MODULE_PERMISSIONS[moduleName]
 
-  if (!module) {
+  if (!moduleConfig) {
     console.warn(`Module ${moduleName} not found in MODULE_PERMISSIONS`)
     return false
   }
 
   // Check if user's role has access to this module
-  if (module.roles.includes(userRole)) {
+  if (moduleConfig.roles.includes(userRole)) {
     return true
   }
 
   // If role-based check fails, check individual permissions
   // This is a fallback for cases where permissions might be assigned individually
-  return module.requiredPermissions.some(permission => userPermissions.includes(permission))
+  return moduleConfig.requiredPermissions.some(permission => userPermissions.includes(permission))
 }
 
 /**
@@ -128,16 +128,16 @@ export const filterNavigationByRole = (navigationItems, userRole, userPermission
  * @returns {boolean} - Whether the user can perform the action
  */
 export const canPerformAction = (moduleName, action, userRole, userPermissions = []) => {
-  const module = MODULE_PERMISSIONS[moduleName]
+  const moduleConfig = MODULE_PERMISSIONS[moduleName]
 
-  if (!module) {
+  if (!moduleConfig) {
     return false
   }
 
   const requiredPermission = `${action}_${moduleName}`
 
   // Check if user's role has access to this module
-  if (module.roles.includes(userRole)) {
+  if (moduleConfig.roles.includes(userRole)) {
     return true
   }
 

@@ -114,7 +114,7 @@ const withRoleGuard = (WrappedComponent, options = {}) => {
             <div className='flex items-center justify-center min-h-screen'>
               <div className='text-center'>
                 <h2 className='text-2xl font-bold text-gray-900 mb-4'>Access Denied</h2>
-                <p className='text-gray-600'>You don't have permission to access this page.</p>
+                <p className='text-gray-600'>You don&apos;t have permission to access this page.</p>
               </div>
             </div>
           )
@@ -128,7 +128,7 @@ const withRoleGuard = (WrappedComponent, options = {}) => {
           <div className='flex items-center justify-center min-h-screen'>
             <div className='text-center'>
               <h2 className='text-2xl font-bold text-gray-900 mb-4'>Access Denied</h2>
-              <p className='text-gray-600'>You don't have permission to access this module.</p>
+              <p className='text-gray-600'>You don&apos;t have permission to access this module.</p>
             </div>
           </div>
         )
@@ -141,7 +141,7 @@ const withRoleGuard = (WrappedComponent, options = {}) => {
           <div className='flex items-center justify-center min-h-screen'>
             <div className='text-center'>
               <h2 className='text-2xl font-bold text-gray-900 mb-4'>Access Denied</h2>
-              <p className='text-gray-600'>You don't have permission to perform this action.</p>
+              <p className='text-gray-600'>You don&apos;t have permission to perform this action.</p>
             </div>
           </div>
         )

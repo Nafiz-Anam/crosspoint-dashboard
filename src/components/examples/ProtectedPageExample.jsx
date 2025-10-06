@@ -103,14 +103,14 @@ const ProtectedPageExample = () => {
         {hasAccess('CLIENT') && (
           <div className='bg-green-100 p-4 rounded-lg mb-2'>
             <h3 className='font-semibold text-green-800'>Client Access Hook Content</h3>
-            <p>This content uses the hasAccess('CLIENT') hook.</p>
+            <p>This content uses the hasAccess(&apos;CLIENT&apos;) hook.</p>
           </div>
         )}
 
         {canAction('EMPLOYEE', 'CREATE') && (
           <div className='bg-purple-100 p-4 rounded-lg mb-2'>
             <h3 className='font-semibold text-purple-800'>Employee Create Action Hook Content</h3>
-            <p>This content uses the canAction('EMPLOYEE', 'CREATE') hook.</p>
+            <p>This content uses the canAction(&apos;EMPLOYEE&apos;, &apos;CREATE&apos;) hook.</p>
           </div>
         )}
       </div>
