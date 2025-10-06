@@ -205,7 +205,7 @@ const EditCard = ({ invoiceData, id, data, clients, services, employees }) => {
                 </div>
                 <div className='flex flex-col gap-4'>
                   <Typography className='font-medium' color='text.primary'>
-                    Payment Method:
+                    {t('invoices.paymentMethod')}
                   </Typography>
                   <div>
                     <div className='flex items-center gap-4'>

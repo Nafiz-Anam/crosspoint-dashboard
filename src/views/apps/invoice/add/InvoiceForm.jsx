@@ -211,8 +211,12 @@ const InvoiceForm = ({ clients, services, branches, bankAccounts, onSubmit, load
 
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth error={!!errors.branchId}>
-                <InputLabel>Branch *</InputLabel>
-                <Select value={formData.branchId} onChange={handleChange('branchId')} label='Branch *'>
+                <InputLabel>{t('invoices.fields.branch')} *</InputLabel>
+                <Select
+                  value={formData.branchId}
+                  onChange={handleChange('branchId')}
+                  label={`${t('invoices.fields.branch')} *`}
+                >
                   {branches.map(branch => (
                     <MenuItem key={branch.id} value={branch.id}>
                       {branch.name} - {branch.city}
@@ -363,8 +367,12 @@ const InvoiceForm = ({ clients, services, branches, bankAccounts, onSubmit, load
 
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
-                <InputLabel>Bank Account</InputLabel>
-                <Select value={formData.bankAccountId} onChange={handleChange('bankAccountId')} label='Bank Account'>
+                <InputLabel>{t('invoices.fields.bankAccount')}</InputLabel>
+                <Select
+                  value={formData.bankAccountId}
+                  onChange={handleChange('bankAccountId')}
+                  label={t('invoices.fields.bankAccount')}
+                >
                   {bankAccounts.map(account => (
                     <MenuItem key={account.id} value={account.id}>
                       {account.bankName} - {account.bankIban}
@@ -389,7 +397,7 @@ const InvoiceForm = ({ clients, services, branches, bankAccounts, onSubmit, load
               <CustomTextField
                 fullWidth
                 type='number'
-                label='Discount Amount'
+                label={t('invoices.discountAmount')}
                 value={formData.discountAmount}
                 onChange={handleChange('discountAmount')}
                 inputProps={{ min: 0, step: 0.01 }}

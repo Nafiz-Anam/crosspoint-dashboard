@@ -345,15 +345,15 @@ const AddEmployeeDrawer = props => {
             name='nationalIdentificationNumber'
             control={control}
             rules={{
-              minLength: { value: 5, message: 'National ID must be at least 5 characters' },
-              maxLength: { value: 20, message: 'National ID must be at most 20 characters' }
+              minLength: { value: 5, message: t('employees.nationalIdMinLength') },
+              maxLength: { value: 20, message: t('employees.nationalIdMaxLength') }
             }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label='National Identification Number'
-                placeholder='Enter national ID number'
+                label={t('employees.fields.nationalIdentificationNumber')}
+                placeholder={t('employees.enterNationalId')}
                 error={!!errors.nationalIdentificationNumber}
                 helperText={errors.nationalIdentificationNumber?.message}
               />
@@ -365,17 +365,17 @@ const AddEmployeeDrawer = props => {
             name='dateOfBirth'
             control={control}
             rules={{
-              required: 'Date of birth is required.',
+              required: t('employees.dateOfBirthRequired'),
               validate: value => {
-                if (!value) return 'Date of birth is required.'
+                if (!value) return t('employees.dateOfBirthRequired')
                 const birthDate = new Date(value)
                 const today = new Date()
                 const age = today.getFullYear() - birthDate.getFullYear()
                 const monthDiff = today.getMonth() - birthDate.getMonth()
                 if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-                  return age - 1 < 16 ? 'Employee must be at least 16 years old.' : null
+                  return age - 1 < 16 ? t('employees.dateOfBirthMinAge') : null
                 }
-                return age < 16 ? 'Employee must be at least 16 years old.' : null
+                return age < 16 ? t('employees.dateOfBirthMinAge') : null
               }
             }}
             render={({ field }) => (
@@ -383,7 +383,7 @@ const AddEmployeeDrawer = props => {
                 {...field}
                 fullWidth
                 type='date'
-                label='Date of Birth'
+                label={t('employees.fields.dateOfBirth')}
                 required
                 error={!!errors.dateOfBirth}
                 helperText={errors.dateOfBirth?.message}
@@ -445,7 +445,7 @@ const AddEmployeeDrawer = props => {
                 {...field}
                 fullWidth
                 type='password'
-                label={currentEmployee ? t('employees.password') : t('employees.password')}
+                label={t('employees.fields.password')}
                 placeholder={t('employees.enterPassword')}
                 required={!currentEmployee}
                 error={!!errors.password}
@@ -470,7 +470,7 @@ const AddEmployeeDrawer = props => {
                 SelectProps={{
                   displayEmpty: true,
                   renderValue: selected => {
-                    if (!selected) return <>Select a Branch</>
+                    if (!selected) return <>{t('employees.selectBranch')}</>
                     const selectedBranch = branchesList.find(branch => branch.id === selected)
                     return selectedBranch ? `${selectedBranch.name} (${selectedBranch.branchId})` : ''
                   }
@@ -480,7 +480,7 @@ const AddEmployeeDrawer = props => {
                 helperText={errors.branchId?.message || branchesError}
                 disabled={branchesLoading}
               >
-                <MenuItem value=''>Select a Branch</MenuItem>
+                <MenuItem value=''>{t('employees.selectBranch')}</MenuItem>
                 {branchesList.map(branch => (
                   <MenuItem key={branch.id} value={branch.id}>
                     {branch.name} ({branch.branchId})
@@ -509,10 +509,10 @@ const AddEmployeeDrawer = props => {
                 }
                 disabled={!!currentEmployee && !canEditRole()}
               >
-                <MenuItem value='ADMIN'>Admin</MenuItem>
-                <MenuItem value='MANAGER'>Manager</MenuItem>
-                <MenuItem value='HR'>HR</MenuItem>
-                <MenuItem value='EMPLOYEE'>Employee</MenuItem>
+                <MenuItem value='ADMIN'>{t('common.roles.ADMIN')}</MenuItem>
+                <MenuItem value='MANAGER'>{t('common.roles.MANAGER')}</MenuItem>
+                <MenuItem value='HR'>{t('common.roles.HR')}</MenuItem>
+                <MenuItem value='EMPLOYEE'>{t('common.roles.EMPLOYEE')}</MenuItem>
               </CustomTextField>
             )}
           />
@@ -527,7 +527,7 @@ const AddEmployeeDrawer = props => {
               control={control}
               rules={{
                 validate: value =>
-                  (selectedPermissions && selectedPermissions.length > 0) || 'At least one permission is required'
+                  (selectedPermissions && selectedPermissions.length > 0) || t('employees.permissionRequired')
               }}
               render={({ field }) => (
                 <>
@@ -539,7 +539,7 @@ const AddEmployeeDrawer = props => {
                     value={selectedPermissions}
                     renderValue={selected => {
                       if (selected.length === 0) {
-                        return <Typography variant='body1'>Select permissions</Typography>
+                        return <Typography variant='body1'>{t('employees.selectPermissions')}</Typography>
                       }
                       return (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -590,13 +590,13 @@ const AddEmployeeDrawer = props => {
               <CustomTextField
                 select
                 fullWidth
-                label='Status'
+                label={t('employees.fields.status')}
                 {...field}
                 value={field.value ? 'active' : 'inactive'} // Convert boolean to string for display
                 onChange={e => field.onChange(e.target.value === 'active')} // Convert back to boolean
               >
-                <MenuItem value='active'>Active</MenuItem>
-                <MenuItem value='inactive'>Inactive</MenuItem>
+                <MenuItem value='active'>{t('employees.status.active')}</MenuItem>
+                <MenuItem value='inactive'>{t('employees.status.inactive')}</MenuItem>
               </CustomTextField>
             )}
           />

@@ -19,7 +19,12 @@ import Chip from '@mui/material/Chip'
 import Box from '@mui/material/Box'
 import Pagination from '@mui/material/Pagination'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const InvoiceList = () => {
+  // Hooks
+  const { t } = useTranslation()
   // Mock data for invoice list
   const invoices = [
     {
@@ -122,7 +127,7 @@ const InvoiceList = () => {
         {/* Pagination */}
         <Box className='flex justify-between items-center mt-4'>
           <Typography variant='body2' color='text.secondary'>
-            Showing 1 to 1 of 1 entries
+            {`${t('common.pagination.showing')} 1 ${t('common.pagination.to')} 1 ${t('common.pagination.of')} 1 ${t('common.pagination.entries')}`}
           </Typography>
           <Pagination count={1} page={1} color='primary' size='small' showFirstButton showLastButton />
         </Box>

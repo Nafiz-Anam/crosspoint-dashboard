@@ -130,7 +130,7 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
             {t('paymentMethods.addNewPaymentMethod')}
           </Typography>
           <Button variant='text' onClick={handleClose} startIcon={<i className='tabler-x' />}>
-            Close
+            {t('common.close')}
           </Button>
         </Box>
 
@@ -163,7 +163,7 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
               value={formData.bankIban}
               onChange={handleChange('bankIban')}
               error={!!errors.bankIban}
-              helperText={errors.bankIban || 'International Bank Account Number'}
+              helperText={errors.bankIban || t('common.internationalBankAccountNumber')}
               placeholder={t('paymentMethods.enterIban')}
               sx={{ fontFamily: 'monospace' }}
             />
@@ -174,7 +174,7 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
               value={formData.bankSwiftCode}
               onChange={handleChange('bankSwiftCode')}
               error={!!errors.bankSwiftCode}
-              helperText={errors.bankSwiftCode || 'Optional - Bank Identifier Code'}
+              helperText={errors.bankSwiftCode || t('common.optionalBankIdentifierCode')}
               placeholder={t('paymentMethods.enterSwiftCode')}
               sx={{ fontFamily: 'monospace' }}
             />
@@ -185,7 +185,7 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
               value={formData.accountName}
               onChange={handleChange('accountName')}
               error={!!errors.accountName}
-              helperText={errors.accountName || 'Optional - Account holder name'}
+              helperText={errors.accountName || t('common.optionalAccountHolderName')}
               placeholder={t('paymentMethods.enterName')}
             />
 

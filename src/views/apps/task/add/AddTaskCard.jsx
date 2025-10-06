@@ -25,6 +25,9 @@ import CustomTextField from '@core/components/mui/TextField'
 // Services
 import toastService from '@/services/toastService'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const AddTaskCard = () => {
   // States
   const [loading, setLoading] = useState(false)
@@ -41,6 +44,7 @@ const AddTaskCard = () => {
 
   // Hooks
   const { data: session } = useSession()
+  const { t } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()
   const preSelectedClientId = searchParams?.get('clientId')
@@ -332,7 +336,7 @@ const AddTaskCard = () => {
 
   return (
     <Card>
-      <CardHeader title='Create New Task' />
+      <CardHeader title={t('tasks.createNewTask')} />
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={6}>
@@ -345,7 +349,7 @@ const AddTaskCard = () => {
                   <CustomTextField
                     select
                     fullWidth
-                    label='Select Client *'
+                    label={`${t('tasks.selectClient')} *`}
                     {...field}
                     {...(errors.clientId && { error: true, helperText: errors.clientId.message })}
                     InputProps={{
@@ -355,10 +359,10 @@ const AddTaskCard = () => {
                     {clientsLoading ? (
                       <MenuItem disabled>
                         <CircularProgress size={16} sx={{ mr: 1 }} />
-                        Loading clients...
+                        {t('tasks.loadingClients')}
                       </MenuItem>
                     ) : clients.length === 0 ? (
-                      <MenuItem disabled>No clients available</MenuItem>
+                      <MenuItem disabled>{t('tasks.noClientsAvailable')}</MenuItem>
                     ) : (
                       clients.map(client => (
                         <MenuItem key={client.id} value={client.id}>
@@ -375,12 +379,12 @@ const AddTaskCard = () => {
               <Controller
                 name='categoryId'
                 control={control}
-                rules={{ required: 'Category is required.' }}
+                rules={{ required: t('tasks.categoryRequired') }}
                 render={({ field }) => (
                   <CustomTextField
                     select
                     fullWidth
-                    label='Select Category *'
+                    label={`${t('tasks.selectCategory')} *`}
                     {...field}
                     {...(errors.categoryId && { error: true, helperText: errors.categoryId.message })}
                     InputProps={{
@@ -390,10 +394,10 @@ const AddTaskCard = () => {
                     {categoriesLoading ? (
                       <MenuItem disabled>
                         <CircularProgress size={16} sx={{ mr: 1 }} />
-                        Loading categories...
+                        {t('tasks.loadingCategories')}
                       </MenuItem>
                     ) : categories.length === 0 ? (
-                      <MenuItem disabled>No categories available</MenuItem>
+                      <MenuItem disabled>{t('tasks.noCategoriesAvailable')}</MenuItem>
                     ) : (
                       categories.map(category => (
                         <MenuItem key={category} value={category}>
@@ -410,12 +414,12 @@ const AddTaskCard = () => {
               <Controller
                 name='serviceId'
                 control={control}
-                rules={{ required: 'Service is required.' }}
+                rules={{ required: t('tasks.serviceRequired') }}
                 render={({ field }) => (
                   <CustomTextField
                     select
                     fullWidth
-                    label='Select Service *'
+                    label={`${t('tasks.selectService')} *`}
                     {...field}
                     {...(errors.serviceId && { error: true, helperText: errors.serviceId.message })}
                     InputProps={{
@@ -426,13 +430,11 @@ const AddTaskCard = () => {
                     {servicesLoading ? (
                       <MenuItem disabled>
                         <CircularProgress size={16} sx={{ mr: 1 }} />
-                        Loading services...
+                        {t('tasks.loadingServices')}
                       </MenuItem>
                     ) : availableServices.length === 0 ? (
                       <MenuItem disabled>
-                        {!watchedCategoryId
-                          ? 'Please select a category first'
-                          : 'No services available for this category'}
+                        {!watchedCategoryId ? t('tasks.selectCategoryFirst') : t('tasks.noServicesAvailable')}
                       </MenuItem>
                     ) : (
                       availableServices.map(service => (
@@ -450,12 +452,12 @@ const AddTaskCard = () => {
               <Controller
                 name='assignedEmployeeId'
                 control={control}
-                rules={{ required: 'Assigned employee is required.' }}
+                rules={{ required: t('tasks.employeeRequired') }}
                 render={({ field }) => (
                   <CustomTextField
                     select
                     fullWidth
-                    label='Assign To Employee *'
+                    label={`${t('tasks.assignToEmployee')} *`}
                     {...field}
                     {...(errors.assignedEmployeeId && { error: true, helperText: errors.assignedEmployeeId.message })}
                     InputProps={{
@@ -465,10 +467,10 @@ const AddTaskCard = () => {
                     {employeesLoading ? (
                       <MenuItem disabled>
                         <CircularProgress size={16} sx={{ mr: 1 }} />
-                        Loading employees...
+                        {t('tasks.loadingEmployees')}
                       </MenuItem>
                     ) : employees.length === 0 ? (
-                      <MenuItem disabled>No employees available</MenuItem>
+                      <MenuItem disabled>{t('tasks.noEmployeesAvailable')}</MenuItem>
                     ) : (
                       employees.map(employee => (
                         <MenuItem key={employee.id} value={employee.id}>
@@ -485,13 +487,13 @@ const AddTaskCard = () => {
               <Controller
                 name='startDate'
                 control={control}
-                rules={{ required: 'Start date is required.' }}
+                rules={{ required: t('tasks.startDateRequired') }}
                 render={({ field }) => (
                   <CustomTextField
                     {...field}
                     fullWidth
                     type='date'
-                    label='Start Date *'
+                    label={`${t('tasks.startDate')} *`}
                     InputLabelProps={{ shrink: true }}
                     {...(errors.startDate && { error: true, helperText: errors.startDate.message })}
                   />
@@ -503,13 +505,13 @@ const AddTaskCard = () => {
               <Controller
                 name='dueDate'
                 control={control}
-                rules={{ required: 'Due date is required.' }}
+                rules={{ required: t('tasks.dueDateRequired') }}
                 render={({ field }) => (
                   <CustomTextField
                     {...field}
                     fullWidth
                     type='date'
-                    label='Due Date *'
+                    label={`${t('tasks.dueDate')} *`}
                     InputLabelProps={{ shrink: true }}
                     {...(errors.dueDate && { error: true, helperText: errors.dueDate.message })}
                   />
@@ -521,18 +523,18 @@ const AddTaskCard = () => {
               <Controller
                 name='status'
                 control={control}
-                rules={{ required: 'Status is required.' }}
+                rules={{ required: t('tasks.statusRequired') }}
                 render={({ field }) => (
                   <CustomTextField
                     select
                     fullWidth
-                    label='Status *'
+                    label={`${t('tasks.fields.status')} *`}
                     {...field}
                     {...(errors.status && { error: true, helperText: errors.status.message })}
                   >
                     {validStatuses.map(status => (
                       <MenuItem key={status} value={status}>
-                        {status.replace('_', ' ')}
+                        {t(`tasks.status.${status.toLowerCase()}`) || status.replace('_', ' ')}
                       </MenuItem>
                     ))}
                   </CustomTextField>
@@ -544,15 +546,15 @@ const AddTaskCard = () => {
               <Controller
                 name='description'
                 control={control}
-                rules={{ required: 'Description is required.' }}
+                rules={{ required: t('tasks.descriptionRequired') }}
                 render={({ field }) => (
                   <CustomTextField
                     {...field}
                     fullWidth
                     multiline
                     rows={3}
-                    label='Description *'
-                    placeholder='Enter task description'
+                    label={`${t('tasks.description')} *`}
+                    placeholder={t('tasks.enterTaskDescription')}
                     {...(errors.description && { error: true, helperText: errors.description.message })}
                   />
                 )}
@@ -565,13 +567,13 @@ const AddTaskCard = () => {
                   variant='contained'
                   type='submit'
                   loading={loading}
-                  loadingText='Creating...'
+                  loadingText={t('tasks.creating')}
                   disabled={loading || Object.keys(errors).length > 0}
                 >
-                  Create Task
+                  {t('tasks.createTask')}
                 </LoadingButton>
                 <LoadingButton variant='tonal' color='error' type='button' onClick={handleCancel} disabled={loading}>
-                  Cancel
+                  {t('tasks.cancel')}
                 </LoadingButton>
               </div>
             </Grid>

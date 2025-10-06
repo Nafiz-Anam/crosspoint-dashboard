@@ -266,7 +266,7 @@ const AddClientDrawer = props => {
           {currentClient && (
             <CustomTextField
               fullWidth
-              label='Client ID'
+              label={t('clients.fields.clientId')}
               value={currentClient.clientId || ''}
               disabled={true}
               sx={{ mb: 2 }}
@@ -314,11 +314,11 @@ const AddClientDrawer = props => {
               required: t('clients.clientNameRequired'),
               minLength: {
                 value: 2,
-                message: 'Name must be at least 2 characters long.'
+                message: t('clients.nameMinLength')
               },
               maxLength: {
                 value: 100,
-                message: 'Name must not exceed 100 characters.'
+                message: t('clients.nameMaxLength')
               }
             }}
             render={({ field }) => (
@@ -337,15 +337,15 @@ const AddClientDrawer = props => {
             name='nationalIdentificationNumber'
             control={control}
             rules={{
-              minLength: { value: 5, message: 'National ID must be at least 5 characters' },
-              maxLength: { value: 20, message: 'National ID must be at most 20 characters' }
+              minLength: { value: 5, message: t('clients.nationalIdMinLength') },
+              maxLength: { value: 20, message: t('clients.nationalIdMaxLength') }
             }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label='National Identification Number'
-                placeholder='1234567890'
+                label={t('clients.fields.nationalIdentificationNumber')}
+                placeholder={t('clients.enterNationalId')}
                 disabled={isViewMode}
                 {...(errors.nationalIdentificationNumber && {
                   error: true,
@@ -407,7 +407,13 @@ const AddClientDrawer = props => {
             name='city'
             control={control}
             render={({ field }) => (
-              <CustomTextField {...field} fullWidth label='City (Optional)' placeholder='Rome' disabled={isViewMode} />
+              <CustomTextField
+                {...field}
+                fullWidth
+                label={`${t('clients.fields.city')} (${t('clients.optional')})`}
+                placeholder={t('clients.enterCity')}
+                disabled={isViewMode}
+              />
             )}
           />
 
@@ -418,8 +424,8 @@ const AddClientDrawer = props => {
               <CustomTextField
                 {...field}
                 fullWidth
-                label='Postal Code (Optional)'
-                placeholder='00100'
+                label={`${t('clients.fields.postalCode')} (${t('clients.optional')})`}
+                placeholder={t('clients.enterPostalCode')}
                 disabled={isViewMode}
               />
             )}
@@ -432,8 +438,8 @@ const AddClientDrawer = props => {
               <CustomTextField
                 {...field}
                 fullWidth
-                label='Province (Optional)'
-                placeholder='RM'
+                label={`${t('clients.fields.province')} (${t('clients.optional')})`}
+                placeholder={t('clients.enterProvince')}
                 disabled={isViewMode}
               />
             )}

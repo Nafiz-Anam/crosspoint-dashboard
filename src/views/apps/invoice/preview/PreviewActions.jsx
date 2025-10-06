@@ -132,7 +132,7 @@ const PreviewActions = ({ id, invoiceData, onButtonClick, onStatusUpdate }) => {
             disabled={isDownloading}
             startIcon={<i className='tabler-download' />}
           >
-            {isDownloading ? 'Downloading...' : 'Download'}
+            {isDownloading ? t('invoices.downloading') : t('invoices.download')}
           </Button>
           <div className='flex items-center gap-4'>
             <Button
@@ -143,7 +143,7 @@ const PreviewActions = ({ id, invoiceData, onButtonClick, onStatusUpdate }) => {
               onClick={onButtonClick}
               startIcon={<i className='tabler-printer' />}
             >
-              Print
+              {t('invoices.print')}
             </Button>
             <Button
               fullWidth
@@ -154,7 +154,7 @@ const PreviewActions = ({ id, invoiceData, onButtonClick, onStatusUpdate }) => {
               href={getLocalizedUrl(`/apps/invoice/edit/${id}`, locale)}
               startIcon={<i className='tabler-pencil' />}
             >
-              Edit
+              {t('invoices.edit')}
             </Button>
           </div>
         </CardContent>

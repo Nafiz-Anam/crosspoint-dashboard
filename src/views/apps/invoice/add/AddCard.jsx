@@ -376,7 +376,7 @@ const AddCard = ({
               {/* Payment Method Section - Show bank details */}
               <div className='flex flex-col gap-4'>
                 <Typography className='font-medium' color='text.primary'>
-                  Payment Method:
+                  {t('invoices.paymentMethod')}
                 </Typography>
                 <div>
                   <div className='flex items-center gap-4'>
@@ -424,7 +424,7 @@ const AddCard = ({
                 {t('invoices.services')}
               </Typography>
               <Typography variant='body2' color='text.secondary'>
-                {t('invoices.paymentMethod')} {paymentMethod}
+                {t('invoices.paymentMethod')} {paymentMethod || t('invoices.noBankAccountSelected')}
               </Typography>
             </div>
 

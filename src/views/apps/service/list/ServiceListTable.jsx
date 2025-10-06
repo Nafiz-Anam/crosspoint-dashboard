@@ -243,7 +243,7 @@ const ServiceListTable = () => {
   const columns = useMemo(
     () => [
       columnHelper.accessor('serviceId', {
-        header: 'Service ID',
+        header: t('common.serviceId'),
         cell: info => {
           const serviceId = info.getValue()
           // Handle cases where serviceId might be invalid or NaN
@@ -302,7 +302,7 @@ const ServiceListTable = () => {
         }
       }),
       columnHelper.accessor('_count', {
-        header: 'Usage',
+        header: t('common.usage'),
         cell: info => {
           const count = info.getValue()
           return (
@@ -314,7 +314,7 @@ const ServiceListTable = () => {
         enableSorting: false
       }),
       columnHelper.accessor('createdAt', {
-        header: 'Created At',
+        header: t('common.createdAt'),
         cell: info => {
           const date = new Date(info.getValue())
           return (
@@ -338,7 +338,7 @@ const ServiceListTable = () => {
         }
       }),
       columnHelper.accessor('updatedAt', {
-        header: 'Updated At',
+        header: t('common.updatedAt'),
         cell: info => {
           const date = new Date(info.getValue())
           return (
@@ -376,7 +376,7 @@ const ServiceListTable = () => {
         enableSorting: false
       })
     ],
-    [handleDeleteClick]
+    [handleDeleteClick, t]
   )
 
   const table = useReactTable({

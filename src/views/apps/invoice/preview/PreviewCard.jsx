@@ -171,7 +171,7 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
               <Grid size={{ xs: 12, sm: 6 }}>
                 <div className='flex flex-col gap-4'>
                   <Typography className='font-medium' color='text.primary'>
-                    Payment Method:
+                    {t('invoices.paymentMethod')}
                   </Typography>
                   <div>
                     <div className='flex items-center gap-4'>

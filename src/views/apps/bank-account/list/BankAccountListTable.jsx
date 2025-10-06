@@ -145,7 +145,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
         )
       }),
       columnHelper.accessor('bankCountry', {
-        header: 'Country',
+        header: t('common.country'),
         cell: ({ row }) => <Typography variant='body2'>{row.original.bankCountry}</Typography>
       }),
       columnHelper.accessor('bankIban', {
@@ -157,7 +157,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
         )
       }),
       columnHelper.accessor('bankSwiftCode', {
-        header: 'SWIFT Code',
+        header: t('common.swiftCode'),
         cell: ({ row }) => (
           <Typography variant='body2' fontFamily='monospace'>
             {row.original.bankSwiftCode || 'N/A'}
@@ -180,7 +180,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
         )
       }),
       columnHelper.accessor('createdAt', {
-        header: 'Created',
+        header: t('common.created'),
         cell: ({ row }) => (
           <Typography variant='body2'>{new Date(row.original.createdAt).toLocaleDateString()}</Typography>
         )
@@ -202,7 +202,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
                   }
                 },
                 {
-                  text: row.original.isActive ? 'Deactivate' : 'Activate',
+                  text: row.original.isActive ? t('paymentMethods.deactivate') : t('paymentMethods.activate'),
                   icon: row.original.isActive ? 'tabler-eye-off' : 'tabler-eye',
                   menuItemProps: {
                     className: 'flex items-center gap-2 text-textSecondary',
@@ -227,7 +227,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
         enableSorting: false
       })
     ],
-    [onBankAccountAction]
+    [onBankAccountAction, t]
   )
 
   const table = useReactTable({
@@ -286,7 +286,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
       <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
         <CustomTextField
           select
-          label='Country'
+          label={t('common.country')}
           value={filters.country || ''}
           onChange={e => onFilterChange({ ...filters, country: e.target.value })}
           className='min-w-[180px]'
@@ -299,7 +299,7 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
 
         <CustomTextField
           select
-          label='Status'
+          label={t('common.status')}
           value={isActiveFilter}
           onChange={e => handleStatusChange(e.target.value)}
           className='min-w-[180px]'

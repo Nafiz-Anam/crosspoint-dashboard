@@ -333,7 +333,7 @@ const EmployeeListTable = () => {
               sx={{ color: `var(--mui-palette-${employeeRoleObj[row.original.role]?.color || 'primary'}-main)` }}
             />
             <Typography className='capitalize' color='text.primary'>
-              {row.original.role}
+              {t(`common.roles.${row.original.role}`) || row.original.role}
             </Typography>
           </div>
         )

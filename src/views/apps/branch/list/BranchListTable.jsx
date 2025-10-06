@@ -254,7 +254,7 @@ const BranchListTable = () => {
   const columns = useMemo(
     () => [
       columnHelper.accessor('branchId', {
-        header: 'Branch ID',
+        header: t('common.branchId'),
         cell: info => (
           <Typography color='text.primary' className='font-medium'>
             {info.getValue()}
@@ -270,7 +270,7 @@ const BranchListTable = () => {
         )
       }),
       columnHelper.accessor('location', {
-        header: 'Location',
+        header: t('common.location'),
         cell: ({ row }) => (
           <div className='flex flex-col'>
             <Typography color='text.primary' className='font-medium'>
@@ -283,7 +283,7 @@ const BranchListTable = () => {
         )
       }),
       columnHelper.accessor('contact', {
-        header: 'Contact',
+        header: t('common.contact'),
         cell: ({ row }) => (
           <div className='flex flex-col'>
             {row.original.phone && (
@@ -330,7 +330,7 @@ const BranchListTable = () => {
         enableSorting: false
       })
     ],
-    [handleDeleteClick, handleEditClick] // Depend on handleDeleteClick and handleEditClick
+    [handleDeleteClick, handleEditClick, t] // Depend on handleDeleteClick, handleEditClick, and t
   )
 
   const table = useReactTable({

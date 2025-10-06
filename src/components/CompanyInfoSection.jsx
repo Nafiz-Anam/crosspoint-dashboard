@@ -15,8 +15,10 @@ import {
   Avatar,
   Alert
 } from '@mui/material'
+import { useTranslation } from '@/hooks/useTranslation'
 
 const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = false, showEditButton = true }) => {
+  const { t } = useTranslation()
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState(companyInfo || {})
   const [logoPreview, setLogoPreview] = useState(null)
@@ -24,7 +26,7 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
 
   const defaultCompanyInfo = {
     companyName: 'Crosspoint',
-    tagline: 'TO MAKE A BETTER COMMUNITY',
+    tagline: t('common.toMakeABetterCommunity'),
     address: 'Office 149, 450 South Brand Brooklyn',
     city: 'San Diego County, CA 91905, USA',
     phone: '+1 (123) 456 7891, +44 (876) 543 2198',
@@ -182,7 +184,7 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
             onClick={handleEdit}
             sx={{ alignSelf: 'flex-start' }}
           >
-            Edit Company Info
+            {t('common.editCompanyInfo')}
           </Button>
         )}
       </Box>
@@ -192,7 +194,7 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
         <DialogTitle>
           <Box display='flex' alignItems='center' gap={1}>
             <i className='tabler-building text-2xl text-primary' />
-            <Typography variant='h6'>Edit Company Information</Typography>
+            <Typography variant='h6'>{t('common.editCompanyInfo')}</Typography>
           </Box>
         </DialogTitle>
 
@@ -201,7 +203,7 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
             {/* Logo Upload */}
             <Grid item xs={12}>
               <Typography variant='subtitle2' sx={{ mb: 2 }}>
-                Company Logo
+                {t('common.companyLogo')}
               </Typography>
               <Box display='flex' alignItems='center' gap={2}>
                 {logoPreview || editData.logo ? (
@@ -246,10 +248,10 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
                     startIcon={<i className='tabler-upload' />}
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    Upload Logo
+                    {t('common.uploadLogo')}
                   </Button>
                   <Typography variant='caption' color='text.secondary' display='block' sx={{ mt: 1 }}>
-                    Recommended size: 200x200px or larger
+                    {t('common.recommendedSize')}
                   </Typography>
                 </Box>
                 <input
@@ -266,7 +268,7 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label='Company Name'
+                label={t('common.companyName')}
                 value={editData.companyName || ''}
                 onChange={e => handleInputChange('companyName', e.target.value)}
               />
@@ -275,7 +277,7 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label='Tagline'
+                label={t('common.tagline')}
                 value={editData.tagline || ''}
                 onChange={e => handleInputChange('tagline', e.target.value)}
               />
@@ -284,7 +286,7 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label='Address'
+                label={t('common.address')}
                 value={editData.address || ''}
                 onChange={e => handleInputChange('address', e.target.value)}
               />
@@ -293,7 +295,7 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label='City, State, ZIP'
+                label={t('common.cityStateZip')}
                 value={editData.city || ''}
                 onChange={e => handleInputChange('city', e.target.value)}
               />
@@ -302,7 +304,7 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label='Phone Numbers'
+                label={t('common.phoneNumbers')}
                 value={editData.phone || ''}
                 onChange={e => handleInputChange('phone', e.target.value)}
               />
@@ -311,7 +313,7 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label='Email'
+                label={t('common.email')}
                 type='email'
                 value={editData.email || ''}
                 onChange={e => handleInputChange('email', e.target.value)}
@@ -321,7 +323,7 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label='Website'
+                label={t('common.website')}
                 value={editData.website || ''}
                 onChange={e => handleInputChange('website', e.target.value)}
               />
@@ -331,10 +333,10 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
 
         <DialogActions sx={{ px: 3, pb: 3 }}>
           <Button onClick={handleCancel} color='inherit'>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSave} variant='contained'>
-            Save Changes
+            {t('common.saveChanges')}
           </Button>
         </DialogActions>
       </Dialog>

@@ -18,7 +18,13 @@ import CircularProgress from '@mui/material/CircularProgress'
 import CustomTextField from '@core/components/mui/TextField'
 import toastService from '@/services/toastService'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const EditBankAccountDrawer = ({ open, onClose, onEdit, bankAccount, loading = false }) => {
+  // Hooks
+  const { t } = useTranslation()
+
   // States
   const [formData, setFormData] = useState({
     bankName: '',
@@ -139,7 +145,7 @@ const EditBankAccountDrawer = ({ open, onClose, onEdit, bankAccount, loading = f
             Edit Bank Account
           </Typography>
           <Button variant='text' onClick={handleClose} startIcon={<i className='tabler-x' />}>
-            Close
+            {t('common.close')}
           </Button>
         </Box>
 
@@ -215,7 +221,7 @@ const EditBankAccountDrawer = ({ open, onClose, onEdit, bankAccount, loading = f
         {/* Footer */}
         <Box className='flex items-center justify-end gap-3 p-6 border-t'>
           <Button variant='outlined' onClick={handleClose} disabled={loading}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             type='submit'
