@@ -36,11 +36,8 @@ const ItalianCalendar = ({ height = '600px', showTitle = true }) => {
     // Calendar view changed
   }
 
-  // Handle event click
-  const handleEventClick = clickInfo => {
-    const event = clickInfo.event
-    alert(`${event.title}\n${event.extendedProps.description || 'Festa nazionale italiana'}`)
-  }
+  // Disable event clicking - no action on click
+  const handleEventClick = undefined
 
   // Get language-specific configuration
   const langConfig = calendarConfig.languages[currentLang] || calendarConfig.languages.en
@@ -96,7 +93,11 @@ const ItalianCalendar = ({ height = '600px', showTitle = true }) => {
     locale: currentLang === 'it' ? 'it' : langConfig.locale,
     timeZone: 'Europe/Rome',
     events: calendarEvents,
-    eventClick: handleEventClick,
+    // Disable all click interactions
+    eventClick: undefined,
+    navLinks: false,
+    selectable: false,
+    selectMirror: false,
     datesSet: handleDatesSet,
     // Event styling
     eventTextColor: '#ffffff',
