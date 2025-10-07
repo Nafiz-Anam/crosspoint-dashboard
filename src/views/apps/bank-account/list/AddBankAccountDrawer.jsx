@@ -28,7 +28,7 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
   // States
   const [formData, setFormData] = useState({
     bankName: '',
-    bankCountry: '',
+    accountNumber: '',
     bankIban: '',
     bankSwiftCode: '',
     accountName: '',
@@ -62,13 +62,15 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
       newErrors.bankName = t('paymentMethods.bankNameRequired')
     }
 
-    if (!formData.bankCountry.trim()) {
-      newErrors.bankCountry = t('paymentMethods.currencyRequired')
+    if (!formData.accountNumber.trim()) {
+      newErrors.accountNumber = t('paymentMethods.accountNumberRequired')
     }
 
-    if (!formData.bankIban.trim()) {
-      newErrors.bankIban = t('paymentMethods.ibanRequired')
-    } else if (formData.bankIban.length < 15 || formData.bankIban.length > 34) {
+    if (!formData.accountName.trim()) {
+      newErrors.accountName = t('paymentMethods.accountNameRequired')
+    }
+
+    if (formData.bankIban && (formData.bankIban.length < 15 || formData.bankIban.length > 34)) {
       newErrors.bankIban = t('paymentMethods.ibanLengthInvalid')
     }
 
@@ -104,7 +106,7 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
   const handleClose = () => {
     setFormData({
       bankName: '',
-      bankCountry: '',
+      accountNumber: '',
       bankIban: '',
       bankSwiftCode: '',
       accountName: '',
@@ -149,34 +151,13 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
 
             <CustomTextField
               fullWidth
-              label={t('paymentMethods.fields.currency')}
-              value={formData.bankCountry}
-              onChange={handleChange('bankCountry')}
-              error={!!errors.bankCountry}
-              helperText={errors.bankCountry}
-              placeholder={t('paymentMethods.selectCurrency')}
-            />
-
-            <CustomTextField
-              fullWidth
-              label={t('paymentMethods.fields.iban')}
-              value={formData.bankIban}
-              onChange={handleChange('bankIban')}
-              error={!!errors.bankIban}
-              helperText={errors.bankIban || t('common.internationalBankAccountNumber')}
-              placeholder={t('paymentMethods.enterIban')}
-              sx={{ fontFamily: 'monospace' }}
-            />
-
-            <CustomTextField
-              fullWidth
-              label={t('paymentMethods.fields.swiftCode')}
-              value={formData.bankSwiftCode}
-              onChange={handleChange('bankSwiftCode')}
-              error={!!errors.bankSwiftCode}
-              helperText={errors.bankSwiftCode}
-              placeholder={t('paymentMethods.enterSwiftCode')}
-              sx={{ fontFamily: 'monospace' }}
+              label={t('paymentMethods.fields.accountNumber')}
+              value={formData.accountNumber}
+              onChange={handleChange('accountNumber')}
+              error={!!errors.accountNumber}
+              helperText={errors.accountNumber}
+              placeholder={t('paymentMethods.enterAccountNumber')}
+              required
             />
 
             <CustomTextField
@@ -187,6 +168,29 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
               error={!!errors.accountName}
               helperText={errors.accountName}
               placeholder={t('paymentMethods.enterName')}
+              required
+            />
+
+            <CustomTextField
+              fullWidth
+              label={`${t('paymentMethods.fields.iban')} (${t('paymentMethods.optional')})`}
+              value={formData.bankIban}
+              onChange={handleChange('bankIban')}
+              error={!!errors.bankIban}
+              helperText={errors.bankIban || t('paymentMethods.optionalIban')}
+              placeholder={t('paymentMethods.enterIban')}
+              sx={{ fontFamily: 'monospace' }}
+            />
+
+            <CustomTextField
+              fullWidth
+              label={`${t('paymentMethods.fields.swiftCode')} (${t('paymentMethods.optional')})`}
+              value={formData.bankSwiftCode}
+              onChange={handleChange('bankSwiftCode')}
+              error={!!errors.bankSwiftCode}
+              helperText={errors.bankSwiftCode || t('paymentMethods.optionalSwiftCode')}
+              placeholder={t('paymentMethods.enterSwiftCode')}
+              sx={{ fontFamily: 'monospace' }}
             />
 
             <Divider />

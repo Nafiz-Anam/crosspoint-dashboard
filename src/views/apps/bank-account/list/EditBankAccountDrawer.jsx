@@ -28,7 +28,7 @@ const EditBankAccountDrawer = ({ open, onClose, onEdit, bankAccount, loading = f
   // States
   const [formData, setFormData] = useState({
     bankName: '',
-    bankCountry: '',
+    accountNumber: '',
     bankIban: '',
     bankSwiftCode: '',
     accountName: '',
@@ -41,7 +41,7 @@ const EditBankAccountDrawer = ({ open, onClose, onEdit, bankAccount, loading = f
     if (bankAccount) {
       const newFormData = {
         bankName: bankAccount.bankName || '',
-        bankCountry: bankAccount.bankCountry || '',
+        accountNumber: bankAccount.accountNumber || '',
         bankIban: bankAccount.bankIban || '',
         bankSwiftCode: bankAccount.bankSwiftCode || '',
         accountName: bankAccount.accountName || '',
@@ -73,25 +73,27 @@ const EditBankAccountDrawer = ({ open, onClose, onEdit, bankAccount, loading = f
     const newErrors = {}
 
     if (!formData.bankName.trim()) {
-      newErrors.bankName = 'Bank name is required'
+      newErrors.bankName = t('paymentMethods.bankNameRequired')
     }
 
-    if (!formData.bankCountry.trim()) {
-      newErrors.bankCountry = 'Bank country is required'
+    if (!formData.accountNumber.trim()) {
+      newErrors.accountNumber = t('paymentMethods.accountNumberRequired')
     }
 
-    if (!formData.bankIban.trim()) {
-      newErrors.bankIban = 'IBAN is required'
-    } else if (formData.bankIban.length < 15 || formData.bankIban.length > 34) {
-      newErrors.bankIban = 'IBAN must be between 15 and 34 characters'
+    if (!formData.accountName.trim()) {
+      newErrors.accountName = t('paymentMethods.accountNameRequired')
     }
 
-    if (formData.bankSwiftCode && formData.bankSwiftCode.length < 8) {
-      newErrors.bankSwiftCode = 'SWIFT code must be at least 8 characters'
+    if (formData.bankIban && (formData.bankIban.length < 15 || formData.bankIban.length > 34)) {
+      newErrors.bankIban = t('paymentMethods.ibanLengthInvalid')
+    }
+
+    if (formData.bankSwiftCode && formData.bankSwiftCode.length > 11) {
+      newErrors.bankSwiftCode = t('paymentMethods.swiftCodeLengthInvalid')
     }
 
     if (formData.accountName && formData.accountName.length > 100) {
-      newErrors.accountName = 'Account name cannot exceed 100 characters'
+      newErrors.accountName = t('paymentMethods.accountNameMaxLength')
     }
 
     setErrors(newErrors)
@@ -119,7 +121,7 @@ const EditBankAccountDrawer = ({ open, onClose, onEdit, bankAccount, loading = f
   const handleClose = () => {
     setFormData({
       bankName: '',
-      bankCountry: '',
+      accountNumber: '',
       bankIban: '',
       bankSwiftCode: '',
       accountName: '',
@@ -142,7 +144,7 @@ const EditBankAccountDrawer = ({ open, onClose, onEdit, bankAccount, loading = f
         {/* Header */}
         <Box className='flex items-center justify-between p-6 border-b'>
           <Typography variant='h5' sx={{ fontWeight: 600 }}>
-            Edit Bank Account
+            {t('paymentMethods.editBankAccount')}
           </Typography>
           <Button variant='text' onClick={handleClose} startIcon={<i className='tabler-x' />}>
             {t('common.close')}
@@ -154,57 +156,57 @@ const EditBankAccountDrawer = ({ open, onClose, onEdit, bankAccount, loading = f
           <Box className='space-y-4'>
             <CustomTextField
               fullWidth
-              label='Bank Name'
+              label={t('paymentMethods.fields.bankName')}
               value={formData.bankName}
               onChange={handleChange('bankName')}
               error={!!errors.bankName}
               helperText={errors.bankName}
-              placeholder='Enter bank name'
+              placeholder={t('paymentMethods.enterBankName')}
               required
             />
 
             <CustomTextField
               fullWidth
-              label='Bank Country'
-              value={formData.bankCountry}
-              onChange={handleChange('bankCountry')}
-              error={!!errors.bankCountry}
-              helperText={errors.bankCountry}
-              placeholder='Enter country'
-              required
-            />
-
-            <CustomTextField
-              fullWidth
-              label='IBAN'
-              value={formData.bankIban}
-              onChange={handleChange('bankIban')}
-              error={!!errors.bankIban}
-              helperText={errors.bankIban || 'International Bank Account Number'}
-              placeholder='Enter IBAN'
-              sx={{ fontFamily: 'monospace' }}
-              required
-            />
-
-            <CustomTextField
-              fullWidth
-              label='SWIFT Code'
-              value={formData.bankSwiftCode}
-              onChange={handleChange('bankSwiftCode')}
-              error={!!errors.bankSwiftCode}
-              helperText={errors.bankSwiftCode || 'Optional - Bank Identifier Code'}
-              placeholder='Enter SWIFT code'
-              sx={{ fontFamily: 'monospace' }}
-            />
-
-            <CustomTextField
-              fullWidth
-              label='Account Name'
+              label={t('paymentMethods.fields.name')}
               value={formData.accountName}
               onChange={handleChange('accountName')}
               error={!!errors.accountName}
-              helperText={errors.accountName || 'Optional - Account holder name'}
-              placeholder='Enter account holder name'
+              helperText={errors.accountName}
+              placeholder={t('paymentMethods.enterName')}
+              required
+            />
+
+            <CustomTextField
+              fullWidth
+              label={t('paymentMethods.fields.accountNumber')}
+              value={formData.accountNumber}
+              onChange={handleChange('accountNumber')}
+              error={!!errors.accountNumber}
+              helperText={errors.accountNumber}
+              placeholder={t('paymentMethods.enterAccountNumber')}
+              required
+            />
+
+            <CustomTextField
+              fullWidth
+              label={`${t('paymentMethods.fields.iban')} (${t('paymentMethods.optional')})`}
+              value={formData.bankIban}
+              onChange={handleChange('bankIban')}
+              error={!!errors.bankIban}
+              helperText={errors.bankIban || t('paymentMethods.optionalIban')}
+              placeholder={t('paymentMethods.enterIban')}
+              sx={{ fontFamily: 'monospace' }}
+            />
+
+            <CustomTextField
+              fullWidth
+              label={`${t('paymentMethods.fields.swiftCode')} (${t('paymentMethods.optional')})`}
+              value={formData.bankSwiftCode}
+              onChange={handleChange('bankSwiftCode')}
+              error={!!errors.bankSwiftCode}
+              helperText={errors.bankSwiftCode || t('paymentMethods.optionalSwiftCode')}
+              placeholder={t('paymentMethods.enterSwiftCode')}
+              sx={{ fontFamily: 'monospace' }}
             />
 
             <Divider />
@@ -212,7 +214,7 @@ const EditBankAccountDrawer = ({ open, onClose, onEdit, bankAccount, loading = f
             <FormControl>
               <FormControlLabel
                 control={<Switch checked={formData.isActive} onChange={handleChange('isActive')} color='primary' />}
-                label='Active'
+                label={t('paymentMethods.status.active')}
               />
             </FormControl>
           </Box>
@@ -221,7 +223,7 @@ const EditBankAccountDrawer = ({ open, onClose, onEdit, bankAccount, loading = f
         {/* Footer */}
         <Box className='flex items-center justify-end gap-3 p-6 border-t'>
           <Button variant='outlined' onClick={handleClose} disabled={loading}>
-            {t('common.cancel')}
+            {t('paymentMethods.cancel')}
           </Button>
           <Button
             type='submit'
@@ -230,7 +232,7 @@ const EditBankAccountDrawer = ({ open, onClose, onEdit, bankAccount, loading = f
             disabled={loading}
             startIcon={loading ? <CircularProgress size={16} /> : null}
           >
-            {loading ? 'Updating...' : 'Update Bank Account'}
+            {loading ? t('paymentMethods.updating') : t('paymentMethods.update')}
           </Button>
         </Box>
       </Box>

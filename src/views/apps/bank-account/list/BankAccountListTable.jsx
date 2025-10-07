@@ -144,15 +144,23 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
           </Typography>
         )
       }),
-      columnHelper.accessor('bankCountry', {
-        header: t('common.country'),
-        cell: ({ row }) => <Typography color='text.primary'>{row.original.bankCountry}</Typography>
+      columnHelper.accessor('accountName', {
+        header: t('paymentMethods.fields.name'),
+        cell: ({ row }) => <Typography color='text.primary'>{row.original.accountName || 'N/A'}</Typography>
+      }),
+      columnHelper.accessor('accountNumber', {
+        header: t('paymentMethods.fields.accountNumber'),
+        cell: ({ row }) => (
+          <Typography color='text.primary' fontFamily='monospace'>
+            {row.original.accountNumber || 'N/A'}
+          </Typography>
+        )
       }),
       columnHelper.accessor('bankIban', {
         header: 'IBAN',
         cell: ({ row }) => (
           <Typography color='text.primary' fontFamily='monospace'>
-            {row.original.bankIban}
+            {row.original.bankIban || 'N/A'}
           </Typography>
         )
       }),
@@ -163,10 +171,6 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
             {row.original.bankSwiftCode || 'N/A'}
           </Typography>
         )
-      }),
-      columnHelper.accessor('accountName', {
-        header: t('paymentMethods.fields.name'),
-        cell: ({ row }) => <Typography color='text.primary'>{row.original.accountName || 'N/A'}</Typography>
       }),
       columnHelper.accessor('isActive', {
         header: t('paymentMethods.fields.status'),
@@ -284,18 +288,12 @@ const BankAccountListTable = ({ bankAccountData, onFilterChange, onBankAccountAc
       <CardHeader title={t('paymentMethods.paymentMethodManagement')} className='pbe-4' />
 
       <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
-        <CustomTextField
-          select
-          label={t('common.country')}
-          value={filters.country || ''}
-          onChange={e => onFilterChange({ ...filters, country: e.target.value })}
+        {/* <CustomTextField
+          label={t('paymentMethods.fields.accountNumber')}
+          value={filters.accountNumber || ''}
+          onChange={e => onFilterChange({ ...filters, accountNumber: e.target.value })}
           className='min-w-[180px]'
-        >
-          <MenuItem value=''>{t('paymentMethods.all')}</MenuItem>
-          <MenuItem value='bangladesh'>Bangladesh</MenuItem>
-          <MenuItem value='usa'>USA</MenuItem>
-          <MenuItem value='uk'>UK</MenuItem>
-        </CustomTextField>
+        /> */}
 
         <CustomTextField
           select

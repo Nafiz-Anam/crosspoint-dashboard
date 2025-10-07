@@ -30,7 +30,7 @@ class BankAccountService {
 
       // Add filter parameters
       if (params.bankName) queryParams.append('bankName', params.bankName)
-      if (params.bankCountry) queryParams.append('bankCountry', params.bankCountry)
+      if (params.accountNumber) queryParams.append('accountNumber', params.accountNumber)
       if (params.isActive !== undefined) queryParams.append('isActive', params.isActive)
 
       // Add pagination parameters

@@ -194,11 +194,11 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                         </div>
                         <div className='flex items-center gap-4'>
                           <Typography className='min-is-[100px]'>{t('invoices.iban')}</Typography>
-                          <Typography>{bankDetails.bankIban}</Typography>
+                          <Typography>{bankDetails.bankIban || 'N/A'}</Typography>
                         </div>
                         <div className='flex items-center gap-4'>
                           <Typography className='min-is-[100px]'>{t('invoices.swiftCode')}</Typography>
-                          <Typography>{bankDetails.bankSwiftCode}</Typography>
+                          <Typography>{bankDetails.bankSwiftCode || 'N/A'}</Typography>
                         </div>
                       </>
                     )}

@@ -19,7 +19,7 @@ const AddBankAccountForm = ({ onSubmit, loading = false }) => {
   // States
   const [formData, setFormData] = useState({
     bankName: '',
-    bankCountry: '',
+    accountNumber: '',
     bankIban: '',
     bankSwiftCode: '',
     accountName: '',
@@ -52,13 +52,15 @@ const AddBankAccountForm = ({ onSubmit, loading = false }) => {
       newErrors.bankName = 'Bank name is required'
     }
 
-    if (!formData.bankCountry.trim()) {
-      newErrors.bankCountry = 'Bank country is required'
+    if (!formData.accountNumber.trim()) {
+      newErrors.accountNumber = 'Account number is required'
     }
 
-    if (!formData.bankIban.trim()) {
-      newErrors.bankIban = 'Bank IBAN is required'
-    } else if (formData.bankIban.length < 15 || formData.bankIban.length > 34) {
+    if (!formData.accountName.trim()) {
+      newErrors.accountName = 'Account name is required'
+    }
+
+    if (formData.bankIban && (formData.bankIban.length < 15 || formData.bankIban.length > 34)) {
       newErrors.bankIban = 'IBAN must be between 15 and 34 characters'
     }
 
@@ -105,46 +107,6 @@ const AddBankAccountForm = ({ onSubmit, loading = false }) => {
               />
             </Grid>
 
-            {/* Bank Country */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                fullWidth
-                label='Bank Country'
-                value={formData.bankCountry}
-                onChange={handleChange('bankCountry')}
-                error={!!errors.bankCountry}
-                helperText={errors.bankCountry}
-                required
-              />
-            </Grid>
-
-            {/* Bank IBAN */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                fullWidth
-                label='Bank IBAN'
-                value={formData.bankIban}
-                onChange={handleChange('bankIban')}
-                error={!!errors.bankIban}
-                helperText={errors.bankIban || 'International Bank Account Number'}
-                required
-                placeholder='GB82WEST12345698765432'
-              />
-            </Grid>
-
-            {/* Bank SWIFT Code */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                fullWidth
-                label='Bank SWIFT Code'
-                value={formData.bankSwiftCode}
-                onChange={handleChange('bankSwiftCode')}
-                error={!!errors.bankSwiftCode}
-                helperText={errors.bankSwiftCode}
-                placeholder='DEUTDEFF'
-              />
-            </Grid>
-
             {/* Account Name */}
             <Grid size={{ xs: 12 }}>
               <TextField
@@ -155,6 +117,47 @@ const AddBankAccountForm = ({ onSubmit, loading = false }) => {
                 error={!!errors.accountName}
                 helperText={errors.accountName}
                 placeholder='John Doe'
+                required
+              />
+            </Grid>
+
+            {/* Account Number */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                fullWidth
+                label='Account Number'
+                value={formData.accountNumber}
+                onChange={handleChange('accountNumber')}
+                error={!!errors.accountNumber}
+                helperText={errors.accountNumber || 'Bank account number'}
+                placeholder='Enter account number'
+                required
+              />
+            </Grid>
+
+            {/* Bank IBAN */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                fullWidth
+                label='Bank IBAN (Optional)'
+                value={formData.bankIban}
+                onChange={handleChange('bankIban')}
+                error={!!errors.bankIban}
+                helperText={errors.bankIban || 'Optional - International Bank Account Number'}
+                placeholder='GB82WEST12345698765432'
+              />
+            </Grid>
+
+            {/* Bank SWIFT Code */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                fullWidth
+                label='Bank SWIFT Code (Optional)'
+                value={formData.bankSwiftCode}
+                onChange={handleChange('bankSwiftCode')}
+                error={!!errors.bankSwiftCode}
+                helperText={errors.bankSwiftCode || 'Optional - Bank Identifier Code'}
+                placeholder='DEUTDEFF'
               />
             </Grid>
 
