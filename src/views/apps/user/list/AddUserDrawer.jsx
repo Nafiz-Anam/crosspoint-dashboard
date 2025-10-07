@@ -37,44 +37,23 @@ const AddEmployeeDrawer = props => {
   const { t } = useTranslation()
 
   // Helper functions for role-based field restrictions
+  const currentUserRole = session?.user?.roles || session?.user?.role || 'EMPLOYEE'
+
   const canEditEmail = () => {
-    console.log('AddUserDrawer canEditEmail debug:', {
-      session: session,
-      user: session?.user,
-      roles: session?.user?.roles,
-      role: session?.user?.role,
-      currentEmployee: currentEmployee
-    })
-
-    if ((!session?.user?.roles && !session?.user?.role) || !currentEmployee) return true // Allow for new employees
-
-    const currentUserRole = session.user.roles || session.user.role
-
-    // Only Admin can edit email
-    if (currentUserRole === 'ADMIN') return true
-
-    // Everyone else cannot edit email
-    return false
+    if ((!session?.user?.roles && !session?.user?.role) || !currentEmployee) return true
+    return currentUserRole === 'ADMIN'
   }
 
   const canEditRole = () => {
-    console.log('AddUserDrawer canEditRole debug:', {
-      session: session,
-      user: session?.user,
-      roles: session?.user?.roles,
-      role: session?.user?.role,
-      currentEmployee: currentEmployee
-    })
+    if ((!session?.user?.roles && !session?.user?.role) || !currentEmployee) return true
+    return currentUserRole === 'ADMIN'
+  }
 
-    if ((!session?.user?.roles && !session?.user?.role) || !currentEmployee) return true // Allow for new employees
-
-    const currentUserRole = session.user.roles || session.user.role
-
-    // Only Admin can edit role
-    if (currentUserRole === 'ADMIN') return true
-
-    // Everyone else cannot edit role
-    return false
+  const getCreatableRoles = () => {
+    if (currentUserRole === 'ADMIN') return ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE']
+    if (currentUserRole === 'HR') return ['HR', 'MANAGER', 'EMPLOYEE']
+    if (currentUserRole === 'MANAGER') return ['EMPLOYEE']
+    return []
   }
   const {
     control,
@@ -198,8 +177,16 @@ const AddEmployeeDrawer = props => {
     }
 
     // Include role based on permissions
+    const allowedRoles = getCreatableRoles()
+    const desiredRole = data.role
     if (!isEditMode || canEditRole()) {
-      payload.role = data.role
+      if (allowedRoles.includes(desiredRole)) {
+        payload.role = desiredRole
+      } else {
+        setLoading(false)
+        toastService.showError('You are not allowed to create this role')
+        return
+      }
     }
 
     // Include email based on permissions
@@ -212,7 +199,6 @@ const AddEmployeeDrawer = props => {
     }
 
     try {
-      console.log(`Making API call to: ${apiUrl} with method: ${apiMethod}`, payload)
       const response = await fetch(apiUrl, {
         method: apiMethod,
         headers: {
@@ -224,9 +210,7 @@ const AddEmployeeDrawer = props => {
       })
 
       if (response.ok) {
-        const responseData = await response.json()
         toastService.handleApiSuccess(isEditMode ? 'updated' : 'created', 'Employee')
-        console.log(`Employee ${isEditMode ? 'updated' : 'created'} successfully:`, responseData)
         onEmployeeAdded()
         handleReset()
       } else {
@@ -466,10 +450,11 @@ const AddEmployeeDrawer = props => {
                 }
                 disabled={!!currentEmployee && !canEditRole()}
               >
-                <MenuItem value='ADMIN'>{t('common.roles.ADMIN')}</MenuItem>
-                <MenuItem value='MANAGER'>{t('common.roles.MANAGER')}</MenuItem>
-                <MenuItem value='HR'>{t('common.roles.HR')}</MenuItem>
-                <MenuItem value='EMPLOYEE'>{t('common.roles.EMPLOYEE')}</MenuItem>
+                {getCreatableRoles().map(role => (
+                  <MenuItem key={role} value={role}>
+                    {t(`common.roles.${role}`)}
+                  </MenuItem>
+                ))}
               </CustomTextField>
             )}
           />
