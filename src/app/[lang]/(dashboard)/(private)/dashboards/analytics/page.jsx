@@ -8,6 +8,8 @@ import Grid from '@mui/material/Grid2'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
+import Button from '@mui/material/Button'
+import Typography from '@mui/material/Typography'
 
 // Components Imports
 import ClockInOutCard from '@views/dashboards/main/ClockInOutCard'
@@ -46,11 +48,6 @@ const DashboardAnalytics = () => {
   const { t } = useTranslation()
   const { userRole, isEmployee, isHR } = useRoleBasedAccess()
 
-  // Debug: Log user role for troubleshooting
-  console.log('Dashboard - User Role:', userRole)
-  console.log('Dashboard - isEmployee():', isEmployee())
-  console.log('Dashboard - isHR():', isHR())
-
   // Handle loading state
   if (loading) {
     return (
@@ -65,12 +62,21 @@ const DashboardAnalytics = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity='error' sx={{ mb: 2 }}>
-          {error}
+          <Typography variant='h6' sx={{ mb: 1 }}>
+            Dashboard Error
+          </Typography>
+          <Typography variant='body2'>{error}</Typography>
+          <Typography variant='caption' sx={{ display: 'block', mt: 1, opacity: 0.7 }}>
+            User Role: {userRole} | Loading: {loading ? 'Yes' : 'No'}
+          </Typography>
         </Alert>
-        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-          <button onClick={refetch} style={{ padding: '8px 16px', marginTop: '16px' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+          <Button variant='contained' onClick={refetch} sx={{ mt: 1 }}>
             {t('dashboard.common.retry')}
-          </button>
+          </Button>
+          <Button variant='outlined' onClick={() => window.location.reload()} sx={{ mt: 1 }}>
+            Refresh Page
+          </Button>
         </Box>
       </Box>
     )
@@ -123,33 +129,28 @@ const DashboardAnalytics = () => {
       <Grid size={{ xs: 12, md: 12 }}>
         <MinimalInvoiceListTable
           invoiceData={
-            data?.invoices?.map(invoice => {
-              console.log('Invoice data:', invoice)
-              console.log('Items:', invoice.items)
-              console.log('Service name:', invoice.items?.[0]?.service?.name)
-              return {
-                id: invoice.id,
-                invoiceId: invoice.invoiceId || invoice.invoiceNumber,
-                name: invoice.client?.name || 'Unknown Client',
-                companyEmail: invoice.client?.email || '',
-                serviceName: invoice.items?.[0]?.service?.name || 'N/A',
-                total: invoice.totalAmount || 0,
-                issuedDate: new Date(invoice.issuedDate).toLocaleDateString(),
-                invoiceStatus:
-                  invoice.status === 'PAID'
-                    ? 'Paid'
-                    : invoice.status === 'UNPAID'
-                      ? 'Unpaid'
-                      : invoice.status === 'OVERDUE'
-                        ? 'Past Due'
-                        : invoice.status === 'CANCELLED'
-                          ? 'Cancelled'
-                          : 'Unpaid',
-                balance: invoice.totalAmount || 0,
-                dueDate: new Date(invoice.dueDate).toLocaleDateString(),
-                avatar: null
-              }
-            }) || []
+            data?.invoices?.map(invoice => ({
+              id: invoice.id,
+              invoiceId: invoice.invoiceId || invoice.invoiceNumber,
+              name: invoice.client?.name || 'Unknown Client',
+              companyEmail: invoice.client?.email || '',
+              serviceName: invoice.items?.[0]?.service?.name || 'N/A',
+              total: invoice.totalAmount || 0,
+              issuedDate: new Date(invoice.issuedDate).toLocaleDateString(),
+              invoiceStatus:
+                invoice.status === 'PAID'
+                  ? 'Paid'
+                  : invoice.status === 'UNPAID'
+                    ? 'Unpaid'
+                    : invoice.status === 'OVERDUE'
+                      ? 'Past Due'
+                      : invoice.status === 'CANCELLED'
+                        ? 'Cancelled'
+                        : 'Unpaid',
+              balance: invoice.totalAmount || 0,
+              dueDate: new Date(invoice.dueDate).toLocaleDateString(),
+              avatar: null
+            })) || []
           }
         />
       </Grid>

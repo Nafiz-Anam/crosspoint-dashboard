@@ -766,6 +766,7 @@
     "serviceCreatedSuccessfully": "Servizio creato con successo!",
     "serviceUpdatedSuccessfully": "Servizio aggiornato con successo!",
     "serviceDeletedSuccessfully": "Servizio eliminato con successo!",
+    "failedToFetchServices": "Impossibile recuperare i servizi",
     "failedToCreateService": "Impossibile creare il servizio",
     "failedToUpdateService": "Impossibile aggiornare il servizio",
     "failedToDeleteService": "Impossibile eliminare il servizio",

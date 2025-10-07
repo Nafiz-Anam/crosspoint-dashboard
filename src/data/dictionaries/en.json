@@ -802,6 +802,7 @@
         "failedToCreateService": "Failed to create service",
         "failedToUpdateService": "Failed to update service",
         "failedToDeleteService": "Failed to delete service",
+        "failedToFetchServices": "Failed to fetch services",
         "networkError": "Network error or unexpected issue. Please try again.",
         "deleteConfirmation": {
             "title": "Delete Service",

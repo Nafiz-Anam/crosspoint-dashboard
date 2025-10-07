@@ -48,10 +48,12 @@ const TimesheetChart = () => {
         // Process attendance data to create timesheet chart data
         const processedData = processAttendanceData(response.data)
         setTimesheetData(processedData)
+      } else {
+        setTimesheetData(generateMockData())
       }
     } catch (err) {
       console.error('Error fetching timesheet data:', err)
-      setError(t('dashboard.common.error'))
+      setError(err.message || t('dashboard.common.error'))
       // Fallback to mock data
       setTimesheetData(generateMockData())
     } finally {

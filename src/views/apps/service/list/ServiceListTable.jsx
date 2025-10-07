@@ -126,7 +126,8 @@ const ServiceListTable = () => {
           queryParams.append('category', categoryFilter)
         }
 
-        const url = `${process.env.NEXT_PUBLIC_API_URL}/services${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'
+        const url = `${baseUrl}/services${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
 
         const response = await fetch(url, {
           method: 'GET',
@@ -143,11 +144,10 @@ const ServiceListTable = () => {
           // Extract services from the nested response structure
           setServices(responseData.data || [])
         } else {
-          await toastService.handleApiError(response, t('services.failedToCreateService'))
+          await toastService.handleApiError(response, t('services.failedToFetchServices'))
         }
       } catch (error) {
         await toastService.handleApiError(error, t('services.networkError'))
-        console.error('Fetch error services:', error)
       } finally {
         setFetchLoading(false)
       }

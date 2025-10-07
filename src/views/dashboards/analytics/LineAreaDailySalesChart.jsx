@@ -55,20 +55,21 @@ const LineAreaDailySalesChart = ({ data, loading, error }) => {
     )
   }
 
-  // Prepare chart data
-  const chartData = earningsData?.chartData || [0, 0, 0, 0, 0, 0, 0]
-  const periodTotal = earningsData?.periodTotal || 0
-  const periodAverage = earningsData?.periodAverage || 0
-  const growthPercentage = earningsData?.growthPercentage || 0
-  const labels = earningsData?.labels || [
-    t('dashboard.timePeriods.monday'),
-    t('dashboard.timePeriods.tuesday'),
-    t('dashboard.timePeriods.wednesday'),
-    t('dashboard.timePeriods.thursday'),
-    t('dashboard.timePeriods.friday'),
-    t('dashboard.timePeriods.saturday'),
-    t('dashboard.timePeriods.sunday')
-  ]
+  // Prepare chart data with better fallbacks
+  const chartData = earningsData?.chartData || earningsData?.data || [0, 0, 0, 0, 0, 0, 0]
+  const periodTotal = earningsData?.periodTotal || earningsData?.weeklyTotal || 0
+  const periodAverage = earningsData?.periodAverage || earningsData?.weeklyAverage || 0
+  const growthPercentage = earningsData?.growthPercentage || earningsData?.growth || 0
+  const labels = earningsData?.labels ||
+    earningsData?.chartLabels || [
+      t('dashboard.timePeriods.monday'),
+      t('dashboard.timePeriods.tuesday'),
+      t('dashboard.timePeriods.wednesday'),
+      t('dashboard.timePeriods.thursday'),
+      t('dashboard.timePeriods.friday'),
+      t('dashboard.timePeriods.saturday'),
+      t('dashboard.timePeriods.sunday')
+    ]
 
   // Get period-specific labels and series name
   const getPeriodInfo = period => {

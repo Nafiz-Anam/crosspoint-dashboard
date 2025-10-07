@@ -49,13 +49,18 @@ const TaskStatisticsCard = () => {
       const response = await client.get(`${services.tasks.endpoint}/statistics`)
 
       if (response && response.data) {
-        setTaskStats(response.data.data)
+        const stats = response.data.data || response.data
+        setTaskStats({
+          pending: stats.pending || 0,
+          completed: stats.completed || 0,
+          cancelled: stats.cancelled || 0
+        })
       } else {
         setError(t('dashboard.common.error'))
       }
     } catch (err) {
       console.error('Error fetching task stats:', err)
-      setError(t('dashboard.common.error'))
+      setError(err.message || t('dashboard.common.error'))
     } finally {
       setLoading(false)
     }

@@ -19,6 +19,7 @@ import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
 import MenuItem from '@mui/material/MenuItem'
 import Button from '@mui/material/Button'
+import CircularProgress from '@mui/material/CircularProgress'
 
 // Third-party Imports
 import { signOut, useSession } from 'next-auth/react'
@@ -42,6 +43,7 @@ const BadgeContentSpan = styled('span')({
 const UserDropdown = () => {
   // States
   const [open, setOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
 
   // Refs
   const anchorRef = useRef(null)
@@ -69,14 +71,14 @@ const UserDropdown = () => {
   }
 
   const handleUserLogout = async () => {
+    if (signingOut) return
+    setSigningOut(true)
     try {
-      // Sign out from the app
       await signOut({ callbackUrl: process.env.NEXT_PUBLIC_APP_URL })
     } catch (error) {
-      console.error(error)
-
-      // Show above error in a toast like following
-      // toastService.error((err as Error).message)
+      // optional: toast here
+    } finally {
+      setSigningOut(false)
     }
   }
 
@@ -136,11 +138,14 @@ const UserDropdown = () => {
                       variant='contained'
                       color='error'
                       size='small'
-                      endIcon={<i className='tabler-logout' />}
+                      disabled={signingOut}
+                      endIcon={
+                        signingOut ? <CircularProgress size={16} color='inherit' /> : <i className='tabler-logout' />
+                      }
                       onClick={handleUserLogout}
                       sx={{ '& .MuiButton-endIcon': { marginInlineStart: 1.5 } }}
                     >
-                      Logout
+                      {signingOut ? 'Logging out…' : 'Logout'}
                     </Button>
                   </div>
                 </MenuList>

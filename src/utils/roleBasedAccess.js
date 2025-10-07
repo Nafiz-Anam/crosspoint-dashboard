@@ -32,7 +32,7 @@ export const MODULE_PERMISSIONS = {
   // Service Management Module
   SERVICE: {
     requiredPermissions: ['CREATE_SERVICE', 'READ_SERVICE', 'UPDATE_SERVICE', 'DELETE_SERVICE'],
-    roles: ['ADMIN', 'HR']
+    roles: ['ADMIN', 'HR', 'MANAGER']
   },
 
   // Payment Methods Module

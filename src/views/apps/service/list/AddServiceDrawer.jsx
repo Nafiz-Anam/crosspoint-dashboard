@@ -91,12 +91,10 @@ const AddServiceDrawer = props => {
 
     const isEditMode = !!currentService
     const apiMethod = isEditMode ? 'PUT' : 'POST'
-    const apiUrl = isEditMode
-      ? `${process.env.NEXT_PUBLIC_API_URL}/services/${currentService.id}`
-      : `${process.env.NEXT_PUBLIC_API_URL}/services`
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'
+    const apiUrl = isEditMode ? `${baseUrl}/services/${currentService.id}` : `${baseUrl}/services`
 
     try {
-      console.log(`Making API call to: ${apiUrl} with method: ${apiMethod}`)
       const response = await fetch(apiUrl, {
         method: apiMethod,
         headers: {
@@ -110,7 +108,6 @@ const AddServiceDrawer = props => {
       if (response.ok) {
         const responseData = await response.json()
         toastService.handleApiSuccess(isEditMode ? 'updated' : 'created', 'Service')
-        console.log(`Service ${isEditMode ? 'updated' : 'created'} successfully:`, responseData)
         onServiceAdded()
         handleReset()
       } else {
@@ -118,7 +115,6 @@ const AddServiceDrawer = props => {
       }
     } catch (error) {
       await toastService.handleApiError(error, 'Network error or unexpected issue. Please try again.')
-      console.error('Fetch error:', error)
     } finally {
       setLoading(false)
     }

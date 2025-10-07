@@ -29,11 +29,11 @@ export const useDashboardData = (params = {}) => {
         ])
 
       setData({
-        stats: statsResponse.data.stats,
-        weeklyEarnings: weeklyEarningsResponse.data,
-        earningsData: earningsDataResponse.data,
-        invoiceStats: invoiceStatsResponse.data,
-        invoices: invoicesResponse.data.invoices
+        stats: statsResponse.data?.stats || null,
+        weeklyEarnings: weeklyEarningsResponse.data || null,
+        earningsData: earningsDataResponse.data || null,
+        invoiceStats: invoiceStatsResponse.data || null,
+        invoices: invoicesResponse.data?.invoices || null
       })
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
