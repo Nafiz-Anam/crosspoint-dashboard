@@ -47,6 +47,7 @@ import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDial
 import { getInitials } from '@/utils/getInitials'
 import { getLocalizedUrl } from '@/utils/i18n'
 import { useTranslation } from '@/hooks/useTranslation'
+import { getInvoiceDueDateColor, getInvoiceTimeRemaining } from '@/utils/dateColorUtils'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
@@ -88,7 +89,7 @@ const invoiceStatusObj = {
   UNPAID: { color: 'warning', icon: 'tabler-clock' },
   PAID: { color: 'success', icon: 'tabler-check' },
   OVERDUE: { color: 'error', icon: 'tabler-alert-circle' },
-  CANCELLED: { color: 'secondary', icon: 'tabler-x' }
+  CANCELLED: { color: 'error', icon: 'tabler-x' }
 }
 
 // Column Definitions
@@ -132,28 +133,28 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
 
   const columns = useMemo(
     () => [
-      {
-        id: 'select',
-        header: ({ table }) => (
-          <Checkbox
-            {...{
-              checked: table.getIsAllRowsSelected(),
-              indeterminate: table.getIsSomeRowsSelected(),
-              onChange: table.getToggleAllRowsSelectedHandler()
-            }}
-          />
-        ),
-        cell: ({ row }) => (
-          <Checkbox
-            {...{
-              checked: row.getIsSelected(),
-              disabled: !row.getCanSelect(),
-              indeterminate: row.getIsSomeSelected(),
-              onChange: row.getToggleSelectedHandler()
-            }}
-          />
-        )
-      },
+      // {
+      //   id: 'select',
+      //   header: ({ table }) => (
+      //     <Checkbox
+      //       {...{
+      //         checked: table.getIsAllRowsSelected(),
+      //         indeterminate: table.getIsSomeRowsSelected(),
+      //         onChange: table.getToggleAllRowsSelectedHandler()
+      //       }}
+      //     />
+      //   ),
+      //   cell: ({ row }) => (
+      //     <Checkbox
+      //       {...{
+      //         checked: row.getIsSelected(),
+      //         disabled: !row.getCanSelect(),
+      //         indeterminate: row.getIsSomeSelected(),
+      //         onChange: row.getToggleSelectedHandler()
+      //       }}
+      //     />
+      //   )
+      // },
       columnHelper.accessor('invoiceNumber', {
         header: t('invoices.fields.number'),
         cell: ({ row }) => (
@@ -231,9 +232,18 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         header: t('invoices.fields.dueDate'),
         cell: ({ row }) => {
           const dueDate = new Date(row.original.dueDate)
-          const isOverdue = dueDate < new Date() && row.original.status === 'UNPAID'
+          const timeRemaining = getInvoiceTimeRemaining(row.original.dueDate, row.original.status)
           return (
-            <Typography color={isOverdue ? 'error.main' : 'text.primary'}>{dueDate.toLocaleDateString()}</Typography>
+            <div className='flex flex-col'>
+              <Typography color={getInvoiceDueDateColor(row.original.dueDate, row.original.status)}>
+                {dueDate.toLocaleDateString()}
+              </Typography>
+              {timeRemaining && (
+                <Typography variant='caption' color={getInvoiceDueDateColor(row.original.dueDate, row.original.status)}>
+                  {timeRemaining}
+                </Typography>
+              )}
+            </div>
           )
         }
       }),

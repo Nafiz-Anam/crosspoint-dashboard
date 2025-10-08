@@ -293,6 +293,10 @@ const EmployeeListTable = () => {
 
   const columns = useMemo(
     () => [
+      columnHelper.accessor('employeeId', {
+        header: t('employees.fields.employeeId'),
+        cell: info => <Typography color='text.primary'>{info.getValue() || '-'}</Typography>
+      }),
       columnHelper.accessor('name', {
         header: t('employees.fields.name'),
         cell: ({ row }) => (
@@ -306,19 +310,14 @@ const EmployeeListTable = () => {
               <Typography color='text.primary' className='font-medium'>
                 {row.original.name || row.original.email}
               </Typography>
-              <Typography variant='body2'>{row.original.email}</Typography>
               {row.original.nationalIdentificationNumber && (
                 <Typography variant='caption' color='text.secondary'>
-                  ID: {row.original.nationalIdentificationNumber}
+                  Codice fiscale: {row.original.nationalIdentificationNumber}
                 </Typography>
               )}
             </div>
           </div>
         )
-      }),
-      columnHelper.accessor('employeeId', {
-        header: t('employees.fields.employeeId'),
-        cell: info => <Typography color='text.primary'>{info.getValue() || '-'}</Typography>
       }),
       columnHelper.accessor('email', {
         header: t('employees.fields.email'),

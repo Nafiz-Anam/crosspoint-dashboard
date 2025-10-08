@@ -68,7 +68,7 @@ const AddEmployeeDrawer = props => {
       nationalIdentificationNumber: '',
       dateOfBirth: '',
       role: 'EMPLOYEE',
-      branchId: '',
+      branchId: session?.user?.role === 'MANAGER' ? session?.user?.branchId || '' : '',
       isActive: true
     }
   })
@@ -86,36 +86,97 @@ const AddEmployeeDrawer = props => {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-      const responseData = await response.json()
+      // If user is a manager, fetch only their branch details
+      if (session?.user?.role === 'MANAGER' && session?.user?.branchId) {
+        // Fetch the specific branch details for the manager
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/${session.user.branchId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        })
+        const responseData = await response.json()
 
-      if (response.ok) {
-        setBranchesList(responseData.data || responseData)
+        if (response.ok) {
+          const branchData = responseData.data || responseData
+          setBranchesList([branchData])
+        } else {
+          // Fallback to mock data if API fails
+          const managerBranch = {
+            id: session.user.branchId,
+            name: `Branch ${session.user.branchId}`,
+            branchId: session.user.branchId,
+            city: 'Current City'
+          }
+          setBranchesList([managerBranch])
+        }
       } else {
-        const errorMessage = responseData.message || `Failed to load branches: ${response.status}`
-        setBranchesError(errorMessage)
-        console.error('API Error loading branches:', responseData)
+        // For other roles, fetch all active branches
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/active`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        })
+        const responseData = await response.json()
+
+        if (response.ok) {
+          setBranchesList(responseData.data || responseData)
+        } else {
+          const errorMessage = responseData.message || `Failed to load branches: ${response.status}`
+          setBranchesError(errorMessage)
+          console.error('API Error loading branches:', responseData)
+        }
       }
     } catch (error) {
       setBranchesError('Network error loading branches. Please try again.')
       console.error('Fetch error loading branches:', error)
+
+      // For managers, provide fallback branch data even on error
+      if (session?.user?.role === 'MANAGER' && session?.user?.branchId) {
+        const managerBranch = {
+          id: session.user.branchId,
+          name: `Branch ${session.user.branchId}`,
+          branchId: session.user.branchId,
+          city: 'Current City'
+        }
+        setBranchesList([managerBranch])
+      }
     } finally {
       setBranchesLoading(false)
     }
-  }, [sessionStatus, session?.accessToken])
+  }, [sessionStatus, session?.accessToken, session?.user?.role, session?.user?.branchId])
 
   useEffect(() => {
     if (sessionStatus === 'authenticated') {
       fetchBranchesList()
     }
   }, [sessionStatus, session?.accessToken])
+
+  // Pre-select manager's branch when branches are loaded
+  useEffect(() => {
+    if (session?.user?.role === 'MANAGER' && session?.user?.branchId && branchesList.length > 0) {
+      // Set the form value to the manager's branchId
+      resetForm(prev => ({
+        ...prev,
+        branchId: session.user.branchId
+      }))
+    }
+  }, [branchesList, session?.user?.role, session?.user?.branchId, resetForm])
+
+  // Also set the branchId when the drawer opens for managers
+  useEffect(() => {
+    if (open && session?.user?.role === 'MANAGER' && session?.user?.branchId) {
+      resetForm(prev => ({
+        ...prev,
+        branchId: session.user.branchId
+      }))
+    }
+  }, [open, session?.user?.role, session?.user?.branchId, resetForm])
 
   // Reset form for editing or adding
   useEffect(() => {
@@ -170,7 +231,7 @@ const AddEmployeeDrawer = props => {
 
     const payload = {
       name: data.name || null,
-      nationalIdentificationNumber: data.nationalIdentificationNumber || null,
+      nationalIdentificationNumber: data.nationalIdentificationNumber,
       dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString() : null,
       branchId: data.branchId || null,
       isActive: data.isActive
@@ -286,6 +347,7 @@ const AddEmployeeDrawer = props => {
             name='nationalIdentificationNumber'
             control={control}
             rules={{
+              required: t('employees.nationalIdRequired'),
               minLength: { value: 5, message: t('employees.nationalIdMinLength') },
               maxLength: { value: 20, message: t('employees.nationalIdMaxLength') }
             }}
@@ -295,6 +357,7 @@ const AddEmployeeDrawer = props => {
                 fullWidth
                 label={t('employees.fields.nationalIdentificationNumber')}
                 placeholder={t('employees.enterNationalId')}
+                required
                 error={!!errors.nationalIdentificationNumber}
                 helperText={errors.nationalIdentificationNumber?.message}
               />
@@ -419,7 +482,7 @@ const AddEmployeeDrawer = props => {
                 required
                 error={!!errors.branchId || !!branchesError}
                 helperText={errors.branchId?.message || branchesError}
-                disabled={branchesLoading}
+                disabled={branchesLoading || session?.user?.role === 'MANAGER'}
               >
                 <MenuItem value=''>{t('employees.selectBranch')}</MenuItem>
                 {branchesList.map(branch => (

@@ -44,7 +44,7 @@ const AddInvoice = () => {
       const [clientsRes, servicesRes, branchesRes] = await Promise.all([
         clientService.getClients(null, { limit: 1000 }),
         serviceService.getServices(null, { limit: 1000 }),
-        branchService.getBranches(null, { limit: 1000 })
+        branchService.getActiveBranches(null)
       ])
 
       setClients(clientsRes.data?.clients || [])

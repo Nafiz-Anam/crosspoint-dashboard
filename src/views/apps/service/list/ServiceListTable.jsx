@@ -280,21 +280,33 @@ const ServiceListTable = () => {
               size='small'
               sx={{
                 backgroundColor:
-                  category === 'Consulting'
+                  category === 'CAF'
                     ? '#e3f2fd' // Light blue
-                    : category === 'Development'
+                    : category === 'Patronato'
                       ? '#f3e5f5' // Light purple
-                      : category === 'Design'
+                      : category === 'Immigrazione'
                         ? '#fff3e0' // Light orange
-                        : '#f5f5f5', // Default light gray
+                        : category === 'Partita IVA'
+                          ? '#e8f5e8' // Light green
+                          : category === 'Reparto Legale'
+                            ? '#fce4ec' // Light pink
+                            : category === 'Varie pratiche'
+                              ? '#f1f8e9' // Light lime
+                              : '#f5f5f5', // Default light gray
                 color:
-                  category === 'Consulting'
+                  category === 'CAF'
                     ? '#1976d2' // Blue text
-                    : category === 'Development'
+                    : category === 'Patronato'
                       ? '#9c27b0' // Purple text
-                      : category === 'Design'
+                      : category === 'Immigrazione'
                         ? '#f57c00' // Orange text
-                        : '#757575', // Default gray text
+                        : category === 'Partita IVA'
+                          ? '#388e3c' // Green text
+                          : category === 'Reparto Legale'
+                            ? '#c2185b' // Pink text
+                            : category === 'Varie pratiche'
+                              ? '#689f38' // Lime text
+                              : '#757575', // Default gray text
                 fontWeight: 'medium'
               }}
             />
@@ -407,9 +419,12 @@ const ServiceListTable = () => {
               onChange={e => setCategoryFilter(e.target.value)}
             >
               <MenuItem value=''>{t('services.all')}</MenuItem>
-              <MenuItem value='Consulting'>Consulting</MenuItem>
-              <MenuItem value='Development'>Development</MenuItem>
-              <MenuItem value='Design'>Design</MenuItem>
+              <MenuItem value='CAF'>{t('services.categories.caf')}</MenuItem>
+              <MenuItem value='Patronato'>{t('services.categories.patronato')}</MenuItem>
+              <MenuItem value='Immigrazione'>{t('services.categories.immigrazione')}</MenuItem>
+              <MenuItem value='Partita IVA'>{t('services.categories.partitaIva')}</MenuItem>
+              <MenuItem value='Reparto Legale'>{t('services.categories.repartoLegale')}</MenuItem>
+              <MenuItem value='Varie pratiche'>{t('services.categories.variePratiche')}</MenuItem>
             </Select>
           </FormControl>
 

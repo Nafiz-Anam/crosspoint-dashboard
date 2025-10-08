@@ -74,14 +74,23 @@ export const hasModuleAccess = (moduleName, userRole, userPermissions = []) => {
     return false
   }
 
-  // Check if user's role has access to this module
-  if (moduleConfig.roles.includes(userRole)) {
+  // For EMPLOYEE role, strictly enforce role-based restrictions
+  // Don't allow individual permissions to override role restrictions
+  if (userRole === 'EMPLOYEE') {
+    return moduleConfig.roles.includes(userRole)
+  }
+
+  // For other roles, check role-based access first, then individual permissions
+  const hasRoleAccess = moduleConfig.roles.includes(userRole)
+
+  if (hasRoleAccess) {
     return true
   }
 
-  // If role-based check fails, check individual permissions
-  // This is a fallback for cases where permissions might be assigned individually
-  return moduleConfig.requiredPermissions.some(permission => userPermissions.includes(permission))
+  // If role-based check fails, check individual permissions as fallback
+  const hasPermissionAccess = moduleConfig.requiredPermissions.some(permission => userPermissions.includes(permission))
+
+  return hasPermissionAccess
 }
 
 /**

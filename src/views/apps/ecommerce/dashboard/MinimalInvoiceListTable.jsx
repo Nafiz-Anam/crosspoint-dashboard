@@ -48,6 +48,7 @@ import { getInitials } from '@/utils/getInitials'
 
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
+import { getInvoiceDueDateColor, getInvoiceTimeRemaining } from '@/utils/dateColorUtils'
 
 const fuzzyFilter = (row, columnId, value, addMeta) => {
   // Rank the item
@@ -100,7 +101,7 @@ const invoiceStatusObj = {
   Paid: { color: 'success', icon: 'tabler-check' },
   Unpaid: { color: 'warning', icon: 'tabler-clock' },
   'Past Due': { color: 'error', icon: 'tabler-alert-circle' },
-  Cancelled: { color: 'default', icon: 'tabler-x' },
+  Cancelled: { color: 'error', icon: 'tabler-x' },
   Sent: { color: 'info', icon: 'tabler-send-2' },
   Draft: { color: 'primary', icon: 'tabler-mail' },
   'Partial Payment': { color: 'warning', icon: 'tabler-chart-pie-2' },
@@ -127,7 +128,7 @@ const MinimalInvoiceListTable = ({ invoiceData }) => {
           <Typography
             component={Link}
             href={getLocalizedUrl(`apps/invoice/preview/${row.original.id}`, locale)}
-            color='primary.main'
+            color='primary.default'
             className='font-medium'
           >
             {row.original.invoiceId || `#${row.original.id.slice(-8)}`}
@@ -164,7 +165,7 @@ const MinimalInvoiceListTable = ({ invoiceData }) => {
           <Chip
             label={row.original.invoiceStatus}
             color={invoiceStatusObj[row.original.invoiceStatus]?.color || 'default'}
-            variant='filled'
+            variant='tonal'
             size='small'
           />
         )
@@ -178,16 +179,34 @@ const MinimalInvoiceListTable = ({ invoiceData }) => {
           try {
             const dateObj = new Date(dueDate)
             return (
-              <Typography variant='body2'>
-                {dateObj.toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit'
-                })}
-              </Typography>
+              <div className='flex flex-col'>
+                <Typography variant='body2' color={getInvoiceDueDateColor(dueDate, row.original.invoiceStatus)}>
+                  {dateObj.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                  })}
+                </Typography>
+                {getInvoiceTimeRemaining(dueDate, row.original.invoiceStatus) && (
+                  <Typography variant='caption' color={getInvoiceDueDateColor(dueDate, row.original.invoiceStatus)}>
+                    {getInvoiceTimeRemaining(dueDate, row.original.invoiceStatus)}
+                  </Typography>
+                )}
+              </div>
             )
           } catch (error) {
-            return <Typography variant='body2'>{dueDate}</Typography>
+            return (
+              <div className='flex flex-col'>
+                <Typography variant='body2' color={getInvoiceDueDateColor(dueDate, row.original.invoiceStatus)}>
+                  {dueDate}
+                </Typography>
+                {getInvoiceTimeRemaining(dueDate, row.original.invoiceStatus) && (
+                  <Typography variant='caption' color={getInvoiceDueDateColor(dueDate, row.original.invoiceStatus)}>
+                    {getInvoiceTimeRemaining(dueDate, row.original.invoiceStatus)}
+                  </Typography>
+                )}
+              </div>
+            )
           }
         }
       }),

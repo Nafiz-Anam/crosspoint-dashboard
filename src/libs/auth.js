@@ -84,6 +84,7 @@ export const authOptions = {
               name: user.name || user.email,
               role: user.role, // Store as 'role' (singular) to match backend
               permissions: user.permissions || [], // Include permissions from backend
+              branchId: user.branchId, // Include branchId from backend
               accessToken: accessTokenData.token, // <--- Access the token property
               accessTokenExpires: accessTokenExpires, // <--- Use the precise expiry
               refreshToken: refreshToken,
@@ -122,6 +123,7 @@ export const authOptions = {
         token.name = user.name
         token.role = user.role // Store as 'role' (singular)
         token.permissions = user.permissions || [] // Store permissions
+        token.branchId = user.branchId // Store branchId
         token.accessToken = user.accessToken
         token.accessTokenExpires = user.accessTokenExpires
         token.refreshToken = user.refreshToken
@@ -190,6 +192,7 @@ export const authOptions = {
         session.user.name = token.name
         session.user.role = token.role // Store as 'role' (singular)
         session.user.permissions = token.permissions || [] // Include permissions
+        session.user.branchId = token.branchId // Include branchId
       }
       session.accessToken = token.accessToken
       session.error = token.error

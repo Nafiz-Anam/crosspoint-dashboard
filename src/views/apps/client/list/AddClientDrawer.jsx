@@ -57,7 +57,7 @@ const AddClientDrawer = props => {
       city: '',
       postalCode: '',
       province: '',
-      branchId: '',
+      branchId: session?.user?.role === 'MANAGER' ? session?.user?.branchId || '' : '',
       status: 'PENDING'
     },
     mode: 'onChange' // Enable real-time validation
@@ -69,20 +69,59 @@ const AddClientDrawer = props => {
 
     setBranchesLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
+      // If user is a manager, fetch only their branch details
+      if (session?.user?.role === 'MANAGER' && session?.user?.branchId) {
+        // Fetch the specific branch details for the manager
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/${session.user.branchId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        })
 
-      if (response.ok) {
-        const data = await response.json()
-        setBranches(data.data || [])
+        if (response.ok) {
+          const data = await response.json()
+          const branchData = data.data || data
+          setBranches([branchData])
+        } else {
+          // Fallback to mock data if API fails
+          const managerBranch = {
+            id: session.user.branchId,
+            name: `Branch ${session.user.branchId}`,
+            branchId: session.user.branchId,
+            city: 'Current City'
+          }
+          setBranches([managerBranch])
+        }
+      } else {
+        // For other roles, fetch all active branches
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/active`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setBranches(data.data || [])
+        }
       }
     } catch (error) {
       console.error('Error fetching branches:', error)
+
+      // For managers, provide fallback branch data even on error
+      if (session?.user?.role === 'MANAGER' && session?.user?.branchId) {
+        const managerBranch = {
+          id: session.user.branchId,
+          name: `Branch ${session.user.branchId}`,
+          branchId: session.user.branchId,
+          city: 'Current City'
+        }
+        setBranches([managerBranch])
+      }
     } finally {
       setBranchesLoading(false)
     }
@@ -136,6 +175,26 @@ const AddClientDrawer = props => {
     }
   }, [open, session?.accessToken])
 
+  // Pre-select manager's branch when branches are loaded
+  useEffect(() => {
+    if (session?.user?.role === 'MANAGER' && session?.user?.branchId && branches.length > 0) {
+      resetForm(prev => ({
+        ...prev,
+        branchId: session.user.branchId
+      }))
+    }
+  }, [branches, session?.user?.role, session?.user?.branchId, resetForm])
+
+  // Also set the branchId when the drawer opens for managers
+  useEffect(() => {
+    if (open && session?.user?.role === 'MANAGER' && session?.user?.branchId) {
+      resetForm(prev => ({
+        ...prev,
+        branchId: session.user.branchId
+      }))
+    }
+  }, [open, session?.user?.role, session?.user?.branchId, resetForm])
+
   const onSubmit = async data => {
     // Prevent submission in view mode
     if (isViewMode) {
@@ -153,6 +212,12 @@ const AddClientDrawer = props => {
     // Validate required fields
     if (!data.name?.trim()) {
       toastService.showError(t('clients.clientNameRequired'))
+      setLoading(false)
+      return
+    }
+
+    if (!data.nationalIdentificationNumber?.trim()) {
+      toastService.showError(t('clients.nationalIdRequired'))
       setLoading(false)
       return
     }
@@ -179,7 +244,7 @@ const AddClientDrawer = props => {
 
     const payload = {
       name: data.name.trim(),
-      nationalIdentificationNumber: data.nationalIdentificationNumber?.trim() || null,
+      nationalIdentificationNumber: data.nationalIdentificationNumber.trim(),
       email: data.email.trim().toLowerCase(),
       phone: data.phone?.trim() || null,
       address: data.address?.trim() || null,
@@ -284,7 +349,7 @@ const AddClientDrawer = props => {
                 label={t('clients.selectBranch')}
                 {...field}
                 {...(errors.branchId && { error: true, helperText: errors.branchId.message })}
-                disabled={isViewMode}
+                disabled={isViewMode || session?.user?.role === 'MANAGER'}
                 InputProps={{
                   endAdornment: branchesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
                 }}
@@ -337,6 +402,7 @@ const AddClientDrawer = props => {
             name='nationalIdentificationNumber'
             control={control}
             rules={{
+              required: t('clients.nationalIdRequired'),
               minLength: { value: 5, message: t('clients.nationalIdMinLength') },
               maxLength: { value: 20, message: t('clients.nationalIdMaxLength') }
             }}
@@ -347,6 +413,7 @@ const AddClientDrawer = props => {
                 label={t('clients.fields.nationalIdentificationNumber')}
                 placeholder={t('clients.enterNationalId')}
                 disabled={isViewMode}
+                required
                 {...(errors.nationalIdentificationNumber && {
                   error: true,
                   helperText: errors.nationalIdentificationNumber.message

@@ -42,6 +42,7 @@ import CustomTextField from '@core/components/mui/TextField'
 
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
+import { getInvoiceDueDateColor, getInvoiceTimeRemaining } from '@/utils/dateColorUtils'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
@@ -154,7 +155,23 @@ const InvoiceListTable = ({ invoiceData }) => {
                 <Typography variant='body2' component='span' className='text-inherit'>
                   Due Date:
                 </Typography>{' '}
-                {row.original.dueDate}
+                <div className='flex flex-col'>
+                  <Typography
+                    variant='body2'
+                    component='span'
+                    color={getInvoiceDueDateColor(row.original.dueDate, row.original.invoiceStatus)}
+                  >
+                    {row.original.dueDate}
+                  </Typography>
+                  {getInvoiceTimeRemaining(row.original.dueDate, row.original.invoiceStatus) && (
+                    <Typography
+                      variant='caption'
+                      color={getInvoiceDueDateColor(row.original.dueDate, row.original.invoiceStatus)}
+                    >
+                      {getInvoiceTimeRemaining(row.original.dueDate, row.original.invoiceStatus)}
+                    </Typography>
+                  )}
+                </div>
               </div>
             }
           >

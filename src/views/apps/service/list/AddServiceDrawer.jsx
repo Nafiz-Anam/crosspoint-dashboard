@@ -170,10 +170,13 @@ const AddServiceDrawer = props => {
                 placeholder={t('services.selectCategory')}
                 value={field.value || ''}
               >
-                <MenuItem value=''>None</MenuItem>
-                <MenuItem value='Consulting'>Consulting</MenuItem>
-                <MenuItem value='Development'>Development</MenuItem>
-                <MenuItem value='Design'>Design</MenuItem>
+                <MenuItem value=''>{t('services.categories.none')}</MenuItem>
+                <MenuItem value='CAF'>{t('services.categories.caf')}</MenuItem>
+                <MenuItem value='Patronato'>{t('services.categories.patronato')}</MenuItem>
+                <MenuItem value='Immigrazione'>{t('services.categories.immigrazione')}</MenuItem>
+                <MenuItem value='Partita IVA'>{t('services.categories.partitaIva')}</MenuItem>
+                <MenuItem value='Reparto Legale'>{t('services.categories.repartoLegale')}</MenuItem>
+                <MenuItem value='Varie pratiche'>{t('services.categories.variePratiche')}</MenuItem>
               </CustomTextField>
             )}
           />

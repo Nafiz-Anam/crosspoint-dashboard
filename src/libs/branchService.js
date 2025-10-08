@@ -56,6 +56,25 @@ class BranchService {
     }
   }
 
+  // Get active branches only (for dropdowns and selections)
+  async getActiveBranches(token = null) {
+    try {
+      const response = await fetch(`${this.baseURL}/active`, {
+        method: 'GET',
+        headers: this.getHeaders(token)
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching active branches:', error)
+      throw error
+    }
+  }
+
   // Get single branch by ID
   async getBranchById(id) {
     try {

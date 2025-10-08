@@ -27,6 +27,7 @@ import { getLocalizedUrl } from '@/utils/i18n'
 
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
+import { getTaskDueDateColor, getTaskTimeRemaining } from '@/utils/dateColorUtils'
 
 const taskStatusObj = {
   PENDING: 'warning',
@@ -336,7 +337,16 @@ const TaskViewCard = () => {
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.dueDate')}
                 </Typography>
-                <Typography variant='body1'>{formatDate(task.dueDate)}</Typography>
+                <div className='flex flex-col'>
+                  <Typography variant='body1' color={getTaskDueDateColor(task.dueDate, task.status)}>
+                    {formatDate(task.dueDate)}
+                  </Typography>
+                  {getTaskTimeRemaining(task.dueDate, task.status) && (
+                    <Typography variant='caption' color={getTaskDueDateColor(task.dueDate, task.status)}>
+                      {getTaskTimeRemaining(task.dueDate, task.status)}
+                    </Typography>
+                  )}
+                </div>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>

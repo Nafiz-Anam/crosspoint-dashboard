@@ -21,6 +21,7 @@ import Pagination from '@mui/material/Pagination'
 
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
+import { getInvoiceDueDateColor, getInvoiceTimeRemaining } from '@/utils/dateColorUtils'
 
 const InvoiceList = () => {
   // Hooks
@@ -111,7 +112,16 @@ const InvoiceList = () => {
                     <Chip label={invoice.status} color={getStatusColor(invoice.status)} size='small' variant='tonal' />
                   </TableCell>
                   <TableCell>
-                    <Typography variant='body2'>{invoice.dueDate}</Typography>
+                    <div className='flex flex-col'>
+                      <Typography variant='body2' color={getInvoiceDueDateColor(invoice.dueDate, invoice.status)}>
+                        {invoice.dueDate}
+                      </Typography>
+                      {getInvoiceTimeRemaining(invoice.dueDate, invoice.status) && (
+                        <Typography variant='caption' color={getInvoiceDueDateColor(invoice.dueDate, invoice.status)}>
+                          {getInvoiceTimeRemaining(invoice.dueDate, invoice.status)}
+                        </Typography>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <IconButton size='small'>

@@ -15,6 +15,7 @@ import './print.css'
 
 // Util Imports
 import { useTranslation } from '@/hooks/useTranslation'
+import { getInvoiceDueDateColor, getInvoiceTimeRemaining } from '@/utils/dateColorUtils'
 
 const PreviewCard = ({ invoiceData, invoiceState, id }) => {
   // Hooks
@@ -134,7 +135,16 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                   <Typography variant='h5'>{`${t('invoices.title')} #${invoice?.invoiceNumber || invoice?.invoiceId || id || 'INV-001'}`}</Typography>
                   <div className='flex flex-col gap-1'>
                     <Typography color='text.primary'>{`${t('invoices.dateIssued')} ${formatDate(issuedDate)}`}</Typography>
-                    <Typography color='text.primary'>{`${t('invoices.dateDue')} ${formatDate(dueDate)}`}</Typography>
+                    <div className='flex flex-col'>
+                      <Typography
+                        color={getInvoiceDueDateColor(dueDate, invoice?.status)}
+                      >{`${t('invoices.dateDue')} ${formatDate(dueDate)}`}</Typography>
+                      {getInvoiceTimeRemaining(dueDate, invoice?.status) && (
+                        <Typography variant='caption' color={getInvoiceDueDateColor(dueDate, invoice?.status)}>
+                          {getInvoiceTimeRemaining(dueDate, invoice?.status)}
+                        </Typography>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

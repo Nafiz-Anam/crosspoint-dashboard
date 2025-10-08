@@ -42,6 +42,7 @@ import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDial
 
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
+import { getTaskDueDateColor, getTaskTimeRemaining } from '@/utils/dateColorUtils'
 
 const columnHelper = createColumnHelper()
 
@@ -106,7 +107,7 @@ const TaskListTable = ({
     if (!session?.accessToken) return
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/active`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -374,7 +375,21 @@ const TaskListTable = ({
       }),
       columnHelper.accessor('dueDate', {
         header: t('tasks.fields.dueDate'),
-        cell: ({ row }) => <Typography color='text.primary'>{formatDate(row.original.dueDate)}</Typography>
+        cell: ({ row }) => {
+          const timeRemaining = getTaskTimeRemaining(row.original.dueDate, row.original.status)
+          return (
+            <div className='flex flex-col'>
+              <Typography color={getTaskDueDateColor(row.original.dueDate, row.original.status)}>
+                {formatDate(row.original.dueDate)}
+              </Typography>
+              {timeRemaining && (
+                <Typography variant='caption' color={getTaskDueDateColor(row.original.dueDate, row.original.status)}>
+                  {timeRemaining}
+                </Typography>
+              )}
+            </div>
+          )
+        }
       }),
       columnHelper.accessor('action', {
         header: t('tasks.fields.action'),
