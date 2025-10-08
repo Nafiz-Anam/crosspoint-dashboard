@@ -19,11 +19,15 @@ import CircularProgress from '@mui/material/CircularProgress'
 //Component Imports
 import CustomTextField from '@core/components/mui/TextField'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 // Service Imports
 import { profileService } from '@/services/profileService'
 
 const ChangePasswordCard = () => {
   const { data: session } = useSession()
+  const { t } = useTranslation()
 
   // States
   const [isCurrentPasswordShown, setIsCurrentPasswordShown] = useState(false)
@@ -50,15 +54,15 @@ const ChangePasswordCard = () => {
 
   const validatePassword = () => {
     if (formData.newPassword.length < 10) {
-      setError('New password must be at least 10 characters long')
+      setError(t('accountSettings.security.minCharactersError'))
       return false
     }
     if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`])/.test(formData.newPassword)) {
-      setError('New password must include uppercase, lowercase, digit, and special character')
+      setError(t('accountSettings.security.passwordComplexityError'))
       return false
     }
     if (formData.newPassword !== formData.confirmPassword) {
-      setError('New password and confirm password do not match')
+      setError(t('accountSettings.security.passwordMismatch'))
       return false
     }
     return true
@@ -81,7 +85,7 @@ const ChangePasswordCard = () => {
       )
 
       if (response.success) {
-        setSuccess('Password changed successfully!')
+        setSuccess(t('accountSettings.security.passwordChangedSuccess'))
         setFormData({
           currentPassword: '',
           newPassword: '',
@@ -91,7 +95,7 @@ const ChangePasswordCard = () => {
       }
     } catch (err) {
       console.error('Error changing password:', err)
-      setError(err.message || 'Failed to change password')
+      setError(err.message || t('accountSettings.security.passwordChangeFailed'))
     } finally {
       setSaving(false)
     }
@@ -109,7 +113,7 @@ const ChangePasswordCard = () => {
 
   return (
     <Card>
-      <CardHeader title='Change Password' />
+      <CardHeader title={t('accountSettings.security.changePassword')} />
       <CardContent>
         {error && (
           <Alert severity='error' sx={{ mb: 2 }}>
@@ -126,7 +130,7 @@ const ChangePasswordCard = () => {
             <Grid size={{ xs: 12, sm: 6 }}>
               <CustomTextField
                 fullWidth
-                label='Current Password'
+                label={t('accountSettings.security.currentPassword')}
                 type={isCurrentPasswordShown ? 'text' : 'password'}
                 placeholder='············'
                 value={formData.currentPassword}
@@ -149,11 +153,11 @@ const ChangePasswordCard = () => {
               />
             </Grid>
           </Grid>
-          <Grid container className='mbs-0' spacing={6}>
+          <Grid container className='mbs-0 pt-4' spacing={6}>
             <Grid size={{ xs: 12, sm: 6 }}>
               <CustomTextField
                 fullWidth
-                label='New Password'
+                label={t('accountSettings.security.newPassword')}
                 type={isNewPasswordShown ? 'text' : 'password'}
                 placeholder='············'
                 value={formData.newPassword}
@@ -178,7 +182,7 @@ const ChangePasswordCard = () => {
             <Grid size={{ xs: 12, sm: 6 }}>
               <CustomTextField
                 fullWidth
-                label='Confirm New Password'
+                label={t('accountSettings.security.confirmNewPassword')}
                 type={isConfirmPasswordShown ? 'text' : 'password'}
                 placeholder='············'
                 value={formData.confirmPassword}
@@ -201,19 +205,19 @@ const ChangePasswordCard = () => {
               />
             </Grid>
             <Grid size={{ xs: 12 }} className='flex flex-col gap-4'>
-              <Typography variant='h6'>Password Requirements:</Typography>
+              <Typography variant='h6'>{t('accountSettings.security.passwordRequirements')}:</Typography>
               <div className='flex flex-col gap-4'>
                 <div className='flex items-center gap-2.5'>
                   <i className='tabler-circle-filled text-[8px]' />
-                  Minimum 10 characters long - the more, the better
+                  {t('accountSettings.security.minCharacters')}
                 </div>
                 <div className='flex items-center gap-2.5'>
                   <i className='tabler-circle-filled text-[8px]' />
-                  At least one lowercase & one uppercase character
+                  {t('accountSettings.security.caseCharacters')}
                 </div>
                 <div className='flex items-center gap-2.5'>
                   <i className='tabler-circle-filled text-[8px]' />
-                  At least one number and one special character
+                  {t('accountSettings.security.numberSpecialCharacter')}
                 </div>
               </div>
             </Grid>
@@ -224,10 +228,10 @@ const ChangePasswordCard = () => {
                 disabled={saving}
                 startIcon={saving ? <CircularProgress size={16} /> : null}
               >
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? t('accountSettings.saving') : t('accountSettings.saveChanges')}
               </Button>
               <Button variant='tonal' type='reset' color='secondary' onClick={handleReset} disabled={saving}>
-                Reset
+                {t('common.reset')}
               </Button>
             </Grid>
           </Grid>

@@ -10,17 +10,19 @@ const BillingPlansTab = dynamic(() => import('@views/pages/account-settings/bill
 const NotificationsTab = dynamic(() => import('@views/pages/account-settings/notifications'))
 const ConnectionsTab = dynamic(() => import('@views/pages/account-settings/connections'))
 
-// Vars
-const tabContentList = () => ({
-  account: <AccountTab />,
-  security: <SecurityTab />,
-  'billing-plans': <BillingPlansTab />,
-  notifications: <NotificationsTab />,
-  connections: <ConnectionsTab />
-})
+const AccountSettingsPage = async props => {
+  const params = await props.params
 
-const AccountSettingsPage = () => {
-  return <AccountSettings tabContentList={tabContentList()} />
+  // Vars
+  const tabContentList = {
+    account: <AccountTab />,
+    security: <SecurityTab />,
+    'billing-plans': <BillingPlansTab />,
+    notifications: <NotificationsTab />,
+    connections: <ConnectionsTab />
+  }
+
+  return <AccountSettings tabContentList={tabContentList} />
 }
 
 export default AccountSettingsPage

@@ -350,6 +350,7 @@ const AddClientDrawer = props => {
                 {...field}
                 {...(errors.branchId && { error: true, helperText: errors.branchId.message })}
                 disabled={isViewMode || session?.user?.role === 'MANAGER'}
+                required
                 InputProps={{
                   endAdornment: branchesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
                 }}
@@ -393,6 +394,7 @@ const AddClientDrawer = props => {
                 label={t('clients.fields.name')}
                 placeholder={t('clients.enterName')}
                 disabled={isViewMode}
+                required
                 {...(errors.name && { error: true, helperText: errors.name.message })}
               />
             )}
@@ -437,6 +439,7 @@ const AddClientDrawer = props => {
                 label={t('clients.fields.email')}
                 placeholder={t('clients.enterEmail')}
                 disabled={isViewMode}
+                required
                 {...(errors.email && { error: true, helperText: errors.email.message })}
               />
             )}
@@ -445,6 +448,13 @@ const AddClientDrawer = props => {
           <Controller
             name='phone'
             control={control}
+            rules={{
+              required: t('clients.phoneRequired'),
+              pattern: {
+                value: /^[\+]?[0-9\s\-\(\)]{8,20}$/,
+                message: t('clients.phoneInvalid')
+              }
+            }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
@@ -452,6 +462,8 @@ const AddClientDrawer = props => {
                 label={t('clients.fields.phone')}
                 placeholder={t('clients.enterPhone')}
                 disabled={isViewMode}
+                required
+                {...(errors.phone && { error: true, helperText: errors.phone.message })}
               />
             )}
           />
@@ -459,6 +471,17 @@ const AddClientDrawer = props => {
           <Controller
             name='address'
             control={control}
+            rules={{
+              required: t('clients.addressRequired'),
+              minLength: {
+                value: 5,
+                message: t('clients.addressMinLength')
+              },
+              maxLength: {
+                value: 200,
+                message: t('clients.addressMaxLength')
+              }
+            }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
@@ -466,6 +489,8 @@ const AddClientDrawer = props => {
                 label={t('clients.fields.address')}
                 placeholder={t('clients.enterAddress')}
                 disabled={isViewMode}
+                required
+                {...(errors.address && { error: true, helperText: errors.address.message })}
               />
             )}
           />
@@ -473,6 +498,16 @@ const AddClientDrawer = props => {
           <Controller
             name='city'
             control={control}
+            rules={{
+              minLength: {
+                value: 2,
+                message: t('clients.cityMinLength')
+              },
+              maxLength: {
+                value: 50,
+                message: t('clients.cityMaxLength')
+              }
+            }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
@@ -480,6 +515,7 @@ const AddClientDrawer = props => {
                 label={`${t('clients.fields.city')} (${t('clients.optional')})`}
                 placeholder={t('clients.enterCity')}
                 disabled={isViewMode}
+                {...(errors.city && { error: true, helperText: errors.city.message })}
               />
             )}
           />
@@ -487,6 +523,12 @@ const AddClientDrawer = props => {
           <Controller
             name='postalCode'
             control={control}
+            rules={{
+              pattern: {
+                value: /^\d{5}$/,
+                message: t('clients.postalCodeInvalid')
+              }
+            }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
@@ -494,6 +536,7 @@ const AddClientDrawer = props => {
                 label={`${t('clients.fields.postalCode')} (${t('clients.optional')})`}
                 placeholder={t('clients.enterPostalCode')}
                 disabled={isViewMode}
+                {...(errors.postalCode && { error: true, helperText: errors.postalCode.message })}
               />
             )}
           />
@@ -501,6 +544,12 @@ const AddClientDrawer = props => {
           <Controller
             name='province'
             control={control}
+            rules={{
+              pattern: {
+                value: /^[A-Z]{2}$/,
+                message: t('clients.provinceInvalid')
+              }
+            }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
@@ -508,6 +557,7 @@ const AddClientDrawer = props => {
                 label={`${t('clients.fields.province')} (${t('clients.optional')})`}
                 placeholder={t('clients.enterProvince')}
                 disabled={isViewMode}
+                {...(errors.province && { error: true, helperText: errors.province.message })}
               />
             )}
           />

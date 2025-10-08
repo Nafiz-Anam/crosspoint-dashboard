@@ -31,12 +31,12 @@ const getLocalePath = (pathName, locale) => {
 // Vars
 const languageData = [
   {
-    langCode: 'en',
-    langName: 'English'
-  },
-  {
     langCode: 'it',
     langName: 'Italian'
+  },
+  {
+    langCode: 'en',
+    langName: 'English'
   }
 ]
 

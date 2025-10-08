@@ -38,6 +38,7 @@ import themeConfig from '@configs/themeConfig'
 // Hook Imports
 import { useImageVariant } from '@core/hooks/useImageVariant'
 import { useSettings } from '@core/hooks/useSettings'
+import { useTranslation } from '@/hooks/useTranslation'
 
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
@@ -66,14 +67,11 @@ const MaskImg = styled('img')({
   zIndex: -1
 })
 
-const schema = object({
-  email: pipe(string(), minLength(1, 'This field is required'), email('Email is invalid')),
-  password: pipe(
-    string(),
-    nonEmpty('This field is required'),
-    minLength(5, 'Password must be at least 5 characters long')
-  )
-})
+const getSchema = t =>
+  object({
+    email: pipe(string(), minLength(1, t('auth.emailRequired')), email(t('auth.emailInvalid'))),
+    password: pipe(string(), nonEmpty(t('auth.passwordRequired')), minLength(5, t('auth.passwordMinLength')))
+  })
 
 const Login = ({ mode }) => {
   // States
@@ -97,13 +95,14 @@ const Login = ({ mode }) => {
   const theme = useTheme()
   const hidden = useMediaQuery(theme.breakpoints.down('md'))
   const authBackground = useImageVariant(mode, lightImg, darkImg)
+  const { t } = useTranslation()
 
   const {
     control,
     handleSubmit,
     formState: { errors }
   } = useForm({
-    resolver: valibotResolver(schema),
+    resolver: valibotResolver(getSchema(t)),
     // Removed defaultValues: { email: 'admin@vuexy.com', password: 'admin' }
     defaultValues: {
       // Explicitly set to empty strings for a clean start
@@ -149,11 +148,11 @@ const Login = ({ mode }) => {
           }
         } else {
           // Generic error if res.error is null but login failed
-          setErrorState({ message: ['An unknown error occurred during login.'] })
+          setErrorState({ message: [t('auth.unknownError')] })
         }
       }
     } catch (error) {
-      setErrorState({ message: ['An unexpected error occurred. Please try again.'] })
+      setErrorState({ message: [t('auth.unexpectedError')] })
     } finally {
       setIsLoading(false)
     }
@@ -178,8 +177,11 @@ const Login = ({ mode }) => {
         </div>
         <div className='flex flex-col gap-6 is-full sm:is-auto md:is-full sm:max-is-[400px] md:max-is-[unset] mbs-8 sm:mbs-11 md:mbs-0'>
           <div className='flex flex-col gap-1'>
-            <Typography variant='h4'>{`Welcome to ${themeConfig.templateName}! 👋🏻`}</Typography>
-            <Typography>Please sign-in to your account to start working</Typography>
+            <Typography variant='h4'>
+              {t('auth.welcomeMessage')}
+              {`${themeConfig.templateName}! 👋🏻`}
+            </Typography>
+            <Typography>{t('auth.signInMessage')}</Typography>
           </div>
           {/* Removed the default admin@vuexy.com / admin alert */}
           {errorState && (
@@ -187,7 +189,7 @@ const Login = ({ mode }) => {
               <Typography variant='body2' color='error.main'>
                 {errorState.message && Array.isArray(errorState.message)
                   ? errorState.message.join(', ')
-                  : errorState.message || 'Login failed. Please try again.'}
+                  : errorState.message || t('auth.loginFailed')}
               </Typography>
             </Alert>
           )}
@@ -208,8 +210,8 @@ const Login = ({ mode }) => {
                   autoFocus
                   fullWidth
                   type='email'
-                  label='Email'
-                  placeholder='Enter your email'
+                  label={t('auth.email')}
+                  placeholder={t('auth.enterEmail')}
                   onChange={e => {
                     field.onChange(e.target.value)
                     errorState !== null && setErrorState(null) // Clear error on input change
@@ -229,7 +231,7 @@ const Login = ({ mode }) => {
                 <CustomTextField
                   {...field}
                   fullWidth
-                  label='Password'
+                  label={t('auth.password')}
                   placeholder='············'
                   id='login-password'
                   type={isPasswordShown ? 'text' : 'password'}
@@ -257,14 +259,14 @@ const Login = ({ mode }) => {
               )}
             />
             <div className='flex justify-between items-center gap-x-3 gap-y-1 flex-wrap'>
-              <FormControlLabel control={<Checkbox defaultChecked />} label='Remember me' />
+              <FormControlLabel control={<Checkbox defaultChecked />} label={t('auth.rememberMe')} />
               <Typography
                 className='text-end'
                 color='primary.main'
                 component={Link}
                 href={getLocalizedUrl('/forgot-password', locale)}
               >
-                Forgot password?
+                {t('auth.forgotPassword')}
               </Typography>
             </div>
             <LoadingButton
@@ -272,17 +274,11 @@ const Login = ({ mode }) => {
               variant='contained'
               type='submit'
               loading={isLoading}
-              loadingText='Signing in...'
+              loadingText={t('auth.signingIn')}
               disabled={isLoading}
             >
-              Login
+              {t('auth.login')}
             </LoadingButton>
-            <div className='flex justify-center items-center flex-wrap gap-2'>
-              <Typography>New on our platform?</Typography>
-              <Typography component={Link} href={getLocalizedUrl('/register', locale)} color='primary.main'>
-                Create an account
-              </Typography>
-            </div>
           </form>
         </div>
       </div>

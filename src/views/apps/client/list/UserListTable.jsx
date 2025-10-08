@@ -300,53 +300,69 @@ const ClientListTable = () => {
       }),
       columnHelper.accessor('action', {
         header: t('clients.fields.action'),
-        cell: ({ row }) => (
-          <div className='flex items-center'>
-            <OptionMenu
-              iconButtonProps={{ size: 'medium' }}
-              iconClassName='text-textSecondary'
-              options={[
-                {
-                  text: t('clients.view'),
-                  icon: 'tabler-eye',
-                  menuItemProps: {
-                    className: 'flex items-center gap-2 text-textSecondary',
-                    onClick: () => handleViewClick(row.original)
-                  }
-                },
-                {
-                  text: 'Create Task',
-                  icon: 'tabler-plus',
-                  menuItemProps: {
-                    component: Link,
-                    href: getLocalizedUrl(`/apps/task/add?clientId=${row.original.id}`, locale),
-                    className: 'flex items-center gap-2 text-textSecondary'
-                  }
-                },
-                {
-                  text: t('clients.edit'),
-                  icon: 'tabler-edit',
-                  menuItemProps: {
-                    className: 'flex items-center gap-2 text-textSecondary',
-                    onClick: () => handleEditClick(row.original)
-                  }
-                },
-                {
-                  text: t('clients.delete'),
-                  icon: 'tabler-trash',
-                  menuItemProps: {
-                    className: 'flex items-center gap-2 text-textSecondary',
-                    onClick: () => handleDeleteClick(row.original.id)
-                  }
-                }
-              ]}
-            />
-          </div>
-        ),
+        cell: ({ row }) => {
+          // Get user role from session
+          const userRole = session?.user?.role
+
+          // Create base options array
+          const baseOptions = [
+            {
+              text: t('clients.view'),
+              icon: 'tabler-eye',
+              menuItemProps: {
+                className: 'flex items-center gap-2 text-textSecondary',
+                onClick: () => handleViewClick(row.original)
+              }
+            }
+          ]
+
+          // Add Create Task option only if user is not HR
+          if (userRole !== 'HR') {
+            baseOptions.push({
+              text: 'Create Task',
+              icon: 'tabler-plus',
+              menuItemProps: {
+                component: Link,
+                href: getLocalizedUrl(`/apps/task/add?clientId=${row.original.id}`, locale),
+                className: 'flex items-center gap-2 text-textSecondary'
+              }
+            })
+          }
+
+          // Add remaining options
+          baseOptions.push(
+            {
+              text: t('clients.edit'),
+              icon: 'tabler-edit',
+              menuItemProps: {
+                className: 'flex items-center gap-2 text-textSecondary',
+                onClick: () => handleEditClick(row.original)
+              }
+            },
+            {
+              text: t('clients.delete'),
+              icon: 'tabler-trash',
+              menuItemProps: {
+                className: 'flex items-center gap-2 text-textSecondary',
+                onClick: () => handleDeleteClick(row.original.id)
+              }
+            }
+          )
+
+          return (
+            <div className='flex items-center'>
+              <OptionMenu
+                iconButtonProps={{ size: 'medium' }}
+                iconClassName='text-textSecondary'
+                options={baseOptions}
+              />
+            </div>
+          )
+        },
         enableSorting: false
       })
     ],
-    [handleDeleteClick, handleEditClick, locale]
+    [handleDeleteClick, handleEditClick, handleViewClick, locale, session?.user?.role]
   )
 
   const table = useReactTable({

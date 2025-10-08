@@ -134,9 +134,10 @@ export const authOptions = {
         return token
       }
 
-      if (token.refreshToken && token.refreshTokenExpires && Date.now() < token.refreshTokenExpires) {
+      // Only try to refresh if we have a valid user session (not just a token)
+      if (token.id && token.refreshToken && token.refreshTokenExpires && Date.now() < token.refreshTokenExpires) {
         try {
-          const refreshApiUrl = `${process.env.API_URL}/auth/refresh-token`
+          const refreshApiUrl = `${process.env.API_URL}/auth/refresh-tokens`
           const refreshRes = await fetch(refreshApiUrl, {
             method: 'POST',
             headers: {

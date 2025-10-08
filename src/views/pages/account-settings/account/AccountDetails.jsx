@@ -21,6 +21,9 @@ import CustomTextField from '@core/components/mui/TextField'
 // Service Imports
 import { profileService } from '@/services/profileService'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 // Vars
 const initialData = {
   firstName: '',
@@ -38,6 +41,7 @@ const initialData = {
 const AccountDetails = () => {
   const { data: session } = useSession()
   const router = useRouter()
+  const { t } = useTranslation()
 
   // States
   const [formData, setFormData] = useState(initialData)
@@ -355,11 +359,9 @@ const AccountDetails = () => {
         <CardContent className='flex justify-center items-center min-h-[400px]'>
           <div className='text-center'>
             <Typography variant='h6' color='text.secondary' className='mb-4'>
-              Authentication Required
+              {t('accountSettings.authenticationRequired')}
             </Typography>
-            <Typography color='text.secondary'>
-              Please log in to view your profile or provide a user ID in the URL parameters (?userId=USER_ID)
-            </Typography>
+            <Typography color='text.secondary'>{t('accountSettings.loginRequiredMessage')}</Typography>
           </div>
         </CardContent>
       </Card>
@@ -394,7 +396,7 @@ const AccountDetails = () => {
           <div className='flex flex-grow flex-col gap-4'>
             <div className='flex flex-col sm:flex-row gap-4'>
               <Button component='label' variant='contained' htmlFor='account-settings-upload-image'>
-                Upload New Photo
+                {t('accountSettings.uploadNewPhoto')}
                 <input
                   ref={fileInputRef}
                   hidden
@@ -405,10 +407,10 @@ const AccountDetails = () => {
                 />
               </Button>
               <Button variant='tonal' color='secondary' onClick={handleFileInputReset}>
-                Reset
+                {t('common.reset')}
               </Button>
             </div>
-            <Typography>Allowed JPG, GIF or PNG. Max size of 800K</Typography>
+            <Typography>{t('accountSettings.allowedImageFormats')}</Typography>
           </div>
         </div>
       </CardContent>
@@ -418,33 +420,33 @@ const AccountDetails = () => {
             <Grid size={{ xs: 12, sm: 6 }}>
               <CustomTextField
                 fullWidth
-                label='First Name'
+                label={t('accountSettings.fields.firstName')}
                 value={formData.firstName}
-                placeholder='John'
+                placeholder={t('accountSettings.placeholders.firstName')}
                 onChange={e => handleFormChange('firstName', e.target.value)}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <CustomTextField
                 fullWidth
-                label='Last Name'
+                label={t('accountSettings.fields.lastName')}
                 value={formData.lastName}
-                placeholder='Doe'
+                placeholder={t('accountSettings.placeholders.lastName')}
                 onChange={e => handleFormChange('lastName', e.target.value)}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <CustomTextField
                 fullWidth
-                label='Email'
+                label={t('accountSettings.fields.email')}
                 value={formData.email}
-                placeholder='john.doe@gmail.com'
+                placeholder={t('accountSettings.placeholders.email')}
                 disabled={!canEditEmail()}
                 helperText={
                   !canEditEmail()
                     ? isOwnProfile
-                      ? 'You cannot change your own email'
-                      : 'You do not have permission to change this email'
+                      ? t('accountSettings.cannotChangeOwnEmail')
+                      : t('accountSettings.noPermissionToChangeEmail')
                     : ''
                 }
                 onChange={canEditEmail() ? e => handleFormChange('email', e.target.value) : undefined}
@@ -453,18 +455,18 @@ const AccountDetails = () => {
             <Grid size={{ xs: 12, sm: 6 }}>
               <CustomTextField
                 fullWidth
-                label='Employee ID'
+                label={t('accountSettings.fields.employeeId')}
                 value={formData.employeeId}
-                placeholder='EMP-BR-001-001'
+                placeholder={t('accountSettings.placeholders.employeeId')}
                 onChange={e => handleFormChange('employeeId', e.target.value)}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <CustomTextField
                 fullWidth
-                label='National ID Number'
+                label={t('accountSettings.fields.codiceFiscale')}
                 value={formData.nationalIdentificationNumber}
-                placeholder='1234567890'
+                placeholder={t('accountSettings.placeholders.codiceFiscale')}
                 onChange={e => handleFormChange('nationalIdentificationNumber', e.target.value)}
               />
             </Grid>
@@ -472,7 +474,7 @@ const AccountDetails = () => {
               <CustomTextField
                 fullWidth
                 type='date'
-                label='Date of Birth'
+                label={t('accountSettings.fields.dateOfBirth')}
                 value={formData.dateOfBirth}
                 onChange={e => handleFormChange('dateOfBirth', e.target.value)}
                 InputLabelProps={{
@@ -484,30 +486,30 @@ const AccountDetails = () => {
               <CustomTextField
                 fullWidth
                 select
-                label='Role'
+                label={t('accountSettings.fields.role')}
                 value={formData.role}
                 disabled={!canEditRole()}
                 helperText={
                   !canEditRole()
                     ? isOwnProfile
-                      ? 'You cannot change your own role'
-                      : 'You do not have permission to change this role'
+                      ? t('accountSettings.cannotChangeOwnRole')
+                      : t('accountSettings.noPermissionToChangeRole')
                     : ''
                 }
                 onChange={canEditRole() ? e => handleFormChange('role', e.target.value) : undefined}
               >
-                <MenuItem value='ADMIN'>Admin</MenuItem>
-                <MenuItem value='HR'>HR</MenuItem>
-                <MenuItem value='EMPLOYEE'>Employee</MenuItem>
-                <MenuItem value='MANAGER'>Manager</MenuItem>
+                <MenuItem value='ADMIN'>{t('accountSettings.roles.admin')}</MenuItem>
+                <MenuItem value='HR'>{t('accountSettings.roles.hr')}</MenuItem>
+                <MenuItem value='EMPLOYEE'>{t('accountSettings.roles.employee')}</MenuItem>
+                <MenuItem value='MANAGER'>{t('accountSettings.roles.manager')}</MenuItem>
               </CustomTextField>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <CustomTextField
                 fullWidth
-                label='Branch'
+                label={t('accountSettings.fields.branch')}
                 value={formData.branch}
-                placeholder='Branch Name'
+                placeholder={t('accountSettings.placeholders.branch')}
                 onChange={e => handleFormChange('branch', e.target.value)}
               />
             </Grid>
@@ -515,24 +517,24 @@ const AccountDetails = () => {
               <CustomTextField
                 fullWidth
                 select
-                label='Email Verified'
+                label={t('accountSettings.fields.emailVerified')}
                 value={formData.isEmailVerified}
                 onChange={e => handleFormChange('isEmailVerified', e.target.value === 'true')}
               >
-                <MenuItem value={true}>Yes</MenuItem>
-                <MenuItem value={false}>No</MenuItem>
+                <MenuItem value={true}>{t('common.yes')}</MenuItem>
+                <MenuItem value={false}>{t('common.no')}</MenuItem>
               </CustomTextField>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <CustomTextField
                 fullWidth
                 select
-                label='Status'
+                label={t('accountSettings.fields.status')}
                 value={formData.isActive}
                 onChange={e => handleFormChange('isActive', e.target.value === 'true')}
               >
-                <MenuItem value={true}>Active</MenuItem>
-                <MenuItem value={false}>Inactive</MenuItem>
+                <MenuItem value={true}>{t('accountSettings.status.active')}</MenuItem>
+                <MenuItem value={false}>{t('accountSettings.status.inactive')}</MenuItem>
               </CustomTextField>
             </Grid>
             <Grid size={{ xs: 12 }} className='flex gap-4 flex-wrap'>
@@ -542,7 +544,7 @@ const AccountDetails = () => {
                 disabled={saving}
                 startIcon={saving ? <CircularProgress size={16} /> : null}
               >
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? t('accountSettings.saving') : t('accountSettings.saveChanges')}
               </Button>
               <Button
                 variant='tonal'
@@ -573,7 +575,7 @@ const AccountDetails = () => {
                 }}
                 disabled={saving}
               >
-                Reset
+                {t('common.reset')}
               </Button>
             </Grid>
           </Grid>

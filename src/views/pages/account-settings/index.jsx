@@ -12,7 +12,13 @@ import TabPanel from '@mui/lab/TabPanel'
 // Component Imports
 import CustomTabList from '@core/components/mui/TabList'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const AccountSettings = ({ tabContentList }) => {
+  // Hooks
+  const { t } = useTranslation()
+
   // States
   const [activeTab, setActiveTab] = useState('account')
 
@@ -25,9 +31,18 @@ const AccountSettings = ({ tabContentList }) => {
       <Grid container spacing={6}>
         <Grid size={{ xs: 12 }}>
           <CustomTabList onChange={handleChange} variant='scrollable' pill='true'>
-            <Tab label='Account' icon={<i className='tabler-users' />} iconPosition='start' value='account' />
-            <Tab label='Security' icon={<i className='tabler-lock' />} iconPosition='start' value='security' />
-            
+            <Tab
+              label={t('accountSettings.tabs.account')}
+              icon={<i className='tabler-users' />}
+              iconPosition='start'
+              value='account'
+            />
+            <Tab
+              label={t('accountSettings.tabs.security')}
+              icon={<i className='tabler-lock' />}
+              iconPosition='start'
+              value='security'
+            />
           </CustomTabList>
         </Grid>
         <Grid size={{ xs: 12 }}>

@@ -5,7 +5,7 @@ const nextConfig = {
     return [
       {
         source: '/',
-        destination: '/en/dashboards/analytics',
+        destination: '/it/dashboards/analytics',
         permanent: true,
         locale: false
       },
@@ -17,7 +17,7 @@ const nextConfig = {
       },
       {
         source: '/((?!(?:en|it|front-pages|favicon.ico)\\b)):path',
-        destination: '/en/:path',
+        destination: '/it/:path',
         permanent: true,
         locale: false
       }
