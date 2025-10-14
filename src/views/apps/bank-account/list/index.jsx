@@ -35,7 +35,7 @@ const BankAccountList = () => {
   const [editingBankAccount, setEditingBankAccount] = useState(null)
   const [filters, setFilters] = useState({
     page: 1,
-    limit: 10,
+    limit: 1000, // Fetch all bank accounts
     sortBy: 'createdAt',
     sortType: 'desc'
   })

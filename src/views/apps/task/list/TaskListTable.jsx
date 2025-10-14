@@ -140,7 +140,7 @@ const TaskListTable = ({
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks?limit=1000`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -627,7 +627,7 @@ const TaskListTable = ({
 
         <TablePagination
           component={() => <TablePaginationComponent table={table} />}
-          count={table.getFilteredRowModel().rows.length}
+          count={tasks.length}
           rowsPerPage={table.getState().pagination.pageSize}
           page={table.getState().pagination.pageIndex}
           onPageChange={(_, page) => {

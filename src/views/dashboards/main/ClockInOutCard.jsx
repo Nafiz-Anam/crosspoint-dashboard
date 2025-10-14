@@ -151,7 +151,16 @@ const ClockInOutCard = () => {
       <CardContent className='flex flex-col gap-y-4 items-start h-full'>
         {error && (
           <Alert severity='error' sx={{ width: '100%', mb: 2 }}>
-            {error}
+            <Typography
+              component='span'
+              sx={{
+                fontStyle: error.includes('*') ? 'italic' : 'normal',
+                '& *': { fontStyle: 'italic' }
+              }}
+              dangerouslySetInnerHTML={{
+                __html: error.replace(/\*(.*?)\*/g, '<em>$1</em>')
+              }}
+            />
           </Alert>
         )}
 

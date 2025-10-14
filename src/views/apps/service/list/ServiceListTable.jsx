@@ -126,6 +126,10 @@ const ServiceListTable = () => {
           queryParams.append('category', categoryFilter)
         }
 
+        // Add pagination parameters to fetch all services
+        queryParams.append('limit', '1000') // Set a high limit to get all services
+        queryParams.append('page', '1')
+
         const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'
         const url = `${baseUrl}/services${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
 
@@ -508,7 +512,7 @@ const ServiceListTable = () => {
 
         <TablePagination
           component={() => <TablePaginationComponent table={table} />}
-          count={table.getFilteredRowModel().rows.length}
+          count={services.length}
           rowsPerPage={table.getState().pagination.pageSize}
           page={table.getState().pagination.pageIndex}
           onPageChange={(_, page) => {

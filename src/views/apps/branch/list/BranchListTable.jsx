@@ -121,7 +121,7 @@ const BranchListTable = () => {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches?limit=1000`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -478,7 +478,7 @@ const BranchListTable = () => {
 
         <TablePagination
           component={() => <TablePaginationComponent table={table} />}
-          count={table.getFilteredRowModel().rows.length}
+          count={branches.length}
           rowsPerPage={table.getState().pagination.pageSize}
           page={table.getState().pagination.pageIndex}
           onPageChange={(_, page) => {

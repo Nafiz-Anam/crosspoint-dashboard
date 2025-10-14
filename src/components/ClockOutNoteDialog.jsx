@@ -59,16 +59,28 @@ const ClockOutNoteDialog = ({ open, onClose, onConfirm, loading = false }) => {
   }
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth='sm' fullWidth disableEscapeKeyDown={loading}>
-      <DialogTitle>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth='sm'
+      fullWidth
+      disableEscapeKeyDown={loading}
+      sx={{
+        '& .MuiDialog-paper': {
+          overflow: 'hidden',
+          maxHeight: '90vh'
+        }
+      }}
+    >
+      <DialogTitle sx={{ overflow: 'hidden' }}>
         <Box display='flex' alignItems='center' gap={1}>
           <i className='tabler-clock-off text-2xl text-red-500' />
           <Typography variant='h6'>Clock Out - Work Summary</Typography>
         </Box>
       </DialogTitle>
 
-      <DialogContent>
-        <Box sx={{ pt: 1 }}>
+      <DialogContent sx={{ overflow: 'hidden', overflowY: 'auto' }}>
+        <Box sx={{ pt: 1, overflow: 'hidden', width: '100%' }}>
           <Typography variant='body2' color='text.secondary' sx={{ mb: 1 }}>
             Please provide a summary of your work completed today. This will be used as your daily work summary.
           </Typography>
@@ -114,7 +126,7 @@ const ClockOutNoteDialog = ({ open, onClose, onConfirm, loading = false }) => {
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
+      <DialogActions sx={{ px: 3, pb: 3, overflow: 'hidden' }}>
         <Button onClick={handleClose} disabled={loading} color='inherit'>
           Cancel
         </Button>

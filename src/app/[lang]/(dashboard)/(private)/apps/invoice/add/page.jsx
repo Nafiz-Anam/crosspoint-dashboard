@@ -153,7 +153,7 @@ const InvoiceContainer = ({ initialData }) => {
         await Promise.all([
           bankAccountService.getActiveBankAccounts(session.accessToken),
           clientService.getClients(session.accessToken),
-          serviceService.getServices(session.accessToken),
+          serviceService.getServices(session.accessToken, { limit: 1000 }),
           employeeService.getEmployees(session.accessToken),
           companyInfoService.getCompanyInfo(session.accessToken)
         ])

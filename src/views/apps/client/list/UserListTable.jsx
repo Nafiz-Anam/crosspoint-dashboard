@@ -114,7 +114,7 @@ const ClientListTable = () => {
     try {
       const result = await enhancedClientService.getClients(
         session.accessToken,
-        {},
+        { limit: 1000 }, // Fetch all clients
         {
           showToast: false // Don't show toast for initial load
         }
@@ -485,7 +485,7 @@ const ClientListTable = () => {
 
         <TablePagination
           component={() => <TablePaginationComponent table={table} />}
-          count={table.getFilteredRowModel().rows.length}
+          count={clients.length}
           rowsPerPage={table.getState().pagination.pageSize}
           page={table.getState().pagination.pageIndex}
           onPageChange={(_, page) => {

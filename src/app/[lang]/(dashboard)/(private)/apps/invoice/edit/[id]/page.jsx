@@ -92,7 +92,7 @@ const EditPage = () => {
             invoiceService.getInvoiceById(params.id, session.accessToken),
             bankAccountService.getActiveBankAccounts(session.accessToken),
             clientService.getClients(session.accessToken),
-            serviceService.getServices(session.accessToken),
+            serviceService.getServices(session.accessToken, { limit: 1000 }),
             employeeService.getEmployees(session.accessToken)
           ])
 
