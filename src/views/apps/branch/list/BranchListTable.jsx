@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 
 // Next Imports
 import Link from 'next/link'
@@ -64,27 +64,13 @@ const fuzzyFilter = (row, columnId, value, addMeta) => {
   return itemRank.passed
 }
 
-const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...props }) => {
-  const [value, setValue] = useState(initialValue)
-
-  useEffect(() => {
-    setValue(initialValue)
-  }, [initialValue])
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      onChange(value)
-    }, debounce)
-
-    return () => clearTimeout(timeout)
-  }, [value, debounce, onChange])
-
-  return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
-}
+// Removed DebouncedInput component - using manual debouncing instead
 
 const columnHelper = createColumnHelper()
 
 const BranchListTable = () => {
+  console.log('🔄 BranchListTable component rendered')
+
   // States for Drawer
   const [addBranchOpen, setAddBranchOpen] = useState(false)
   const [editingBranch, setEditingBranch] = useState(null) // New state to hold branch data for editing
@@ -99,29 +85,71 @@ const BranchListTable = () => {
   const [branchToDelete, setBranchToDelete] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  // States for Pagination
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  })
+
   // States for Filtering and Search
-  const [filteredData, setFilteredData] = useState([]) // Data after client-side filters
   const [globalFilter, setGlobalFilter] = useState('')
-  const [filters, setFilters] = useState({ city: '', province: '', isActive: '' })
+  const [statusFilter, setStatusFilter] = useState('')
+
+  // Ref to track if initial fetch has been made
+  const hasInitiallyFetched = useRef(false)
+
+  // Refs to store current values without causing re-renders
+  const currentGlobalFilter = useRef('')
+  const currentPagination = useRef({ page: 1, limit: 10 })
 
   const { lang: locale } = useParams()
   const { data: session, status } = useSession() // Get session and status
   const { t } = useTranslation()
 
-  // Function to fetch branch data from API
-  const fetchBranches = useCallback(async () => {
+  // Function to fetch branch data from API with pagination
+  const fetchBranches = async (
+    page = 1,
+    search = '',
+    sortBy = 'createdAt',
+    sortType = 'desc',
+    limit = 10,
+    isActive = ''
+  ) => {
+    console.log('🔄 fetchBranches called with:', { page, search, sortBy, sortType, limit })
+    console.log('🔄 Current status:', status)
+    console.log('🔄 Has initially fetched:', hasInitiallyFetched.current)
+
     setFetchLoading(true)
     setFetchError(null)
 
     if (status === 'loading') return // Wait for session to load
     if (status === 'unauthenticated' || !session?.accessToken) {
-      setFetchError(t('branches.authenticationRequired'))
+      setFetchError('Authentication required')
       setFetchLoading(false)
       return
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches?limit=1000`, {
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        sortBy,
+        sortType
+      })
+
+      if (search) {
+        queryParams.append('search', search)
+      }
+
+      if (isActive) {
+        queryParams.append('isActive', isActive)
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches?${queryParams.toString()}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -133,59 +161,125 @@ const BranchListTable = () => {
       const responseData = await response.json()
 
       if (response.ok) {
-        // Assuming your API returns an array of branches directly or within a 'data' property
-        setBranches(responseData.data || responseData) // Adjust based on your API's GET response structure
+        setBranches(responseData.data || [])
+        setPagination(prev => ({
+          ...prev,
+          page: responseData.pagination?.page || page,
+          total: responseData.pagination?.total || 0,
+          totalPages: responseData.pagination?.totalPages || 0,
+          hasNext: responseData.pagination?.hasNext || false,
+          hasPrev: responseData.pagination?.hasPrev || false
+        }))
       } else {
         const errorMessage = responseData.message || `Failed to fetch branches: ${response.status}`
         setFetchError(errorMessage)
-        // Show error toast for fetch errors
-        await toastService.handleApiError(response, t('branches.failedToCreateBranch'))
+        await toastService.handleApiError(response, 'Failed to create branch')
         console.error('API Error fetching branches:', responseData)
       }
     } catch (error) {
       const errorMessage = 'Network error or unexpected issue fetching branches. Please try again.'
       setFetchError(errorMessage)
-      // Show error toast for network errors
       await toastService.handleApiError(error, errorMessage)
       console.error('Fetch error branches:', error)
     } finally {
       setFetchLoading(false)
     }
-  }, [status, session?.accessToken])
+  }
+
+  // Handlers for pagination, search, and sorting
+  const handlePageChange = useCallback(
+    (event, newPage) => {
+      console.log('🔄 handlePageChange called with:', { event, newPage, currentPage: pagination.page })
+      const page = newPage + 1
+      currentPagination.current = { ...currentPagination.current, page }
+      setPagination(prev => ({ ...prev, page }))
+      fetchBranches(
+        page,
+        currentGlobalFilter.current,
+        'createdAt',
+        'desc',
+        currentPagination.current.limit,
+        statusFilter
+      )
+    },
+    [pagination.page]
+  )
+
+  const handleRowsPerPageChange = useCallback(event => {
+    console.log('🔄 handleRowsPerPageChange called with:', event.target.value)
+    const newLimit = parseInt(event.target.value, 10)
+    currentPagination.current = { page: 1, limit: newLimit }
+    setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))
+    fetchBranches(1, currentGlobalFilter.current, 'createdAt', 'desc', newLimit, statusFilter)
+  }, [])
+
+  const handleSearch = useCallback(value => {
+    console.log('🔄 handleSearch called with:', value)
+    currentGlobalFilter.current = value
+    currentPagination.current = { ...currentPagination.current, page: 1 }
+    setGlobalFilter(value)
+    setPagination(prev => ({ ...prev, page: 1 }))
+    fetchBranches(1, value, 'createdAt', 'desc', currentPagination.current.limit, statusFilter)
+  }, [])
+
+  const handleSort = useCallback((columnId, direction) => {
+    console.log('🔄 handleSort called with:', { columnId, direction })
+    const sortBy = columnId || 'createdAt'
+    const sortType = direction || 'desc'
+    fetchBranches(
+      currentPagination.current.page,
+      currentGlobalFilter.current,
+      sortBy,
+      sortType,
+      currentPagination.current.limit,
+      statusFilter
+    )
+  }, [])
 
   // Effect to fetch data on component mount or when session/token changes
   useEffect(() => {
-    if (status === 'authenticated') {
-      fetchBranches()
+    console.log('🔄 useEffect triggered with:', { status, hasInitiallyFetched: hasInitiallyFetched.current })
+
+    if (status === 'authenticated' && !hasInitiallyFetched.current) {
+      console.log('🔄 Making initial fetch...')
+      hasInitiallyFetched.current = true
+      fetchBranches(1, '', 'createdAt', 'desc', 10, '')
     } else if (status === 'unauthenticated') {
-      setFetchError(t('branches.notAuthenticated'))
+      console.log('🔄 User not authenticated')
+      setFetchError('Not authenticated')
       setFetchLoading(false)
+      hasInitiallyFetched.current = false
+    }
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (window.searchTimeout) {
+        clearTimeout(window.searchTimeout)
+      }
     }
   }, [status, session?.accessToken]) // Re-fetch if session status or token changes
 
-  // Effect for client-side filtering
+  // Effect to handle status filter changes
   useEffect(() => {
-    let tempData = [...branches] // Start with the full fetched data
-
-    if (filters.city) {
-      tempData = tempData.filter(row => row.city === filters.city)
+    // Only run if we have fetched data at least once
+    if (!hasInitiallyFetched.current) {
+      return
     }
 
-    if (filters.province) {
-      tempData = tempData.filter(row => row.province === filters.province)
-    }
+    console.log('🔄 Status filter changed to:', statusFilter)
+    currentPagination.current = { ...currentPagination.current, page: 1 }
+    setPagination(prev => ({ ...prev, page: 1 }))
+    fetchBranches(
+      1,
+      currentGlobalFilter.current,
+      'createdAt',
+      'desc',
+      currentPagination.current.limit,
+      statusFilter || ''
+    )
+  }, [statusFilter])
 
-    if (filters.isActive !== '') {
-      const activeFlag = filters.isActive === 'true'
-      tempData = tempData.filter(row => row.isActive === activeFlag)
-    }
-
-    setFilteredData(tempData)
-  }, [filters, branches]) // Re-filter when filters or raw branches data changes
-
-  // Derive unique cities and provinces for filter dropdowns from the fetched data
-  const cities = useMemo(() => Array.from(new Set(branches.map(item => item.city))), [branches])
-  const provinces = useMemo(() => Array.from(new Set(branches.map(item => item.province))), [branches])
+  // No client-side filtering needed since we're using server-side pagination and search
 
   // Function to open delete confirmation dialog
   const handleDeleteClick = useCallback(
@@ -222,7 +316,14 @@ const BranchListTable = () => {
         // Show success toast
         toastService.handleApiSuccess('deleted', 'Branch')
         console.log(`Branch ${branchToDelete.id} deleted successfully.`)
-        fetchBranches() // Re-fetch data to update the table
+        fetchBranches(
+          currentPagination.current.page,
+          currentGlobalFilter.current,
+          'createdAt',
+          'desc',
+          currentPagination.current.limit,
+          statusFilter
+        ) // Re-fetch data to update the table
         setDeleteDialogOpen(false)
         setBranchToDelete(null)
       } else {
@@ -237,7 +338,7 @@ const BranchListTable = () => {
     } finally {
       setDeleteLoading(false)
     }
-  }, [session?.accessToken, fetchBranches, branchToDelete])
+  }, [session?.accessToken, branchToDelete])
 
   // Function to open drawer for editing
   const handleEditClick = useCallback(branch => {
@@ -259,7 +360,8 @@ const BranchListTable = () => {
           <Typography color='text.primary' className='font-medium'>
             {info.getValue()}
           </Typography>
-        )
+        ),
+        enableSorting: true
       }),
       columnHelper.accessor('name', {
         header: t('branches.fields.name'),
@@ -267,7 +369,8 @@ const BranchListTable = () => {
           <Typography color='text.primary' className='font-medium'>
             {info.getValue()}
           </Typography>
-        )
+        ),
+        enableSorting: true
       }),
       columnHelper.accessor('location', {
         header: t('common.location'),
@@ -313,7 +416,8 @@ const BranchListTable = () => {
             variant='tonal'
             size='small'
           />
-        )
+        ),
+        enableSorting: true
       }),
       columnHelper.accessor('action', {
         header: t('branches.fields.action'),
@@ -334,21 +438,15 @@ const BranchListTable = () => {
   )
 
   const table = useReactTable({
-    data: filteredData,
+    data: branches,
     columns,
-    filterFns: { fuzzy: fuzzyFilter },
-    state: { globalFilter },
-    initialState: { pagination: { pageSize: 10 } },
-    globalFilterFn: fuzzyFilter,
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    getFacetedMinMaxValues: getFacetedMinMaxValues()
+    manualPagination: true, // We're handling pagination server-side
+    manualSorting: true, // We're handling sorting server-side
+    pageCount: pagination.totalPages
   })
+
+  console.log('Current pagination state before render:', pagination)
 
   return (
     <>
@@ -356,41 +454,16 @@ const BranchListTable = () => {
         <CardHeader title={t('branches.branchManagement')} className='pbe-4' />
 
         <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
-          <CustomTextField
-            select
-            label={t('branches.fields.city')}
-            value={filters.city}
-            onChange={e => setFilters({ ...filters, city: e.target.value })}
-            className='min-w-[180px]'
-          >
-            <MenuItem value=''>{t('branches.all')}</MenuItem>
-            {cities.map(city => (
-              <MenuItem key={city} value={city}>
-                {city}
-              </MenuItem>
-            ))}
-          </CustomTextField>
-
-          <CustomTextField
-            select
-            label={t('branches.fields.province')}
-            value={filters.province}
-            onChange={e => setFilters({ ...filters, province: e.target.value })}
-            className='min-w-[180px]'
-          >
-            <MenuItem value=''>{t('branches.all')}</MenuItem>
-            {provinces.map(province => (
-              <MenuItem key={province} value={province}>
-                {province}
-              </MenuItem>
-            ))}
-          </CustomTextField>
-
+          {/* Status Filter */}
           <CustomTextField
             select
             label={t('branches.fields.status')}
-            value={filters.isActive}
-            onChange={e => setFilters({ ...filters, isActive: e.target.value })}
+            value={statusFilter}
+            onChange={e => {
+              const value = e.target.value
+              console.log('🔄 Status filter changed to:', value)
+              setStatusFilter(value)
+            }}
             className='min-w-[180px]'
           >
             <MenuItem value=''>{t('branches.all')}</MenuItem>
@@ -398,9 +471,17 @@ const BranchListTable = () => {
             <MenuItem value='false'>{t('branches.status.inactive')}</MenuItem>
           </CustomTextField>
 
-          <DebouncedInput
+          <CustomTextField
             value={globalFilter ?? ''}
-            onChange={value => setGlobalFilter(String(value))}
+            onChange={e => {
+              const value = e.target.value
+              setGlobalFilter(value)
+              // Debounce the search manually
+              clearTimeout(window.searchTimeout)
+              window.searchTimeout = setTimeout(() => {
+                handleSearch(value)
+              }, 500)
+            }}
             placeholder={t('branches.searchBranch')}
             className='min-w-[200px]'
           />
@@ -477,13 +558,21 @@ const BranchListTable = () => {
         )}
 
         <TablePagination
-          component={() => <TablePaginationComponent table={table} />}
-          count={branches.length}
-          rowsPerPage={table.getState().pagination.pageSize}
-          page={table.getState().pagination.pageIndex}
-          onPageChange={(_, page) => {
-            table.setPageIndex(page)
-          }}
+          component={() => (
+            <TablePaginationComponent
+              table={table}
+              totalCount={pagination.total}
+              currentPage={pagination.page - 1}
+              pageSize={pagination.limit}
+              onPageChange={handlePageChange}
+            />
+          )}
+          count={pagination.total}
+          rowsPerPage={pagination.limit}
+          page={pagination.page - 1} // MUI uses 0-based indexing
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          rowsPerPageOptions={[5, 10, 25, 50]}
         />
       </Card>
 
@@ -491,7 +580,16 @@ const BranchListTable = () => {
         open={addBranchOpen}
         handleClose={handleDrawerClose} // Use the new handler
         currentBranch={editingBranch} // Pass the branch data for editing
-        onBranchAdded={fetchBranches} // Callback to re-fetch data after adding/editing a branch
+        onBranchAdded={() =>
+          fetchBranches(
+            currentPagination.current.page,
+            currentGlobalFilter.current,
+            'createdAt',
+            'desc',
+            currentPagination.current.limit,
+            statusFilter
+          )
+        } // Callback to re-fetch data after adding/editing a branch
       />
 
       <DeleteConfirmationDialog

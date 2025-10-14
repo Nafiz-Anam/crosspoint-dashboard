@@ -23,14 +23,13 @@ class BranchService {
     }
   }
 
-  // Get all branches with filters
+  // Get all branches with filters and pagination
   async getBranches(token = null, params = {}) {
     try {
       const queryParams = new URLSearchParams()
 
       // Add filter parameters
-      if (params.name) queryParams.append('name', params.name)
-      if (params.city) queryParams.append('city', params.city)
+      if (params.search) queryParams.append('search', params.search)
       if (params.isActive !== undefined) queryParams.append('isActive', params.isActive)
 
       // Add pagination parameters

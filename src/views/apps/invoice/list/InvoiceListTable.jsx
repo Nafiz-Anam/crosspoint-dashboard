@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 
 // Next Imports
 import Link from 'next/link'
@@ -35,6 +35,7 @@ import {
   getPaginationRowModel,
   getSortedRowModel
 } from '@tanstack/react-table'
+import { useSession } from 'next-auth/react'
 
 // Component Imports
 import OptionMenu from '@core/components/option-menu'
@@ -65,24 +66,7 @@ const fuzzyFilter = (row, columnId, value, addMeta) => {
   return itemRank.passed
 }
 
-const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...props }) => {
-  // States
-  const [value, setValue] = useState(initialValue)
-
-  useEffect(() => {
-    setValue(initialValue)
-  }, [initialValue])
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      onChange(value)
-    }, debounce)
-
-    return () => clearTimeout(timeout)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value])
-
-  return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
-}
+// Removed DebouncedInput component - using manual debouncing instead
 
 // Vars
 const invoiceStatusObj = {
@@ -96,19 +80,187 @@ const invoiceStatusObj = {
 const columnHelper = createColumnHelper()
 
 const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filters }) => {
-  // States
-  const [status, setStatus] = useState('')
-  const [rowSelection, setRowSelection] = useState({})
-  const [data, setData] = useState(invoiceData || [])
-  const [filteredData, setFilteredData] = useState(data)
+  console.log('🔄 InvoiceListTable component rendered')
+
+  // States for Table Data and API Operations
+  const [invoices, setInvoices] = useState(invoiceData || []) // Stores fetched invoice data
+  const [fetchLoading, setFetchLoading] = useState(false) // Loading state for data fetch
+  const [fetchError, setFetchError] = useState(null) // Error state for data fetch
+
+  // States for Pagination
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  })
+
+  // States for Filtering and Search
   const [globalFilter, setGlobalFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [rowSelection, setRowSelection] = useState({})
+
+  // States for Delete Dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [invoiceToDelete, setInvoiceToDelete] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  // Ref to track if initial fetch has been made
+  const hasInitiallyFetched = useRef(false)
+
+  // Refs to store current values without causing re-renders
+  const currentGlobalFilter = useRef('')
+  const currentPagination = useRef({ page: 1, limit: 10 })
+
   // Hooks
   const { lang: locale } = useParams()
+  const { data: session, status: sessionStatus } = useSession()
   const { t } = useTranslation()
+
+  // Function to fetch invoice data from API with pagination
+  const fetchInvoices = async (
+    page = 1,
+    search = '',
+    sortBy = 'createdAt',
+    sortType = 'desc',
+    limit = 10,
+    status = ''
+  ) => {
+    console.log('🔄 fetchInvoices called with:', { page, search, sortBy, sortType, limit, status })
+    console.log('🔄 Current status:', sessionStatus)
+    console.log('🔄 Has initially fetched:', hasInitiallyFetched.current)
+
+    setFetchLoading(true)
+    setFetchError(null)
+
+    if (sessionStatus === 'loading') return // Wait for session to load
+    if (sessionStatus === 'unauthenticated' || !session?.accessToken) {
+      setFetchError('Authentication required')
+      setFetchLoading(false)
+      return
+    }
+
+    try {
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        sortBy,
+        sortType
+      })
+
+      if (search) {
+        queryParams.append('search', search)
+      }
+
+      if (status) {
+        queryParams.append('status', status)
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      const responseData = await response.json()
+
+      if (response.ok) {
+        console.log('🔄 API Response data:', responseData.data)
+        console.log('🔄 API Response pagination:', responseData.pagination)
+        setInvoices(responseData.data || [])
+        setPagination(prev => ({
+          ...prev,
+          page: responseData.pagination?.page || page,
+          total: responseData.pagination?.total || 0,
+          totalPages: responseData.pagination?.totalPages || 0,
+          hasNext: responseData.pagination?.hasNext || false,
+          hasPrev: responseData.pagination?.hasPrev || false
+        }))
+        console.log('🔄 Invoices state updated:', responseData.data || [])
+        console.log('🔄 Pagination state updated:', {
+          page: responseData.pagination?.page || page,
+          total: responseData.pagination?.total || 0,
+          totalPages: responseData.pagination?.totalPages || 0,
+          hasNext: responseData.pagination?.hasNext || false,
+          hasPrev: responseData.pagination?.hasPrev || false
+        })
+      } else {
+        const errorMessage = responseData.message || `Failed to fetch invoices: ${response.status}`
+        setFetchError(errorMessage)
+        console.error('API Error fetching invoices:', responseData)
+      }
+    } catch (error) {
+      const errorMessage = 'Network error or unexpected issue fetching invoices. Please try again.'
+      setFetchError(errorMessage)
+      console.error('Fetch error invoices:', error)
+    } finally {
+      setFetchLoading(false)
+    }
+  }
+
+  // Handlers for pagination, search, and sorting
+  const handlePageChange = useCallback(
+    (event, newPage) => {
+      console.log('🔄 handlePageChange called with:', { event, newPage, currentPage: pagination.page })
+      const page = newPage + 1
+      currentPagination.current = { ...currentPagination.current, page }
+      setPagination(prev => ({ ...prev, page }))
+      fetchInvoices(
+        page,
+        currentGlobalFilter.current,
+        'createdAt',
+        'desc',
+        currentPagination.current.limit,
+        statusFilter || ''
+      )
+    },
+    [pagination.page, statusFilter]
+  )
+
+  const handleRowsPerPageChange = useCallback(
+    event => {
+      console.log('🔄 handleRowsPerPageChange called with:', event.target.value)
+      const newLimit = parseInt(event.target.value, 10)
+      currentPagination.current = { page: 1, limit: newLimit }
+      setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))
+      fetchInvoices(1, currentGlobalFilter.current, 'createdAt', 'desc', newLimit, statusFilter || '')
+    },
+    [statusFilter]
+  )
+
+  const handleSearch = useCallback(
+    value => {
+      console.log('🔄 handleSearch called with:', value)
+      currentGlobalFilter.current = value
+      currentPagination.current = { ...currentPagination.current, page: 1 }
+      setGlobalFilter(value)
+      setPagination(prev => ({ ...prev, page: 1 }))
+      fetchInvoices(1, value, 'createdAt', 'desc', currentPagination.current.limit, statusFilter || '')
+    },
+    [statusFilter]
+  )
+
+  const handleSort = useCallback(
+    (columnId, direction) => {
+      console.log('🔄 handleSort called with:', { columnId, direction })
+      const sortBy = columnId || 'createdAt'
+      const sortType = direction || 'desc'
+      fetchInvoices(
+        currentPagination.current.page,
+        currentGlobalFilter.current,
+        sortBy,
+        sortType,
+        currentPagination.current.limit,
+        statusFilter || ''
+      )
+    },
+    [statusFilter]
+  )
 
   // Delete handlers
   const handleDeleteClick = invoice => {
@@ -122,6 +274,15 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
     try {
       setDeleteLoading(true)
       await onInvoiceAction('delete', invoiceToDelete.id)
+      // Re-fetch data after deletion
+      fetchInvoices(
+        currentPagination.current.page,
+        currentGlobalFilter.current,
+        'createdAt',
+        'desc',
+        currentPagination.current.limit,
+        statusFilter || ''
+      )
       setDeleteDialogOpen(false)
       setInvoiceToDelete(null)
     } catch (error) {
@@ -165,7 +326,8 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
           >
             {row.original.invoiceNumber}
           </Typography>
-        )
+        ),
+        enableSorting: true
       }),
       columnHelper.accessor('status', {
         header: t('invoices.fields.status'),
@@ -197,7 +359,8 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
               textTransform: 'capitalize'
             }}
           />
-        )
+        ),
+        enableSorting: true
       }),
       columnHelper.accessor('client', {
         header: t('invoices.fields.client'),
@@ -211,22 +374,26 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
               <Typography variant='body2'>{row.original.client?.email || ''}</Typography>
             </div>
           </div>
-        )
+        ),
+        enableSorting: true
       }),
       columnHelper.accessor('items', {
         header: t('invoices.serviceName'),
         cell: ({ row }) => {
           const services = row.original.items?.map(item => item.service?.name).filter(Boolean) || []
           return <Typography variant='body2'>{services.length > 0 ? services.join(', ') : 'N/A'}</Typography>
-        }
+        },
+        enableSorting: false
       }),
       columnHelper.accessor('totalAmount', {
         header: t('invoices.fields.amount'),
-        cell: ({ row }) => <Typography>{`$${row.original.totalAmount?.toLocaleString() || '0'}`}</Typography>
+        cell: ({ row }) => <Typography>{`$${row.original.totalAmount?.toLocaleString() || '0'}`}</Typography>,
+        enableSorting: true
       }),
       columnHelper.accessor('issuedDate', {
         header: t('invoices.fields.date'),
-        cell: ({ row }) => <Typography>{new Date(row.original.issuedDate).toLocaleDateString()}</Typography>
+        cell: ({ row }) => <Typography>{new Date(row.original.issuedDate).toLocaleDateString()}</Typography>,
+        enableSorting: true
       }),
       columnHelper.accessor('dueDate', {
         header: t('invoices.fields.dueDate'),
@@ -245,7 +412,8 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
               )}
             </div>
           )
-        }
+        },
+        enableSorting: true
       }),
       columnHelper.accessor('action', {
         header: t('invoices.action'),
@@ -322,11 +490,69 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
       })
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, filteredData]
+    [invoices]
   )
 
+  // Effect to fetch data on component mount or when session/token changes
+  useEffect(() => {
+    console.log('🔄 useEffect triggered with:', {
+      sessionStatus,
+      hasInitiallyFetched: hasInitiallyFetched.current,
+      invoiceData
+    })
+
+    if (sessionStatus === 'authenticated' && !hasInitiallyFetched.current) {
+      console.log('🔄 Making initial fetch...')
+      hasInitiallyFetched.current = true
+      fetchInvoices(1, '', 'createdAt', 'desc', 10, '')
+    } else if (sessionStatus === 'unauthenticated') {
+      console.log('🔄 User not authenticated')
+      setFetchError('Not authenticated')
+      setFetchLoading(false)
+      hasInitiallyFetched.current = false
+    }
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (window.searchTimeout) {
+        clearTimeout(window.searchTimeout)
+      }
+    }
+  }, [sessionStatus, session?.accessToken]) // Re-fetch if session status or token changes
+
+  // Effect to handle status filter changes
+  useEffect(() => {
+    console.log('🔄 Status filter effect triggered with:', {
+      statusFilter,
+      hasInitiallyFetched: hasInitiallyFetched.current
+    })
+
+    // Only run if we have fetched data at least once
+    if (!hasInitiallyFetched.current) {
+      console.log('🔄 Status filter effect: Skipping because not initially fetched yet')
+      return
+    }
+
+    console.log('🔄 Status filter changed to:', statusFilter)
+    currentPagination.current = { ...currentPagination.current, page: 1 }
+    setPagination(prev => ({ ...prev, page: 1 }))
+    fetchInvoices(
+      1,
+      currentGlobalFilter.current,
+      'createdAt',
+      'desc',
+      currentPagination.current.limit,
+      statusFilter || ''
+    )
+  }, [statusFilter])
+
+  console.log('🔄 Table data (invoices):', invoices)
+  console.log('🔄 Pagination state:', pagination)
+  console.log('🔄 Filter states:', { statusFilter, globalFilter })
+  console.log('🔄 Has initially fetched:', hasInitiallyFetched.current)
+
   const table = useReactTable({
-    data: filteredData,
+    data: invoices, // Use invoices directly instead of filteredData
     columns,
     filterFns: {
       fuzzy: fuzzyFilter
@@ -346,12 +572,18 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     onGlobalFilterChange: setGlobalFilter,
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    getFacetedMinMaxValues: getFacetedMinMaxValues()
+    manualPagination: true, // Enable manual pagination
+    manualSorting: true, // Enable manual sorting
+    pageCount: pagination.totalPages,
+    onSortingChange: updater => {
+      if (typeof updater === 'function') {
+        const newSorting = updater(table.getState().sorting)
+        if (newSorting.length > 0) {
+          const sort = newSorting[0]
+          handleSort(sort.id, sort.desc ? 'desc' : 'asc')
+        }
+      }
+    }
   })
 
   const getAvatar = params => {
@@ -368,26 +600,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
     }
   }
 
-  // Update data when invoiceData prop changes
-  useEffect(() => {
-    setData(invoiceData || [])
-    setFilteredData(invoiceData || [])
-  }, [invoiceData])
-
-  useEffect(() => {
-    const filteredData = data?.filter(invoice => {
-      if (status && invoice.status !== status) return false
-      return true
-    })
-
-    setFilteredData(filteredData)
-  }, [status, data])
-
-  // Handle status filter change
-  const handleStatusChange = newStatus => {
-    setStatus(newStatus)
-    onFilterChange({ status: newStatus || undefined })
-  }
+  // Note: Removed useEffect for external invoiceData since we're using server-side pagination
 
   return (
     <>
@@ -398,8 +611,11 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
           <CustomTextField
             select
             label={t('invoices.fields.status')}
-            value={status}
-            onChange={e => handleStatusChange(e.target.value)}
+            value={statusFilter}
+            onChange={e => {
+              console.log('🔄 Status filter changed to:', e.target.value)
+              setStatusFilter(e.target.value)
+            }}
             className='min-w-[180px]'
           >
             <MenuItem value=''>{t('invoices.all')}</MenuItem>
@@ -410,19 +626,18 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
           </CustomTextField>
 
           <CustomTextField
-            select
-            label={t('invoices.fields.client')}
-            value={filters.client || ''}
-            onChange={e => onFilterChange({ ...filters, client: e.target.value })}
-            className='min-w-[180px]'
-          >
-            <MenuItem value=''>{t('invoices.all')}</MenuItem>
-            {/* Add client options here if needed */}
-          </CustomTextField>
-
-          <DebouncedInput
             value={globalFilter ?? ''}
-            onChange={value => setGlobalFilter(String(value))}
+            onChange={e => {
+              const value = e.target.value
+              console.log('🔄 Search input changed to:', value)
+              setGlobalFilter(value)
+              // Debounce the search manually
+              clearTimeout(window.searchTimeout)
+              window.searchTimeout = setTimeout(() => {
+                console.log('🔄 Debounced search triggered with:', value)
+                handleSearch(value)
+              }, 500)
+            }}
             placeholder={t('invoices.searchInvoice')}
             className='min-w-[200px]'
           />
@@ -466,7 +681,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
                 </tr>
               ))}
             </thead>
-            {table.getFilteredRowModel().rows.length === 0 ? (
+            {invoices.length === 0 ? (
               <tbody>
                 <tr>
                   <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
@@ -476,31 +691,35 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
               </tbody>
             ) : (
               <tbody>
-                {table
-                  .getRowModel()
-                  .rows.slice(0, table.getState().pagination.pageSize)
-                  .map(row => {
-                    return (
-                      <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
-                        {row.getVisibleCells().map(cell => (
-                          <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
-                        ))}
-                      </tr>
-                    )
-                  })}
+                {table.getRowModel().rows.map(row => {
+                  return (
+                    <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
+                      {row.getVisibleCells().map(cell => (
+                        <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                      ))}
+                    </tr>
+                  )
+                })}
               </tbody>
             )}
           </table>
         </div>
         <TablePagination
-          component={() => <TablePaginationComponent table={table} />}
-          count={table.getFilteredRowModel().rows.length}
-          rowsPerPage={table.getState().pagination.pageSize}
-          page={table.getState().pagination.pageIndex}
-          onPageChange={(_, page) => {
-            table.setPageIndex(page)
-          }}
-          onRowsPerPageChange={e => table.setPageSize(Number(e.target.value))}
+          component={() => (
+            <TablePaginationComponent
+              table={table}
+              totalCount={pagination.total}
+              currentPage={pagination.page - 1}
+              pageSize={pagination.limit}
+              onPageChange={handlePageChange}
+            />
+          )}
+          count={pagination.total}
+          rowsPerPage={pagination.limit}
+          page={pagination.page - 1} // MUI uses 0-based indexing
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          rowsPerPageOptions={[5, 10, 25, 50]}
         />
       </Card>
 

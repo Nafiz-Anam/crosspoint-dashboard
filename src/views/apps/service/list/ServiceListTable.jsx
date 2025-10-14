@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 
 // Next Imports
 import { useParams } from 'next/navigation'
@@ -61,40 +61,34 @@ const fuzzyFilter = (row, columnId, value, addMeta) => {
   return itemRank.passed
 }
 
-const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...props }) => {
-  const [value, setValue] = useState(initialValue)
-
-  useEffect(() => {
-    setValue(initialValue)
-  }, [initialValue])
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      onChange(value)
-    }, debounce)
-
-    return () => clearTimeout(timeout)
-  }, [value, debounce, onChange])
-
-  return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
-}
+// Removed DebouncedInput component - using manual debouncing instead
 
 const columnHelper = createColumnHelper()
 
 const ServiceListTable = () => {
+  console.log('🔄 ServiceListTable component rendered')
+
   // States for Drawer
   const [addServiceOpen, setAddServiceOpen] = useState(false)
   const [editingService, setEditingService] = useState(null)
 
   // States for Table Data and API Operations
-  const [services, setServices] = useState([])
-  const [fetchLoading, setFetchLoading] = useState(true)
-  const [fetchError, setFetchError] = useState(null)
+  const [services, setServices] = useState([]) // Stores fetched service data
+  const [fetchLoading, setFetchLoading] = useState(true) // Loading state for data fetch
+  const [fetchError, setFetchError] = useState(null) // Error state for data fetch
+
+  // States for Pagination
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  })
 
   // States for Filtering and Search
-  const [filteredData, setFilteredData] = useState([])
   const [globalFilter, setGlobalFilter] = useState('')
-  const [filters, setFilters] = useState({ name: '', priceRange: '', category: '' })
   const [categoryFilter, setCategoryFilter] = useState('')
 
   // States for Delete Confirmation Modal
@@ -102,62 +96,92 @@ const ServiceListTable = () => {
   const [serviceToDelete, setServiceToDelete] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  // Ref to track if initial fetch has been made
+  const hasInitiallyFetched = useRef(false)
+
+  // Refs to store current values without causing re-renders
+  const currentGlobalFilter = useRef('')
+  const currentPagination = useRef({ page: 1, limit: 10 })
+
   const { lang: locale } = useParams()
   const { data: session, status } = useSession()
   const { t } = useTranslation()
 
-  // Function to fetch service data from API
-  const fetchServices = useCallback(
-    async (categoryFilter = '') => {
-      setFetchLoading(true)
-      setFetchError(null)
+  // Function to fetch service data from API with pagination
+  const fetchServices = async (
+    page = 1,
+    search = '',
+    sortBy = 'createdAt',
+    sortType = 'desc',
+    limit = 10,
+    category = ''
+  ) => {
+    console.log('🔄 fetchServices called with:', { page, search, sortBy, sortType, limit, category })
+    console.log('🔄 Current status:', status)
+    console.log('🔄 Has initially fetched:', hasInitiallyFetched.current)
 
-      if (status === 'loading') return
-      if (status === 'unauthenticated' || !session?.accessToken) {
-        setFetchError(t('services.authenticationRequired'))
-        setFetchLoading(false)
-        return
+    setFetchLoading(true)
+    setFetchError(null)
+
+    if (status === 'loading') return // Wait for session to load
+    if (status === 'unauthenticated' || !session?.accessToken) {
+      setFetchError('Authentication required')
+      setFetchLoading(false)
+      return
+    }
+
+    try {
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        sortBy,
+        sortType
+      })
+
+      if (search) {
+        queryParams.append('search', search)
       }
 
-      try {
-        // Build query parameters
-        const queryParams = new URLSearchParams()
-        if (categoryFilter) {
-          queryParams.append('category', categoryFilter)
-        }
-
-        // Add pagination parameters to fetch all services
-        queryParams.append('limit', '1000') // Set a high limit to get all services
-        queryParams.append('page', '1')
-
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'
-        const url = `${baseUrl}/services${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
-
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          }
-        })
-
-        const responseData = await response.json()
-
-        if (response.ok) {
-          // Extract services from the nested response structure
-          setServices(responseData.data || [])
-        } else {
-          await toastService.handleApiError(response, t('services.failedToFetchServices'))
-        }
-      } catch (error) {
-        await toastService.handleApiError(error, t('services.networkError'))
-      } finally {
-        setFetchLoading(false)
+      if (category) {
+        queryParams.append('category', category)
       }
-    },
-    [status, session?.accessToken]
-  )
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      const responseData = await response.json()
+
+      if (response.ok) {
+        setServices(responseData.data || [])
+        setPagination(prev => ({
+          ...prev,
+          page: responseData.pagination?.page || page,
+          total: responseData.pagination?.total || 0,
+          totalPages: responseData.pagination?.totalPages || 0,
+          hasNext: responseData.pagination?.hasNext || false,
+          hasPrev: responseData.pagination?.hasPrev || false
+        }))
+      } else {
+        const errorMessage = responseData.message || `Failed to fetch services: ${response.status}`
+        setFetchError(errorMessage)
+        await toastService.handleApiError(response, 'Failed to fetch services')
+        console.error('API Error fetching services:', responseData)
+      }
+    } catch (error) {
+      const errorMessage = 'Network error or unexpected issue fetching services. Please try again.'
+      setFetchError(errorMessage)
+      await toastService.handleApiError(error, errorMessage)
+      console.error('Fetch error services:', error)
+    } finally {
+      setFetchLoading(false)
+    }
+  }
 
   // Handle delete click
   const handleDeleteClick = useCallback(service => {
@@ -165,8 +189,90 @@ const ServiceListTable = () => {
     setDeleteDialogOpen(true)
   }, [])
 
+  // Handlers for pagination, search, and sorting
+  const handlePageChange = useCallback(
+    (event, newPage) => {
+      console.log('🔄 handlePageChange called with:', { event, newPage, currentPage: pagination.page })
+      const page = newPage + 1
+      currentPagination.current = { ...currentPagination.current, page }
+      setPagination(prev => ({ ...prev, page }))
+      fetchServices(
+        page,
+        currentGlobalFilter.current,
+        'createdAt',
+        'desc',
+        currentPagination.current.limit,
+        categoryFilter
+      )
+    },
+    [pagination.page, categoryFilter]
+  )
+
+  const handleRowsPerPageChange = useCallback(
+    event => {
+      console.log('🔄 handleRowsPerPageChange called with:', event.target.value)
+      const newLimit = parseInt(event.target.value, 10)
+      currentPagination.current = { page: 1, limit: newLimit }
+      setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))
+      fetchServices(1, currentGlobalFilter.current, 'createdAt', 'desc', newLimit, categoryFilter)
+    },
+    [categoryFilter]
+  )
+
+  const handleSearch = useCallback(
+    value => {
+      console.log('🔄 handleSearch called with:', value)
+      currentGlobalFilter.current = value
+      currentPagination.current = { ...currentPagination.current, page: 1 }
+      setGlobalFilter(value)
+      setPagination(prev => ({ ...prev, page: 1 }))
+      fetchServices(1, value, 'createdAt', 'desc', currentPagination.current.limit, categoryFilter)
+    },
+    [categoryFilter]
+  )
+
+  const handleSort = useCallback(
+    (columnId, direction) => {
+      console.log('🔄 handleSort called with:', { columnId, direction })
+      const sortBy = columnId || 'createdAt'
+      const sortType = direction || 'desc'
+      fetchServices(
+        currentPagination.current.page,
+        currentGlobalFilter.current,
+        sortBy,
+        sortType,
+        currentPagination.current.limit,
+        categoryFilter
+      )
+    },
+    [categoryFilter]
+  )
+
+  // Effect to fetch data on component mount or when session/token changes
+  useEffect(() => {
+    console.log('🔄 useEffect triggered with:', { status, hasInitiallyFetched: hasInitiallyFetched.current })
+
+    if (status === 'authenticated' && !hasInitiallyFetched.current) {
+      console.log('🔄 Making initial fetch...')
+      hasInitiallyFetched.current = true
+      fetchServices(1, '', 'createdAt', 'desc', 10, '')
+    } else if (status === 'unauthenticated') {
+      console.log('🔄 User not authenticated')
+      setFetchError('Not authenticated')
+      setFetchLoading(false)
+      hasInitiallyFetched.current = false
+    }
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (window.searchTimeout) {
+        clearTimeout(window.searchTimeout)
+      }
+    }
+  }, [status, session?.accessToken]) // Re-fetch if session status or token changes
+
   // Handle delete confirmation
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = useCallback(async () => {
     if (!serviceToDelete) return
 
     setDeleteLoading(true)
@@ -181,7 +287,15 @@ const ServiceListTable = () => {
 
       if (response.ok) {
         toastService.handleApiSuccess('deleted', 'Service')
-        fetchServices() // Re-fetch data to update the table
+        // Re-fetch data after deletion
+        fetchServices(
+          currentPagination.current.page,
+          currentGlobalFilter.current,
+          'createdAt',
+          'desc',
+          currentPagination.current.limit,
+          categoryFilter
+        )
         setDeleteDialogOpen(false)
         setServiceToDelete(null)
       } else {
@@ -192,7 +306,7 @@ const ServiceListTable = () => {
     } finally {
       setDeleteLoading(false)
     }
-  }
+  }, [serviceToDelete, currentPagination.current.page, currentGlobalFilter.current, categoryFilter])
 
   const handleEditClick = service => {
     setEditingService(service)
@@ -204,45 +318,25 @@ const ServiceListTable = () => {
     setEditingService(null)
   }
 
-  // Effect to fetch data on component mount or when session/token changes
-  useEffect(() => {
-    if (status === 'authenticated') {
-      fetchServices()
-    } else if (status === 'unauthenticated') {
-      setFetchError(t('services.notAuthenticated'))
-      setFetchLoading(false)
-    }
-  }, [status, session?.accessToken, fetchServices])
-
-  // Effect for client-side filtering
-  useEffect(() => {
-    let tempData = [...services]
-
-    // Apply additional filters if needed
-    if (filters.name) {
-      tempData = tempData.filter(row => row.name.toLowerCase().includes(filters.name.toLowerCase()))
-    }
-
-    if (filters.priceRange) {
-      const [minPrice, maxPrice] = filters.priceRange.split('-').map(Number)
-      tempData = tempData.filter(row => row.price >= minPrice && row.price <= maxPrice)
-    }
-
-    if (filters.category) {
-      tempData = tempData.filter(row => row.category === filters.category)
-    }
-
-    setFilteredData(tempData)
-  }, [filters, services])
-
   // Effect to handle category filter changes
   useEffect(() => {
-    if (categoryFilter !== filters.category) {
-      setFilters(prev => ({ ...prev, category: categoryFilter }))
-      // Refetch data with category filter
-      fetchServices(categoryFilter)
+    // Only run if we have fetched data at least once
+    if (!hasInitiallyFetched.current) {
+      return
     }
-  }, [categoryFilter, filters.category, fetchServices])
+
+    console.log('🔄 Category filter changed to:', categoryFilter)
+    currentPagination.current = { ...currentPagination.current, page: 1 }
+    setPagination(prev => ({ ...prev, page: 1 }))
+    fetchServices(
+      1,
+      currentGlobalFilter.current,
+      'createdAt',
+      'desc',
+      currentPagination.current.limit,
+      categoryFilter || ''
+    )
+  }, [categoryFilter])
 
   const columns = useMemo(
     () => [
@@ -257,11 +351,13 @@ const ServiceListTable = () => {
               {displayId}
             </Typography>
           )
-        }
+        },
+        enableSorting: true
       }),
       columnHelper.accessor('name', {
         header: t('services.fields.name'),
-        cell: info => <Typography color='text.primary'>{info.getValue()}</Typography>
+        cell: info => <Typography color='text.primary'>{info.getValue()}</Typography>,
+        enableSorting: true
       }),
       columnHelper.accessor('price', {
         header: t('services.fields.price'),
@@ -269,7 +365,8 @@ const ServiceListTable = () => {
           <Typography color='text.primary' className='font-medium'>
             €{parseFloat(info.getValue()).toFixed(2)}
           </Typography>
-        )
+        ),
+        enableSorting: true
       }),
       columnHelper.accessor('category', {
         header: t('services.fields.category'),
@@ -315,7 +412,8 @@ const ServiceListTable = () => {
               }}
             />
           )
-        }
+        },
+        enableSorting: true
       }),
       columnHelper.accessor('_count', {
         header: t('common.usage'),
@@ -351,7 +449,8 @@ const ServiceListTable = () => {
               </Typography>
             </div>
           )
-        }
+        },
+        enableSorting: true
       }),
       columnHelper.accessor('updatedAt', {
         header: t('common.updatedAt'),
@@ -396,7 +495,7 @@ const ServiceListTable = () => {
   )
 
   const table = useReactTable({
-    data: filteredData,
+    data: services, // Use services directly instead of filteredData
     columns,
     filterFns: { fuzzy: fuzzyFilter },
     state: { globalFilter },
@@ -404,9 +503,18 @@ const ServiceListTable = () => {
     globalFilterFn: fuzzyFilter,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel()
+    manualPagination: true, // Enable manual pagination
+    manualSorting: true, // Enable manual sorting
+    pageCount: pagination.totalPages,
+    onSortingChange: updater => {
+      if (typeof updater === 'function') {
+        const newSorting = updater(table.getState().sorting)
+        if (newSorting.length > 0) {
+          const sort = newSorting[0]
+          handleSort(sort.id, sort.desc ? 'desc' : 'asc')
+        }
+      }
+    }
   })
 
   return (
@@ -432,9 +540,17 @@ const ServiceListTable = () => {
             </Select>
           </FormControl>
 
-          <DebouncedInput
+          <CustomTextField
             value={globalFilter ?? ''}
-            onChange={value => setGlobalFilter(String(value))}
+            onChange={e => {
+              const value = e.target.value
+              setGlobalFilter(value)
+              // Debounce the search manually
+              clearTimeout(window.searchTimeout)
+              window.searchTimeout = setTimeout(() => {
+                handleSearch(value)
+              }, 500)
+            }}
             placeholder={t('services.searchService')}
             className='min-w-[200px]'
           />
@@ -511,13 +627,21 @@ const ServiceListTable = () => {
         )}
 
         <TablePagination
-          component={() => <TablePaginationComponent table={table} />}
-          count={services.length}
-          rowsPerPage={table.getState().pagination.pageSize}
-          page={table.getState().pagination.pageIndex}
-          onPageChange={(_, page) => {
-            table.setPageIndex(page)
-          }}
+          component={() => (
+            <TablePaginationComponent
+              table={table}
+              totalCount={pagination.total}
+              currentPage={pagination.page - 1}
+              pageSize={pagination.limit}
+              onPageChange={handlePageChange}
+            />
+          )}
+          count={pagination.total}
+          rowsPerPage={pagination.limit}
+          page={pagination.page - 1} // MUI uses 0-based indexing
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          rowsPerPageOptions={[5, 10, 25, 50]}
         />
       </Card>
 
@@ -525,7 +649,17 @@ const ServiceListTable = () => {
         open={addServiceOpen}
         handleClose={handleDrawerClose}
         currentService={editingService}
-        onServiceAdded={fetchServices}
+        onServiceAdded={() => {
+          // Refresh data after service is added/updated
+          fetchServices(
+            currentPagination.current.page,
+            currentGlobalFilter.current,
+            'createdAt',
+            'desc',
+            currentPagination.current.limit,
+            categoryFilter
+          )
+        }}
       />
 
       {/* Delete Confirmation Dialog */}

@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 
 // Next Imports
 import Link from 'next/link'
@@ -70,23 +70,7 @@ const fuzzyFilter = (row, columnId, value, addMeta) => {
   return itemRank.passed
 }
 
-const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...props }) => {
-  const [value, setValue] = useState(initialValue)
-
-  useEffect(() => {
-    setValue(initialValue)
-  }, [initialValue])
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      onChange(value)
-    }, debounce)
-
-    return () => clearTimeout(timeout)
-  }, [value, debounce, onChange])
-
-  return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
-}
+// Removed DebouncedInput component - using manual debouncing instead
 
 // Vars (Updated for Employee roles and status)
 const employeeRoleObj = {
@@ -106,6 +90,8 @@ const employeeStatusObj = {
 const columnHelper = createColumnHelper()
 
 const EmployeeListTable = () => {
+  console.log('🔄 EmployeeListTable component rendered')
+
   // States for Drawer
   const [addEmployeeOpen, setAddEmployeeOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState(null)
@@ -116,14 +102,24 @@ const EmployeeListTable = () => {
   const [reportLoading, setReportLoading] = useState(false)
 
   // States for Table Data and API Operations
-  const [employees, setEmployees] = useState([])
-  const [fetchLoading, setFetchLoading] = useState(true)
-  const [fetchError, setFetchError] = useState(null)
+  const [employees, setEmployees] = useState([]) // Stores fetched employee data
+  const [fetchLoading, setFetchLoading] = useState(true) // Loading state for data fetch
+  const [fetchError, setFetchError] = useState(null) // Error state for data fetch
+
+  // States for Pagination
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  })
 
   // States for Filtering and Search
-  const [filteredData, setFilteredData] = useState([])
   const [globalFilter, setGlobalFilter] = useState('')
-  const [filters, setFilters] = useState({ role: '', isActive: '' })
+  const [roleFilter, setRoleFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
 
   // Corrected: Initialize rowSelection state
   const [rowSelection, setRowSelection] = useState({}) // <--- Added this line
@@ -133,25 +129,63 @@ const EmployeeListTable = () => {
   const [employeeToDelete, setEmployeeToDelete] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  // Ref to track if initial fetch has been made
+  const hasInitiallyFetched = useRef(false)
+
+  // Refs to store current values without causing re-renders
+  const currentGlobalFilter = useRef('')
+  const currentPagination = useRef({ page: 1, limit: 10 })
+
   // Hooks
   const { lang: locale } = useParams()
   const { data: session, status: sessionStatus } = useSession()
   const { t } = useTranslation()
 
-  // Function to fetch employee data from API
-  const fetchEmployees = useCallback(async () => {
+  // Function to fetch employee data from API with pagination
+  const fetchEmployees = async (
+    page = 1,
+    search = '',
+    sortBy = 'createdAt',
+    sortType = 'desc',
+    limit = 10,
+    role = '',
+    status = ''
+  ) => {
+    console.log('🔄 fetchEmployees called with:', { page, search, sortBy, sortType, limit, role, status })
+    console.log('🔄 Current status:', sessionStatus)
+    console.log('🔄 Has initially fetched:', hasInitiallyFetched.current)
+
     setFetchLoading(true)
     setFetchError(null)
 
-    if (sessionStatus === 'loading') return
+    if (sessionStatus === 'loading') return // Wait for session to load
     if (sessionStatus === 'unauthenticated' || !session?.accessToken) {
-      setFetchError(t('employees.authenticationRequired'))
+      setFetchError('Authentication required')
       setFetchLoading(false)
       return
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees?limit=1000`, {
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        sortBy,
+        sortType
+      })
+
+      if (search) {
+        queryParams.append('search', search)
+      }
+
+      if (role) {
+        queryParams.append('role', role)
+      }
+
+      if (status) {
+        queryParams.append('isActive', status)
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees?${queryParams.toString()}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -163,43 +197,156 @@ const EmployeeListTable = () => {
       const responseData = await response.json()
 
       if (response.ok) {
-        setEmployees(responseData.data || responseData)
+        setEmployees(responseData.data || [])
+        setPagination(prev => ({
+          ...prev,
+          page: responseData.pagination?.page || page,
+          total: responseData.pagination?.total || 0,
+          totalPages: responseData.pagination?.totalPages || 0,
+          hasNext: responseData.pagination?.hasNext || false,
+          hasPrev: responseData.pagination?.hasPrev || false
+        }))
       } else {
-        await toastService.handleApiError(response, t('employees.failedToCreateEmployee'))
+        const errorMessage = responseData.message || `Failed to fetch employees: ${response.status}`
+        setFetchError(errorMessage)
+        await toastService.handleApiError(response, 'Failed to fetch employees')
+        console.error('API Error fetching employees:', responseData)
       }
     } catch (error) {
-      await toastService.handleApiError(error, t('employees.networkError'))
+      const errorMessage = 'Network error or unexpected issue fetching employees. Please try again.'
+      setFetchError(errorMessage)
+      await toastService.handleApiError(error, errorMessage)
       console.error('Fetch error employees:', error)
     } finally {
       setFetchLoading(false)
     }
-  }, [sessionStatus, session?.accessToken])
+  }
+
+  // Handlers for pagination, search, and sorting
+  const handlePageChange = useCallback(
+    (event, newPage) => {
+      console.log('🔄 handlePageChange called with:', { event, newPage, currentPage: pagination.page })
+      const page = newPage + 1
+      currentPagination.current = { ...currentPagination.current, page }
+      setPagination(prev => ({ ...prev, page }))
+      fetchEmployees(
+        page,
+        currentGlobalFilter.current,
+        'createdAt',
+        'desc',
+        currentPagination.current.limit,
+        roleFilter,
+        statusFilter
+      )
+    },
+    [pagination.page, roleFilter, statusFilter]
+  )
+
+  const handleRowsPerPageChange = useCallback(
+    event => {
+      console.log('🔄 handleRowsPerPageChange called with:', event.target.value)
+      const newLimit = parseInt(event.target.value, 10)
+      currentPagination.current = { page: 1, limit: newLimit }
+      setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))
+      fetchEmployees(1, currentGlobalFilter.current, 'createdAt', 'desc', newLimit, roleFilter, statusFilter)
+    },
+    [roleFilter, statusFilter]
+  )
+
+  const handleSearch = useCallback(
+    value => {
+      console.log('🔄 handleSearch called with:', value)
+      currentGlobalFilter.current = value
+      currentPagination.current = { ...currentPagination.current, page: 1 }
+      setGlobalFilter(value)
+      setPagination(prev => ({ ...prev, page: 1 }))
+      fetchEmployees(1, value, 'createdAt', 'desc', currentPagination.current.limit, roleFilter, statusFilter)
+    },
+    [roleFilter, statusFilter]
+  )
+
+  const handleSort = useCallback(
+    (columnId, direction) => {
+      console.log('🔄 handleSort called with:', { columnId, direction })
+      const sortBy = columnId || 'createdAt'
+      const sortType = direction || 'desc'
+      fetchEmployees(
+        currentPagination.current.page,
+        currentGlobalFilter.current,
+        sortBy,
+        sortType,
+        currentPagination.current.limit,
+        roleFilter,
+        statusFilter
+      )
+    },
+    [roleFilter, statusFilter]
+  )
 
   // Effect to fetch data on component mount or when session/token changes
   useEffect(() => {
-    if (sessionStatus === 'authenticated') {
-      fetchEmployees()
+    console.log('🔄 useEffect triggered with:', { sessionStatus, hasInitiallyFetched: hasInitiallyFetched.current })
+
+    if (sessionStatus === 'authenticated' && !hasInitiallyFetched.current) {
+      console.log('🔄 Making initial fetch...')
+      hasInitiallyFetched.current = true
+      fetchEmployees(1, '', 'createdAt', 'desc', 10, '', '')
     } else if (sessionStatus === 'unauthenticated') {
-      setFetchError(t('employees.notAuthenticated'))
+      console.log('🔄 User not authenticated')
+      setFetchError('Not authenticated')
       setFetchLoading(false)
+      hasInitiallyFetched.current = false
     }
-  }, [sessionStatus, session?.accessToken])
 
-  // Effect for client-side filtering
+    // Cleanup timeout on unmount
+    return () => {
+      if (window.searchTimeout) {
+        clearTimeout(window.searchTimeout)
+      }
+    }
+  }, [sessionStatus, session?.accessToken]) // Re-fetch if session status or token changes
+
+  // Effect to handle role filter changes
   useEffect(() => {
-    let tempData = [...employees]
-
-    if (filters.role) {
-      tempData = tempData.filter(row => row.role === filters.role)
+    // Only run if we have fetched data at least once
+    if (!hasInitiallyFetched.current) {
+      return
     }
 
-    if (filters.isActive !== '') {
-      const activeFlag = filters.isActive === 'true'
-      tempData = tempData.filter(row => row.isActive === activeFlag)
+    console.log('🔄 Role filter changed to:', roleFilter)
+    currentPagination.current = { ...currentPagination.current, page: 1 }
+    setPagination(prev => ({ ...prev, page: 1 }))
+    fetchEmployees(
+      1,
+      currentGlobalFilter.current,
+      'createdAt',
+      'desc',
+      currentPagination.current.limit,
+      roleFilter || '',
+      statusFilter || ''
+    )
+  }, [roleFilter])
+
+  // Effect to handle status filter changes
+  useEffect(() => {
+    // Only run if we have fetched data at least once
+    if (!hasInitiallyFetched.current) {
+      return
     }
 
-    setFilteredData(tempData)
-  }, [filters, employees])
+    console.log('🔄 Status filter changed to:', statusFilter)
+    currentPagination.current = { ...currentPagination.current, page: 1 }
+    setPagination(prev => ({ ...prev, page: 1 }))
+    fetchEmployees(
+      1,
+      currentGlobalFilter.current,
+      'createdAt',
+      'desc',
+      currentPagination.current.limit,
+      roleFilter || '',
+      statusFilter || ''
+    )
+  }, [statusFilter])
 
   // Derive unique roles for filter dropdowns from the fetched data
   const roles = useMemo(() => Array.from(new Set(employees.map(item => item.role))), [employees])
@@ -211,7 +358,7 @@ const EmployeeListTable = () => {
   }, [])
 
   // Handle delete confirmation
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = useCallback(async () => {
     if (!employeeToDelete) return
 
     setDeleteLoading(true)
@@ -226,7 +373,16 @@ const EmployeeListTable = () => {
 
       if (response.ok) {
         toastService.handleApiSuccess('deleted', 'Employee')
-        fetchEmployees() // Re-fetch data to update the table
+        // Re-fetch data after deletion
+        fetchEmployees(
+          currentPagination.current.page,
+          currentGlobalFilter.current,
+          'createdAt',
+          'desc',
+          currentPagination.current.limit,
+          roleFilter,
+          statusFilter
+        )
         setDeleteDialogOpen(false)
         setEmployeeToDelete(null)
       } else {
@@ -237,7 +393,7 @@ const EmployeeListTable = () => {
     } finally {
       setDeleteLoading(false)
     }
-  }
+  }, [employeeToDelete, currentPagination.current.page, currentGlobalFilter.current, roleFilter, statusFilter])
 
   // Function to open drawer for editing
   const handleEditClick = useCallback(employee => {
@@ -295,7 +451,8 @@ const EmployeeListTable = () => {
     () => [
       columnHelper.accessor('employeeId', {
         header: t('employees.fields.employeeId'),
-        cell: info => <Typography color='text.primary'>{info.getValue() || '-'}</Typography>
+        cell: info => <Typography color='text.primary'>{info.getValue() || '-'}</Typography>,
+        enableSorting: true
       }),
       columnHelper.accessor('name', {
         header: t('employees.fields.name'),
@@ -317,11 +474,13 @@ const EmployeeListTable = () => {
               )}
             </div>
           </div>
-        )
+        ),
+        enableSorting: true
       }),
       columnHelper.accessor('email', {
         header: t('employees.fields.email'),
-        cell: info => <Typography color='text.primary'>{info.getValue()}</Typography>
+        cell: info => <Typography color='text.primary'>{info.getValue()}</Typography>,
+        enableSorting: true
       }),
       columnHelper.accessor('role', {
         header: t('employees.fields.role'),
@@ -335,7 +494,8 @@ const EmployeeListTable = () => {
               {t(`common.roles.${row.original.role}`) || row.original.role}
             </Typography>
           </div>
-        )
+        ),
+        enableSorting: true
       }),
       columnHelper.accessor('isActive', {
         header: t('employees.fields.status'),
@@ -349,7 +509,8 @@ const EmployeeListTable = () => {
               className='capitalize'
             />
           </div>
-        )
+        ),
+        enableSorting: true
       }),
       columnHelper.accessor('action', {
         header: t('employees.fields.action'),
@@ -403,7 +564,7 @@ const EmployeeListTable = () => {
   )
 
   const table = useReactTable({
-    data: filteredData,
+    data: employees, // Use employees directly instead of filteredData
     columns,
     filterFns: {
       fuzzy: fuzzyFilter
@@ -422,12 +583,18 @@ const EmployeeListTable = () => {
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     onGlobalFilterChange: setGlobalFilter,
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    getFacetedMinMaxValues: getFacetedMinMaxValues()
+    manualPagination: true, // Enable manual pagination
+    manualSorting: true, // Enable manual sorting
+    pageCount: pagination.totalPages,
+    onSortingChange: updater => {
+      if (typeof updater === 'function') {
+        const newSorting = updater(table.getState().sorting)
+        if (newSorting.length > 0) {
+          const sort = newSorting[0]
+          handleSort(sort.id, sort.desc ? 'desc' : 'asc')
+        }
+      }
+    }
   })
 
   return (
@@ -439,8 +606,8 @@ const EmployeeListTable = () => {
           <CustomTextField
             select
             label={t('employees.fields.role')}
-            value={filters.role}
-            onChange={e => setFilters({ ...filters, role: e.target.value })}
+            value={roleFilter}
+            onChange={e => setRoleFilter(e.target.value)}
             className='min-w-[180px]'
           >
             <MenuItem value=''>{t('employees.all')}</MenuItem>
@@ -455,8 +622,8 @@ const EmployeeListTable = () => {
           <CustomTextField
             select
             label={t('employees.fields.status')}
-            value={filters.isActive}
-            onChange={e => setFilters({ ...filters, isActive: e.target.value })}
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
             className='min-w-[180px]'
           >
             <MenuItem value=''>{t('employees.all')}</MenuItem>
@@ -464,9 +631,17 @@ const EmployeeListTable = () => {
             <MenuItem value='false'>{t('employees.status.inactive')}</MenuItem>
           </CustomTextField>
 
-          <DebouncedInput
+          <CustomTextField
             value={globalFilter ?? ''}
-            onChange={value => setGlobalFilter(String(value))}
+            onChange={e => {
+              const value = e.target.value
+              setGlobalFilter(value)
+              // Debounce the search manually
+              clearTimeout(window.searchTimeout)
+              window.searchTimeout = setTimeout(() => {
+                handleSearch(value)
+              }, 500)
+            }}
             placeholder={t('employees.searchEmployee')}
             className='min-w-[200px]'
           />
@@ -550,20 +725,39 @@ const EmployeeListTable = () => {
           </div>
         )}
         <TablePagination
-          component={() => <TablePaginationComponent table={table} />}
-          count={employees.length}
-          rowsPerPage={table.getState().pagination.pageSize}
-          page={table.getState().pagination.pageIndex}
-          onPageChange={(_, page) => {
-            table.setPageIndex(page)
-          }}
+          component={() => (
+            <TablePaginationComponent
+              table={table}
+              totalCount={pagination.total}
+              currentPage={pagination.page - 1}
+              pageSize={pagination.limit}
+              onPageChange={handlePageChange}
+            />
+          )}
+          count={pagination.total}
+          rowsPerPage={pagination.limit}
+          page={pagination.page - 1} // MUI uses 0-based indexing
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          rowsPerPageOptions={[5, 10, 25, 50]}
         />
       </Card>
       <AddUserDrawer
         open={addEmployeeOpen}
         handleClose={handleDrawerClose}
         currentEmployee={editingEmployee}
-        onEmployeeAdded={fetchEmployees}
+        onEmployeeAdded={() => {
+          // Refresh data after employee is added/updated
+          fetchEmployees(
+            currentPagination.current.page,
+            currentGlobalFilter.current,
+            'createdAt',
+            'desc',
+            currentPagination.current.limit,
+            roleFilter,
+            statusFilter
+          )
+        }}
       />
 
       {/* Attendance Report Dialog */}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import Card from '@mui/material/Card'
@@ -61,19 +61,7 @@ const fuzzyFilter = (row, columnId, value, addMeta) => {
   return itemRank.passed
 }
 
-const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...props }) => {
-  const [value, setValue] = useState(initialValue)
-  useEffect(() => {
-    setValue(initialValue)
-  }, [initialValue])
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      onChange(value)
-    }, debounce)
-    return () => clearTimeout(timeout)
-  }, [value, debounce, onChange])
-  return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
-}
+// Removed DebouncedInput component - using manual debouncing instead
 
 const TaskListTable = ({
   tasks: externalTasks = null,
@@ -81,21 +69,41 @@ const TaskListTable = ({
   showAddButton = true,
   limitActions = false
 }) => {
+  console.log('🔄 TaskListTable component rendered')
+
   // States for Table Data and API Operations
-  const [tasks, setTasks] = useState(externalTasks || [])
+  const [tasks, setTasks] = useState(externalTasks || []) // Stores fetched task data
   const [branches, setBranches] = useState([])
-  const [fetchLoading, setFetchLoading] = useState(true)
-  const [fetchError, setFetchError] = useState(null)
+  const [fetchLoading, setFetchLoading] = useState(true) // Loading state for data fetch
+  const [fetchError, setFetchError] = useState(null) // Error state for data fetch
+
+  // States for Pagination
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  })
 
   // States for Filtering and Search
-  const [filteredData, setFilteredData] = useState([])
   const [globalFilter, setGlobalFilter] = useState('')
-  const [filters, setFilters] = useState({ status: '', assignedEmployee: '', branch: '' })
+  const [statusFilter, setStatusFilter] = useState('')
+  const [assignedEmployeeFilter, setAssignedEmployeeFilter] = useState('')
+  const [branchFilter, setBranchFilter] = useState('')
 
   // States for Delete Dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [taskToDelete, setTaskToDelete] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+
+  // Ref to track if initial fetch has been made
+  const hasInitiallyFetched = useRef(false)
+
+  // Refs to store current values without causing re-renders
+  const currentGlobalFilter = useRef('')
+  const currentPagination = useRef({ page: 1, limit: 10 })
 
   // Hooks
   const { lang: locale } = useParams()
@@ -127,20 +135,67 @@ const TaskListTable = ({
     }
   }, [session?.accessToken])
 
-  // Function to fetch task data from API
-  const fetchTasks = useCallback(async () => {
+  // Function to fetch task data from API with pagination
+  const fetchTasks = async (
+    page = 1,
+    search = '',
+    sortBy = 'createdAt',
+    sortType = 'desc',
+    limit = 10,
+    status = '',
+    assignedEmployee = '',
+    branch = ''
+  ) => {
+    console.log('🔄 fetchTasks called with:', {
+      page,
+      search,
+      sortBy,
+      sortType,
+      limit,
+      status,
+      assignedEmployee,
+      branch
+    })
+    console.log('🔄 Current status:', sessionStatus)
+    console.log('🔄 Has initially fetched:', hasInitiallyFetched.current)
+
     setFetchLoading(true)
     setFetchError(null)
 
-    if (sessionStatus === 'loading') return
+    if (sessionStatus === 'loading') return // Wait for session to load
     if (sessionStatus === 'unauthenticated' || !session?.accessToken) {
-      setFetchError(t('tasks.authenticationRequired'))
+      setFetchError('Authentication required')
       setFetchLoading(false)
       return
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks?limit=1000`, {
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        sortBy,
+        sortType
+      })
+
+      if (search) {
+        queryParams.append('search', search)
+      }
+
+      if (status) {
+        queryParams.append('status', status)
+      }
+
+      if (assignedEmployee) {
+        console.log('🔄 Adding assignedEmployeeId to query:', assignedEmployee)
+        queryParams.append('assignedEmployeeId', assignedEmployee)
+      }
+
+      if (branch) {
+        console.log('🔄 Adding branchId to query:', branch)
+        queryParams.append('branchId', branch)
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks?${queryParams.toString()}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -152,20 +207,111 @@ const TaskListTable = ({
       const responseData = await response.json()
 
       if (response.ok) {
-        setTasks(responseData.data?.results || responseData.data || [])
+        setTasks(responseData.data || [])
+        setPagination(prev => ({
+          ...prev,
+          page: responseData.pagination?.page || page,
+          total: responseData.pagination?.total || 0,
+          totalPages: responseData.pagination?.totalPages || 0,
+          hasNext: responseData.pagination?.hasNext || false,
+          hasPrev: responseData.pagination?.hasPrev || false
+        }))
       } else {
         const errorMessage = responseData.message || `Failed to fetch tasks: ${response.status}`
         setFetchError(errorMessage)
-        await toastService.handleApiError(response, errorMessage)
+        await toastService.handleApiError(response, 'Failed to fetch tasks')
+        console.error('API Error fetching tasks:', responseData)
       }
     } catch (error) {
-      const errorMessage = t('tasks.networkError')
+      const errorMessage = 'Network error or unexpected issue fetching tasks. Please try again.'
       setFetchError(errorMessage)
       await toastService.handleApiError(error, errorMessage)
+      console.error('Fetch error tasks:', error)
     } finally {
       setFetchLoading(false)
     }
-  }, [sessionStatus, session?.accessToken])
+  }
+
+  // Handlers for pagination, search, and sorting
+  const handlePageChange = useCallback(
+    (event, newPage) => {
+      console.log('🔄 handlePageChange called with:', { event, newPage, currentPage: pagination.page })
+      const page = newPage + 1
+      currentPagination.current = { ...currentPagination.current, page }
+      setPagination(prev => ({ ...prev, page }))
+      fetchTasks(
+        page,
+        currentGlobalFilter.current,
+        'createdAt',
+        'desc',
+        currentPagination.current.limit,
+        statusFilter,
+        assignedEmployeeFilter,
+        branchFilter
+      )
+    },
+    [pagination.page, statusFilter, assignedEmployeeFilter, branchFilter]
+  )
+
+  const handleRowsPerPageChange = useCallback(
+    event => {
+      console.log('🔄 handleRowsPerPageChange called with:', event.target.value)
+      const newLimit = parseInt(event.target.value, 10)
+      currentPagination.current = { page: 1, limit: newLimit }
+      setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))
+      fetchTasks(
+        1,
+        currentGlobalFilter.current,
+        'createdAt',
+        'desc',
+        newLimit,
+        statusFilter,
+        assignedEmployeeFilter,
+        branchFilter
+      )
+    },
+    [statusFilter, assignedEmployeeFilter, branchFilter]
+  )
+
+  const handleSearch = useCallback(
+    value => {
+      console.log('🔄 handleSearch called with:', value)
+      currentGlobalFilter.current = value
+      currentPagination.current = { ...currentPagination.current, page: 1 }
+      setGlobalFilter(value)
+      setPagination(prev => ({ ...prev, page: 1 }))
+      fetchTasks(
+        1,
+        value,
+        'createdAt',
+        'desc',
+        currentPagination.current.limit,
+        statusFilter,
+        assignedEmployeeFilter,
+        branchFilter
+      )
+    },
+    [statusFilter, assignedEmployeeFilter, branchFilter]
+  )
+
+  const handleSort = useCallback(
+    (columnId, direction) => {
+      console.log('🔄 handleSort called with:', { columnId, direction })
+      const sortBy = columnId || 'createdAt'
+      const sortType = direction || 'desc'
+      fetchTasks(
+        currentPagination.current.page,
+        currentGlobalFilter.current,
+        sortBy,
+        sortType,
+        currentPagination.current.limit,
+        statusFilter,
+        assignedEmployeeFilter,
+        branchFilter
+      )
+    },
+    [statusFilter, assignedEmployeeFilter, branchFilter]
+  )
 
   // Effect to fetch data on component mount or when session/token changes
   useEffect(() => {
@@ -176,33 +322,93 @@ const TaskListTable = ({
       return
     }
 
-    if (sessionStatus === 'authenticated') {
-      fetchTasks()
+    console.log('🔄 useEffect triggered with:', { sessionStatus, hasInitiallyFetched: hasInitiallyFetched.current })
+
+    if (sessionStatus === 'authenticated' && !hasInitiallyFetched.current) {
+      console.log('🔄 Making initial fetch...')
+      hasInitiallyFetched.current = true
+      fetchTasks(1, '', 'createdAt', 'desc', 10, '', '', '')
       fetchBranches()
     } else if (sessionStatus === 'unauthenticated') {
-      setFetchError(t('tasks.notAuthenticated'))
+      console.log('🔄 User not authenticated')
+      setFetchError('Not authenticated')
       setFetchLoading(false)
+      hasInitiallyFetched.current = false
     }
-  }, [sessionStatus, session?.accessToken, fetchTasks, fetchBranches, externalTasks])
 
-  // Effect for client-side filtering
+    // Cleanup timeout on unmount
+    return () => {
+      if (window.searchTimeout) {
+        clearTimeout(window.searchTimeout)
+      }
+    }
+  }, [sessionStatus, session?.accessToken]) // Re-fetch if session status or token changes
+
+  // Effect to handle status filter changes
   useEffect(() => {
-    let tempData = [...tasks]
-
-    if (filters.status) {
-      tempData = tempData.filter(row => row.status === filters.status)
+    // Only run if we have fetched data at least once
+    if (!hasInitiallyFetched.current) {
+      return
     }
 
-    if (filters.assignedEmployee) {
-      tempData = tempData.filter(row => row.assignedEmployee?.name === filters.assignedEmployee)
+    console.log('🔄 Status filter changed to:', statusFilter)
+    currentPagination.current = { ...currentPagination.current, page: 1 }
+    setPagination(prev => ({ ...prev, page: 1 }))
+    fetchTasks(
+      1,
+      currentGlobalFilter.current,
+      'createdAt',
+      'desc',
+      currentPagination.current.limit,
+      statusFilter || '',
+      assignedEmployeeFilter || '',
+      branchFilter || ''
+    )
+  }, [statusFilter])
+
+  // Effect to handle assigned employee filter changes
+  useEffect(() => {
+    // Only run if we have fetched data at least once
+    if (!hasInitiallyFetched.current) {
+      return
     }
 
-    if (filters.branch) {
-      tempData = tempData.filter(row => row.client?.branch?.name === filters.branch)
+    console.log('🔄 Assigned employee filter changed to:', assignedEmployeeFilter)
+    currentPagination.current = { ...currentPagination.current, page: 1 }
+    setPagination(prev => ({ ...prev, page: 1 }))
+    fetchTasks(
+      1,
+      currentGlobalFilter.current,
+      'createdAt',
+      'desc',
+      currentPagination.current.limit,
+      statusFilter || '',
+      assignedEmployeeFilter || '',
+      branchFilter || ''
+    )
+  }, [assignedEmployeeFilter])
+
+  // Effect to handle branch filter changes
+  useEffect(() => {
+    // Only run if we have fetched data at least once
+    if (!hasInitiallyFetched.current) {
+      return
     }
 
-    setFilteredData(tempData)
-  }, [filters, tasks])
+    console.log('🔄 Branch filter changed to:', branchFilter)
+    currentPagination.current = { ...currentPagination.current, page: 1 }
+    setPagination(prev => ({ ...prev, page: 1 }))
+    fetchTasks(
+      1,
+      currentGlobalFilter.current,
+      'createdAt',
+      'desc',
+      currentPagination.current.limit,
+      statusFilter || '',
+      assignedEmployeeFilter || '',
+      branchFilter || ''
+    )
+  }, [branchFilter])
 
   // Function to handle task deletion
   const handleDeleteClick = useCallback(
@@ -239,7 +445,17 @@ const TaskListTable = ({
         // Show success toast
         toastService.handleApiSuccess('deleted', 'Task')
         console.log(`Task ${taskToDelete.id} deleted successfully.`)
-        fetchTasks() // Re-fetch data to update the table
+        // Re-fetch data after deletion
+        fetchTasks(
+          currentPagination.current.page,
+          currentGlobalFilter.current,
+          'createdAt',
+          'desc',
+          currentPagination.current.limit,
+          statusFilter,
+          assignedEmployeeFilter,
+          branchFilter
+        )
         setDeleteDialogOpen(false)
         setTaskToDelete(null)
       } else {
@@ -296,16 +512,29 @@ const TaskListTable = ({
     [locale]
   )
 
+  // Static filter options for better server-side filtering
+  const statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'ON_HOLD']
+
   // Derive unique values for filter dropdowns from the fetched data
-  const assignedEmployees = useMemo(
-    () => Array.from(new Set(tasks.map(item => item.assignedEmployee?.name).filter(Boolean))),
-    [tasks]
-  )
-  const statuses = useMemo(() => Array.from(new Set(tasks.map(item => item.status))), [tasks])
-  const branchNames = useMemo(
-    () => Array.from(new Set(tasks.map(item => item.client?.branch?.name).filter(Boolean))),
-    [tasks]
-  )
+  const assignedEmployees = useMemo(() => {
+    const employeeMap = new Map()
+    tasks.forEach(item => {
+      if (item.assignedEmployee?.id && item.assignedEmployee?.name) {
+        employeeMap.set(item.assignedEmployee.id, item.assignedEmployee.name)
+      }
+    })
+    return Array.from(employeeMap.entries()).map(([id, name]) => ({ id, name }))
+  }, [tasks])
+
+  const branchNames = useMemo(() => {
+    const branchMap = new Map()
+    tasks.forEach(item => {
+      if (item.client?.branch?.id && item.client?.branch?.name) {
+        branchMap.set(item.client.branch.id, item.client.branch.name)
+      }
+    })
+    return Array.from(branchMap.entries()).map(([id, name]) => ({ id, name }))
+  }, [tasks])
 
   // Function to format date
   const formatDate = dateString => {
@@ -325,21 +554,25 @@ const TaskListTable = ({
                 <Typography color='text.primary' className='font-medium'>
                   {row.original.title}
                 </Typography>
-              )
+              ),
+              enableSorting: true
             })
           ]
         : []),
       columnHelper.accessor('client', {
         header: t('tasks.fields.client'),
-        cell: ({ row }) => <Typography color='text.primary'>{row.original.client?.name || '-'}</Typography>
+        cell: ({ row }) => <Typography color='text.primary'>{row.original.client?.name || '-'}</Typography>,
+        enableSorting: true
       }),
       columnHelper.accessor('service', {
         header: t('tasks.fields.service'),
-        cell: ({ row }) => <Typography color='text.primary'>{row.original.service?.name || '-'}</Typography>
+        cell: ({ row }) => <Typography color='text.primary'>{row.original.service?.name || '-'}</Typography>,
+        enableSorting: true
       }),
       columnHelper.accessor('assignedEmployee', {
         header: t('tasks.fields.assignedTo'),
-        cell: ({ row }) => <Typography color='text.primary'>{row.original.assignedEmployee?.name || '-'}</Typography>
+        cell: ({ row }) => <Typography color='text.primary'>{row.original.assignedEmployee?.name || '-'}</Typography>,
+        enableSorting: true
       }),
       columnHelper.accessor('status', {
         header: t('tasks.fields.status'),
@@ -371,7 +604,8 @@ const TaskListTable = ({
               className='capitalize'
             />
           </div>
-        )
+        ),
+        enableSorting: true
       }),
       columnHelper.accessor('dueDate', {
         header: t('tasks.fields.dueDate'),
@@ -389,7 +623,8 @@ const TaskListTable = ({
               )}
             </div>
           )
-        }
+        },
+        enableSorting: true
       }),
       columnHelper.accessor('action', {
         header: t('tasks.fields.action'),
@@ -462,7 +697,7 @@ const TaskListTable = ({
   )
 
   const table = useReactTable({
-    data: filteredData,
+    data: tasks, // Use tasks directly instead of filteredData
     columns,
     filterFns: { fuzzy: fuzzyFilter },
     state: { globalFilter },
@@ -470,12 +705,18 @@ const TaskListTable = ({
     globalFilterFn: fuzzyFilter,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    getFacetedMinMaxValues: getFacetedMinMaxValues()
+    manualPagination: true, // Enable manual pagination
+    manualSorting: true, // Enable manual sorting
+    pageCount: pagination.totalPages,
+    onSortingChange: updater => {
+      if (typeof updater === 'function') {
+        const newSorting = updater(table.getState().sorting)
+        if (newSorting.length > 0) {
+          const sort = newSorting[0]
+          handleSort(sort.id, sort.desc ? 'desc' : 'asc')
+        }
+      }
+    }
   })
 
   return (
@@ -487,8 +728,11 @@ const TaskListTable = ({
           <CustomTextField
             select
             label={t('tasks.fields.status')}
-            value={filters.status}
-            onChange={e => setFilters({ ...filters, status: e.target.value })}
+            value={statusFilter}
+            onChange={e => {
+              console.log('🔄 Status filter changed to:', e.target.value)
+              setStatusFilter(e.target.value)
+            }}
             className='min-w-[180px]'
           >
             <MenuItem value=''>{t('tasks.all')}</MenuItem>
@@ -521,14 +765,17 @@ const TaskListTable = ({
           <CustomTextField
             select
             label={t('tasks.fields.assignedTo')}
-            value={filters.assignedEmployee}
-            onChange={e => setFilters({ ...filters, assignedEmployee: e.target.value })}
+            value={assignedEmployeeFilter}
+            onChange={e => {
+              console.log('🔄 Assigned employee filter changed to:', e.target.value)
+              setAssignedEmployeeFilter(e.target.value)
+            }}
             className='min-w-[180px]'
           >
             <MenuItem value=''>{t('tasks.all')}</MenuItem>
             {assignedEmployees.map(employee => (
-              <MenuItem key={employee} value={employee}>
-                {employee}
+              <MenuItem key={employee.id} value={employee.id}>
+                {employee.name}
               </MenuItem>
             ))}
           </CustomTextField>
@@ -537,21 +784,34 @@ const TaskListTable = ({
           <CustomTextField
             select
             label={t('employees.fields.branch')}
-            value={filters.branch}
-            onChange={e => setFilters({ ...filters, branch: e.target.value })}
+            value={branchFilter}
+            onChange={e => {
+              console.log('🔄 Branch filter changed to:', e.target.value)
+              setBranchFilter(e.target.value)
+            }}
             className='min-w-[180px]'
           >
             <MenuItem value=''>{t('tasks.all')}</MenuItem>
             {branchNames.map(branch => (
-              <MenuItem key={branch} value={branch}>
-                {branch}
+              <MenuItem key={branch.id} value={branch.id}>
+                {branch.name}
               </MenuItem>
             ))}
           </CustomTextField>
 
-          <DebouncedInput
+          <CustomTextField
             value={globalFilter ?? ''}
-            onChange={value => setGlobalFilter(String(value))}
+            onChange={e => {
+              const value = e.target.value
+              console.log('🔄 Search input changed to:', value)
+              setGlobalFilter(value)
+              // Debounce the search manually
+              clearTimeout(window.searchTimeout)
+              window.searchTimeout = setTimeout(() => {
+                console.log('🔄 Debounced search triggered with:', value)
+                handleSearch(value)
+              }, 500)
+            }}
             placeholder={t('tasks.searchTask')}
             className='min-w-[200px]'
           />
@@ -626,13 +886,21 @@ const TaskListTable = ({
         )}
 
         <TablePagination
-          component={() => <TablePaginationComponent table={table} />}
-          count={tasks.length}
-          rowsPerPage={table.getState().pagination.pageSize}
-          page={table.getState().pagination.pageIndex}
-          onPageChange={(_, page) => {
-            table.setPageIndex(page)
-          }}
+          component={() => (
+            <TablePaginationComponent
+              table={table}
+              totalCount={pagination.total}
+              currentPage={pagination.page - 1}
+              pageSize={pagination.limit}
+              onPageChange={handlePageChange}
+            />
+          )}
+          count={pagination.total}
+          rowsPerPage={pagination.limit}
+          page={pagination.page - 1} // MUI uses 0-based indexing
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          rowsPerPageOptions={[5, 10, 25, 50]}
         />
       </Card>
 
