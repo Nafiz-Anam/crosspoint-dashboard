@@ -12,7 +12,6 @@
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
     "build:icons": "tsx src/assets/iconify-icons/bundle-icons-css.mjs",
     "migrate": "dotenv -e .env -- npx prisma migrate dev",
-    "postinstall": "prisma generate && npm run build:icons",
     "removeI18n": "tsx src/remove-translation-scripts/index.js"
   },
   "dependencies": {
@@ -37,10 +36,13 @@
     "@mui/material": "6.2.1",
     "@mui/material-nextjs": "6.2.1",
     "@mui/x-date-pickers": "^8.11.3",
+    "@mui/utils": "^6.2.1",
     "@prisma/client": "5.22.0",
+    "@radix-ui/react-dialog": "^1.1.2",
     "@reduxjs/toolkit": "2.5.0",
     "@tanstack/match-sorter-utils": "8.19.4",
     "@tanstack/react-table": "8.20.6",
+    "@tanstack/table-core": "8.20.5",
     "@tiptap/extension-color": "^2.10.4",
     "@tiptap/extension-list-item": "^2.10.4",
     "@tiptap/extension-placeholder": "^2.10.4",

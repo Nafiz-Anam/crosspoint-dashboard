@@ -308,7 +308,8 @@ export const enhancedFetch = async (url, options = {}) => {
   }
 }
 
-export default {
+// Default export for backward compatibility
+const toastService = {
   showSuccess,
   showError,
   showWarning,
@@ -321,3 +322,5 @@ export default {
   clearToast,
   enhancedFetch
 }
+
+export default toastService

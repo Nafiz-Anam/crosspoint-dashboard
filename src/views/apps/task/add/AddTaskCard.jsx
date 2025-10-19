@@ -532,11 +532,22 @@ const AddTaskCard = () => {
                     {...field}
                     {...(errors.status && { error: true, helperText: errors.status.message })}
                   >
-                    {validStatuses.map(status => (
-                      <MenuItem key={status} value={status}>
-                        {t(`tasks.status.${status.toLowerCase()}`) || status.replace('_', ' ')}
-                      </MenuItem>
-                    ))}
+                    {validStatuses.map(status => {
+                      // Map status values to correct translation keys
+                      const statusKeyMap = {
+                        PENDING: 'pending',
+                        IN_PROGRESS: 'inProgress',
+                        COMPLETED: 'completed',
+                        CANCELLED: 'cancelled',
+                        ON_HOLD: 'onHold'
+                      }
+                      const translationKey = statusKeyMap[status] || status.toLowerCase()
+                      return (
+                        <MenuItem key={status} value={status}>
+                          {t(`tasks.status.${translationKey}`) || status.replace('_', ' ')}
+                        </MenuItem>
+                      )
+                    })}
                   </CustomTextField>
                 )}
               />

@@ -20,6 +20,7 @@ const BankAccountList = () => {
   const [addDrawerOpen, setAddDrawerOpen] = useState(false)
   const [editDrawerOpen, setEditDrawerOpen] = useState(false)
   const [editingBankAccount, setEditingBankAccount] = useState(null)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   // Hooks
   const { data: session, status } = useSession()
@@ -53,6 +54,8 @@ const BankAccountList = () => {
             const errorData = await deleteResponse.json()
             throw new Error(errorData.message || 'Failed to delete bank account')
           }
+          // Trigger refresh after successful delete
+          setRefreshTrigger(prev => prev + 1)
           break
 
         case 'update':
@@ -70,6 +73,8 @@ const BankAccountList = () => {
             const errorData = await updateResponse.json()
             throw new Error(errorData.message || 'Failed to update bank account')
           }
+          // Trigger refresh after successful update
+          setRefreshTrigger(prev => prev + 1)
           break
         default:
           break
@@ -101,7 +106,8 @@ const BankAccountList = () => {
       if (response.ok) {
         toastService.handleApiSuccess('created', 'Bank Account')
         setAddDrawerOpen(false)
-        // The BankAccountListTable will handle refreshing its own data
+        // Trigger refresh of the table data
+        setRefreshTrigger(prev => prev + 1)
       } else {
         await toastService.handleApiError(response, 'Failed to add bank account')
       }
@@ -133,7 +139,8 @@ const BankAccountList = () => {
         toastService.handleApiSuccess('updated', 'Bank Account')
         setEditDrawerOpen(false)
         setEditingBankAccount(null)
-        // The BankAccountListTable will handle refreshing its own data
+        // Trigger refresh of the table data
+        setRefreshTrigger(prev => prev + 1)
       } else {
         await toastService.handleApiError(response, 'Failed to update bank account')
       }
@@ -150,6 +157,7 @@ const BankAccountList = () => {
         <BankAccountListTable
           onBankAccountAction={handleBankAccountAction}
           onAddBankAccount={() => setAddDrawerOpen(true)}
+          refreshTrigger={refreshTrigger}
         />
       </Grid>
 

@@ -19,7 +19,10 @@ module.exports = {
     'import/newline-after-import': 'off',
     'import/order': 'off',
     'react-hooks/exhaustive-deps': 'warn',
-    'import/no-anonymous-default-export': 'off'
+    'import/no-anonymous-default-export': 'off',
+    'import/no-named-as-default': 'off',
+    'import/no-named-as-default-member': 'off',
+    'import/no-unresolved': 'off'
   },
   settings: {
     react: {

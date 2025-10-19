@@ -160,17 +160,23 @@ const InvoiceContainer = ({ initialData }) => {
 
       console.log('Responses received:', {
         bankAccounts: bankAccountsResponse?.data?.bankAccounts?.length || 0,
-        clients: clientsResponse?.data?.clients?.length || 0,
+        clients: clientsResponse?.data?.length || 0,
         services: servicesResponse?.data?.length || 0,
         employees: employeesResponse?.data?.length || 0,
         companyInfo: !!companyInfoResponse?.data
       })
 
       setBankAccounts(bankAccountsResponse.data?.bankAccounts || [])
-      setClients(clientsResponse.data?.clients || [])
+      setClients(clientsResponse.data || [])
       setServices(servicesResponse.data || [])
       setEmployees(employeesResponse.data || [])
       setCompanyInfo(companyInfoResponse.data || null)
+
+      // Debug client data
+      console.log('Client response structure:', clientsResponse.data)
+      console.log('Clients array (data):', clientsResponse.data)
+      console.log('First client structure:', clientsResponse.data?.[0])
+      console.log('Clients count:', clientsResponse.data?.length || 0)
 
       console.log('Data set successfully')
     } catch (err) {

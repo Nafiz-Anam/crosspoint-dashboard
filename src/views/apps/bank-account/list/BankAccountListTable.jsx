@@ -60,7 +60,7 @@ const fuzzyFilter = (row, columnId, value, addMeta) => {
 // Column Definitions
 const columnHelper = createColumnHelper()
 
-const BankAccountListTable = ({ onBankAccountAction, onAddBankAccount }) => {
+const BankAccountListTable = ({ onBankAccountAction, onAddBankAccount, refreshTrigger }) => {
   console.log('🔄 BankAccountListTable component rendered')
 
   // States for Table Data and API Operations
@@ -267,6 +267,24 @@ const BankAccountListTable = ({ onBankAccountAction, onAddBankAccount }) => {
       isActiveFilter || ''
     )
   }, [isActiveFilter])
+
+  // Effect to handle refresh trigger (after create/update/delete)
+  useEffect(() => {
+    // Only run if we have fetched data at least once and refreshTrigger changed
+    if (!hasInitiallyFetched.current || !refreshTrigger) {
+      return
+    }
+
+    console.log('🔄 Refresh trigger activated, refreshing data...')
+    fetchBankAccounts(
+      currentPagination.current.page,
+      currentGlobalFilter.current,
+      'createdAt',
+      'desc',
+      currentPagination.current.limit,
+      isActiveFilter || ''
+    )
+  }, [refreshTrigger])
 
   // Handle delete click
   const handleDeleteClick = useCallback(bankAccount => {

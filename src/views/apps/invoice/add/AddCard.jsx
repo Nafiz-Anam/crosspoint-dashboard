@@ -95,11 +95,13 @@ const AddCard = ({
   const watchedItems = watch('items') || invoiceItems
 
   // Debug logging for arrays (after state declarations)
-  // console.log('=== AddCard Debug Info ===')
-  // console.log('Clients loaded:', clients.length)
-  // console.log('Services loaded:', services.length)
-  // console.log('Employees loaded:', employees.length)
-  // console.log('Selected client ID:', selectedClient?.id)
+  console.log('=== AddCard Debug Info ===')
+  console.log('Clients loaded:', clients.length)
+  console.log('Services loaded:', services.length)
+  console.log('Employees loaded:', employees.length)
+  console.log('Selected client:', selectedClient)
+  console.log('Selected client ID:', selectedClient?.id)
+  console.log('Selected client type:', typeof selectedClient)
   // console.log('Selected salesperson ID:', selectedSalesperson?.id)
   // console.log('Invoice items:', invoiceItems)
   // console.log('Loading state:', loading)
@@ -139,9 +141,29 @@ const AddCard = ({
 
   // Update handlers that call parent function
   const handleClientChange = clientId => {
-    if (!clients || clients.length === 0) return
+    console.log('handleClientChange called with clientId:', clientId)
+    console.log('Available clients:', clients)
+
+    if (!clients || clients.length === 0) {
+      console.log('No clients available')
+      return
+    }
+
+    if (!clientId) {
+      console.log('No clientId provided, clearing selection')
+      updateInvoiceState({ selectedClient: null, branchId: null })
+      return
+    }
+
     const client = clients.find(c => c.id === clientId)
-    updateInvoiceState({ selectedClient: client, branchId: client?.branchId })
+    console.log('Found client:', client)
+
+    if (client) {
+      updateInvoiceState({ selectedClient: client, branchId: client?.branchId })
+    } else {
+      console.log('Client not found, clearing selection')
+      updateInvoiceState({ selectedClient: null, branchId: null })
+    }
   }
 
   const handleSalespersonChange = employeeId => {
@@ -334,7 +356,10 @@ const AddCard = ({
                   select
                   className={classnames('min-is-[220px]', { 'is-1/2': isBelowSmScreen })}
                   value={selectedClient?.id || ''}
-                  onChange={e => handleClientChange(e.target.value)}
+                  onChange={e => {
+                    console.log('Dropdown onChange triggered with value:', e.target.value)
+                    handleClientChange(e.target.value)
+                  }}
                   label={t('invoices.selectClient')}
                 >
                   <MenuItem value=''>
