@@ -75,10 +75,7 @@ const UserDropdown = () => {
     setSigningOut(true)
     try {
       // Use current origin instead of environment variable to avoid localhost redirects
-      const callbackUrl =
-        typeof window !== 'undefined'
-          ? window.location.origin
-          : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const callbackUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_APP_URL
       await signOut({ callbackUrl })
     } catch (error) {
       // optional: toast here
