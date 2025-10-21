@@ -15,6 +15,9 @@ RUN pnpm install
 # Copy source code (including .env.docker)
 COPY . .
 
+# Generate the missing icon CSS files
+RUN pnpm run build:icons
+
 # Build the app
 RUN pnpm build
 
