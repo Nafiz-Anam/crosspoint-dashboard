@@ -141,6 +141,26 @@ const ResetPasswordOTP = ({ mode }) => {
     setSuccess(false)
 
     try {
+      // First verify the OTP
+      const verifyResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify-reset-password-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web'
+        },
+        body: JSON.stringify({
+          email,
+          otp
+        })
+      })
+
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json()
+        setError(errorData.message || t('auth.invalidOTP'))
+        return
+      }
+
+      // Then reset the password
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/reset-password-otp`, {
         method: 'POST',
         headers: {

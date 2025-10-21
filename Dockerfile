@@ -15,9 +15,6 @@ RUN pnpm install
 # Copy source code (including .env.docker)
 COPY . .
 
-# Copy the docker environment file to production env  
-COPY .env.development .env.production
-
 # Build the app
 RUN pnpm build
 
