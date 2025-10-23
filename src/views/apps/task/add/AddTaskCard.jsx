@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 // MUI Imports
@@ -32,15 +32,23 @@ const AddTaskCard = () => {
   // States
   const [loading, setLoading] = useState(false)
   const [clients, setClients] = useState([])
-  const [categories, setCategories] = useState([])
   const [services, setServices] = useState([])
   const [employees, setEmployees] = useState([])
 
   // Individual loading states for each dropdown
   const [clientsLoading, setClientsLoading] = useState(false)
-  const [categoriesLoading, setCategoriesLoading] = useState(false)
   const [servicesLoading, setServicesLoading] = useState(false)
   const [employeesLoading, setEmployeesLoading] = useState(false)
+
+  // Hardcoded categories from service creation form
+  const hardcodedCategories = [
+    { value: 'CAF', translationKey: 'caf' },
+    { value: 'Patronato', translationKey: 'patronato' },
+    { value: 'Immigrazione', translationKey: 'immigrazione' },
+    { value: 'Partita IVA', translationKey: 'partitaIva' },
+    { value: 'Reparto Legale', translationKey: 'repartoLegale' },
+    { value: 'Varie pratiche', translationKey: 'variePratiche' }
+  ]
 
   // Hooks
   const { data: session } = useSession()
@@ -54,6 +62,7 @@ const AddTaskCard = () => {
     reset: resetForm,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors }
   } = useForm({
     defaultValues: {
@@ -66,8 +75,8 @@ const AddTaskCard = () => {
       startDate: '',
       dueDate: ''
     },
-    mode: 'onChange', // Enable real-time validation
-    reValidateMode: 'onChange' // Re-validate on change
+    mode: 'onChange',
+    reValidateMode: 'onChange'
   })
 
   const watchedClientId = watch('clientId')
@@ -75,12 +84,12 @@ const AddTaskCard = () => {
   const watchedServiceId = watch('serviceId')
 
   // Fetch clients
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     if (!session?.accessToken) return
 
     setClientsLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/list/all`, {
         headers: {
           'Content-Type': 'application/json',
           'x-client-type': 'web',
@@ -97,68 +106,48 @@ const AddTaskCard = () => {
     } finally {
       setClientsLoading(false)
     }
-  }
+  }, [session?.accessToken])
 
-  // Fetch categories
-  const fetchCategories = async () => {
-    if (!session?.accessToken) return
+  // Fetch services with category filtering
+  const fetchServices = useCallback(
+    async (category = null) => {
+      if (!session?.accessToken) return
 
-    setCategoriesLoading(true)
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
+      setServicesLoading(true)
+      try {
+        let url = `${process.env.NEXT_PUBLIC_API_URL}/services/list/all`
+        if (category) {
+          url += `?category=${encodeURIComponent(category)}`
         }
-      })
 
-      if (response.ok) {
-        const data = await response.json()
-        const services = data.data || []
-        // Extract unique categories from services
-        const uniqueCategories = [...new Set(services.map(service => service.category).filter(Boolean))]
-        setCategories(uniqueCategories)
-      }
-    } catch (error) {
-      console.error('Error fetching categories:', error)
-    } finally {
-      setCategoriesLoading(false)
-    }
-  }
+        const response = await fetch(url, {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        })
 
-  // Fetch services
-  const fetchServices = async () => {
-    if (!session?.accessToken) return
-
-    setServicesLoading(true)
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
+        if (response.ok) {
+          const data = await response.json()
+          setServices(data.data || [])
         }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setServices(data.data || [])
+      } catch (error) {
+        console.error('Error fetching services:', error)
+      } finally {
+        setServicesLoading(false)
       }
-    } catch (error) {
-      console.error('Error fetching services:', error)
-    } finally {
-      setServicesLoading(false)
-    }
-  }
+    },
+    [session?.accessToken]
+  )
 
   // Fetch employees
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
     if (!session?.accessToken) return
 
     setEmployeesLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/list/all`, {
         headers: {
           'Content-Type': 'application/json',
           'x-client-type': 'web',
@@ -175,11 +164,10 @@ const AddTaskCard = () => {
     } finally {
       setEmployeesLoading(false)
     }
-  }
+  }, [session?.accessToken])
 
   // Valid status and priority values
   const validStatuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'ON_HOLD']
-  const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 
   // Effect to set pre-selected client if available
   useEffect(() => {
@@ -195,27 +183,22 @@ const AddTaskCard = () => {
   useEffect(() => {
     if (session?.accessToken) {
       fetchClients()
-      fetchCategories()
-      fetchServices()
       fetchEmployees()
     }
-  }, [session?.accessToken])
+  }, [session?.accessToken, fetchClients, fetchEmployees])
 
-  // Available services - filter by selected category
-  const availableServices = useMemo(() => {
-    if (!watchedCategoryId) return []
-    return services.filter(service => service.category === watchedCategoryId)
-  }, [watchedCategoryId, services])
-
-  // Reset serviceId when category changes
+  // Handle category changes and fetch services
   useEffect(() => {
     if (watchedCategoryId) {
-      resetForm({
-        ...watch(),
-        serviceId: ''
-      })
+      // Fetch services for selected category from backend
+      fetchServices(watchedCategoryId)
+      // Reset service selection when category changes
+      setValue('serviceId', '')
+    } else {
+      // Clear services when no category selected
+      setServices([])
     }
-  }, [watchedCategoryId, resetForm, watch])
+  }, [watchedCategoryId, fetchServices, setValue])
 
   const onSubmit = async data => {
     setLoading(true)
@@ -387,24 +370,12 @@ const AddTaskCard = () => {
                     label={`${t('tasks.selectCategory')} *`}
                     {...field}
                     {...(errors.categoryId && { error: true, helperText: errors.categoryId.message })}
-                    InputProps={{
-                      endAdornment: categoriesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
-                    }}
                   >
-                    {categoriesLoading ? (
-                      <MenuItem disabled>
-                        <CircularProgress size={16} sx={{ mr: 1 }} />
-                        {t('tasks.loadingCategories')}
+                    {hardcodedCategories.map(category => (
+                      <MenuItem key={category.value} value={category.value}>
+                        {t(`services.categories.${category.translationKey}`)}
                       </MenuItem>
-                    ) : categories.length === 0 ? (
-                      <MenuItem disabled>{t('tasks.noCategoriesAvailable')}</MenuItem>
-                    ) : (
-                      categories.map(category => (
-                        <MenuItem key={category} value={category}>
-                          {category}
-                        </MenuItem>
-                      ))
-                    )}
+                    ))}
                   </CustomTextField>
                 )}
               />
@@ -432,12 +403,12 @@ const AddTaskCard = () => {
                         <CircularProgress size={16} sx={{ mr: 1 }} />
                         {t('tasks.loadingServices')}
                       </MenuItem>
-                    ) : availableServices.length === 0 ? (
+                    ) : services.length === 0 ? (
                       <MenuItem disabled>
                         {!watchedCategoryId ? t('tasks.selectCategoryFirst') : t('tasks.noServicesAvailable')}
                       </MenuItem>
                     ) : (
-                      availableServices.map(service => (
+                      services.map(service => (
                         <MenuItem key={service.id} value={service.id}>
                           {service.name} - €{service.price}
                         </MenuItem>

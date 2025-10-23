@@ -151,10 +151,10 @@ const InvoiceContainer = ({ initialData }) => {
       // Fetch all data in parallel
       const [bankAccountsResponse, clientsResponse, servicesResponse, employeesResponse, companyInfoResponse] =
         await Promise.all([
-          bankAccountService.getActiveBankAccounts(session.accessToken),
+          bankAccountService.getActiveBankAccounts(session.accessToken, { limit: 1000 }),
           clientService.getClients(session.accessToken),
           serviceService.getServices(session.accessToken, { limit: 1000 }),
-          employeeService.getEmployees(session.accessToken),
+          employeeService.getEmployees(session.accessToken, { limit: 1000 }),
           companyInfoService.getCompanyInfo(session.accessToken)
         ])
 
