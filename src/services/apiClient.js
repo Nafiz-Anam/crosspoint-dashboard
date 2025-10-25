@@ -1,4 +1,5 @@
 import axios from 'axios'
+import authApiClient from './authApiClient'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/v1'
 
@@ -46,26 +47,22 @@ export const createApiClient = token => {
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   config => {
-    // Get token from localStorage or config
-    let token = null
-
-    if (typeof window !== 'undefined') {
-      // First try to get token from localStorage
-      token = localStorage.getItem('token')
-
-      // If no token in localStorage, try to get from session (if available)
-      if (!token && window.sessionStorage) {
-        token = sessionStorage.getItem('accessToken')
-      }
-
-      // If still no token, try to get from global session object
-      if (!token && window.__NEXT_DATA__?.props?.pageProps?.session?.accessToken) {
-        token = window.__NEXT_DATA__.props.pageProps.session.accessToken
-      }
-    }
+    // Use the auth client to get the current token
+    const token = authApiClient.getAccessToken()
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+
+    // Add session ID if available
+    const sessionId = authApiClient.getSessionId()
+    if (sessionId) {
+      config.headers['x-session-id'] = sessionId
+    }
+
+    // Add device info for session tracking
+    if (typeof window !== 'undefined') {
+      config.headers['x-device-info'] = navigator.userAgent
     }
 
     return config
@@ -80,20 +77,34 @@ apiClient.interceptors.response.use(
   response => {
     return response
   },
-  error => {
+  async error => {
     // Handle authentication errors
     if (error.response?.status === 401) {
-      // Clear token and redirect to login
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token')
-        sessionStorage.clear()
-        // Show toast before redirect
-        if (window.toastService) {
-          window.toastService.showError('Your session has expired. Please log in again.')
+      const errorMessage = error.response?.data?.message || 'Your session has expired. Please log in again.'
+
+      // Check if it's a session termination error
+      if (
+        errorMessage.includes('Session expired') ||
+        errorMessage.includes('Another device has logged in') ||
+        errorMessage.includes('Session has been terminated')
+      ) {
+        // Use auth client to handle session termination
+        authApiClient.handleSessionTermination(errorMessage)
+        return Promise.reject(error)
+      } else {
+        // Try to refresh token for regular 401 errors
+        try {
+          const newToken = await authApiClient.refreshAccessToken()
+          if (newToken) {
+            // Retry the original request with new token
+            const originalRequest = error.config
+            originalRequest.headers.Authorization = `Bearer ${newToken}`
+            return apiClient(originalRequest)
+          }
+        } catch (refreshError) {
+          // Refresh failed, redirect to login
+          authApiClient.handleAuthError(error)
         }
-        setTimeout(() => {
-          window.location.href = '/login'
-        }, 2000)
       }
     }
 

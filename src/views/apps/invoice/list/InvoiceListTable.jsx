@@ -100,7 +100,11 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
   // States for Filtering and Search
   const [globalFilter, setGlobalFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [branchFilter, setBranchFilter] = useState('')
+  const [branches, setBranches] = useState([])
+  const [branchesLoading, setBranchesLoading] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
+  const [exportLoading, setExportLoading] = useState(false)
 
   // States for Delete Dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -119,6 +123,133 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
   const { data: session, status: sessionStatus } = useSession()
   const { t } = useTranslation()
 
+  // Function to fetch branches
+  const fetchBranches = useCallback(async () => {
+    if (!session?.accessToken) return
+
+    setBranchesLoading(true)
+    try {
+      // If user is a manager, fetch only their branch details
+      if (session?.user?.role === 'MANAGER' && session?.user?.branchId) {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/${session.user.branchId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const branchData = data.data || data
+          setBranches([branchData])
+        } else {
+          // Fallback to mock data if API fails
+          const managerBranch = {
+            id: session.user.branchId,
+            name: `Branch ${session.user.branchId}`,
+            branchId: session.user.branchId,
+            city: 'Current City'
+          }
+          setBranches([managerBranch])
+        }
+      } else {
+        // For other roles, fetch all active branches
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/active`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setBranches(data.data || [])
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching branches:', error)
+    } finally {
+      setBranchesLoading(false)
+    }
+  }, [session?.accessToken, session?.user?.role, session?.user?.branchId])
+
+  // Function to export invoices to Excel
+  const handleExportInvoices = useCallback(async () => {
+    if (!session?.accessToken) return
+
+    setExportLoading(true)
+    try {
+      const queryParams = new URLSearchParams({
+        export: 'true',
+        sortBy: 'createdAt',
+        sortType: 'desc'
+      })
+
+      if (globalFilter) {
+        queryParams.append('search', globalFilter)
+      }
+
+      if (statusFilter) {
+        queryParams.append('status', statusFilter)
+      }
+
+      if (branchFilter) {
+        queryParams.append('branchId', branchFilter)
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices/export?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+
+        // Generate filename with current date and filters
+        const now = new Date()
+        const dateStr = now.toISOString().split('T')[0]
+        let filename = `invoice-report-${dateStr}`
+
+        if (branchFilter) {
+          const selectedBranch = branches.find(b => b.id === branchFilter)
+          if (selectedBranch) {
+            filename += `-${selectedBranch.name.replace(/\s+/g, '-')}`
+          }
+        }
+
+        if (statusFilter) {
+          filename += `-${statusFilter.toLowerCase()}`
+        }
+
+        filename += '.xlsx'
+
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+      } else {
+        const errorData = await response.json()
+        console.error('Export failed:', errorData)
+        // You can add a toast notification here
+      }
+    } catch (error) {
+      console.error('Error exporting invoices:', error)
+      // You can add a toast notification here
+    } finally {
+      setExportLoading(false)
+    }
+  }, [session?.accessToken, globalFilter, statusFilter, branchFilter, branches])
+
   // Function to fetch invoice data from API with pagination
   const fetchInvoices = async (
     page = 1,
@@ -126,7 +257,8 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
     sortBy = 'createdAt',
     sortType = 'desc',
     limit = 10,
-    status = ''
+    status = '',
+    branch = ''
   ) => {
     console.log('🔄 fetchInvoices called with:', { page, search, sortBy, sortType, limit, status })
     console.log('🔄 Current status:', sessionStatus)
@@ -156,6 +288,10 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
 
       if (status) {
         queryParams.append('status', status)
+      }
+
+      if (branch) {
+        queryParams.append('branchId', branch)
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices?${queryParams.toString()}`, {
@@ -216,7 +352,8 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         'createdAt',
         'desc',
         currentPagination.current.limit,
-        statusFilter || ''
+        statusFilter || '',
+        branchFilter || ''
       )
     },
     [pagination.page, statusFilter]
@@ -228,7 +365,15 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
       const newLimit = parseInt(event.target.value, 10)
       currentPagination.current = { page: 1, limit: newLimit }
       setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))
-      fetchInvoices(1, currentGlobalFilter.current, 'createdAt', 'desc', newLimit, statusFilter || '')
+      fetchInvoices(
+        1,
+        currentGlobalFilter.current,
+        'createdAt',
+        'desc',
+        newLimit,
+        statusFilter || '',
+        branchFilter || ''
+      )
     },
     [statusFilter]
   )
@@ -240,7 +385,15 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
       currentPagination.current = { ...currentPagination.current, page: 1 }
       setGlobalFilter(value)
       setPagination(prev => ({ ...prev, page: 1 }))
-      fetchInvoices(1, value, 'createdAt', 'desc', currentPagination.current.limit, statusFilter || '')
+      fetchInvoices(
+        1,
+        value,
+        'createdAt',
+        'desc',
+        currentPagination.current.limit,
+        statusFilter || '',
+        branchFilter || ''
+      )
     },
     [statusFilter]
   )
@@ -256,7 +409,8 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         sortBy,
         sortType,
         currentPagination.current.limit,
-        statusFilter || ''
+        statusFilter || '',
+        branchFilter || ''
       )
     },
     [statusFilter]
@@ -281,7 +435,8 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         'createdAt',
         'desc',
         currentPagination.current.limit,
-        statusFilter || ''
+        statusFilter || '',
+        branchFilter || ''
       )
       setDeleteDialogOpen(false)
       setInvoiceToDelete(null)
@@ -520,6 +675,13 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
     }
   }, [sessionStatus, session?.accessToken]) // Re-fetch if session status or token changes
 
+  // Effect to fetch branches on component mount
+  useEffect(() => {
+    if (sessionStatus === 'authenticated' && session?.accessToken) {
+      fetchBranches()
+    }
+  }, [sessionStatus, session?.accessToken, fetchBranches])
+
   // Effect to handle status filter changes
   useEffect(() => {
     console.log('🔄 Status filter effect triggered with:', {
@@ -542,9 +704,37 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
       'createdAt',
       'desc',
       currentPagination.current.limit,
-      statusFilter || ''
+      statusFilter || '',
+      branchFilter || ''
     )
   }, [statusFilter])
+
+  // Effect to handle branch filter changes
+  useEffect(() => {
+    console.log('🔄 Branch filter effect triggered with:', {
+      branchFilter,
+      hasInitiallyFetched: hasInitiallyFetched.current
+    })
+
+    // Only run if we have fetched data at least once
+    if (!hasInitiallyFetched.current) {
+      console.log('🔄 Branch filter effect: Skipping because not initially fetched yet')
+      return
+    }
+
+    console.log('🔄 Branch filter changed to:', branchFilter)
+    currentPagination.current = { ...currentPagination.current, page: 1 }
+    setPagination(prev => ({ ...prev, page: 1 }))
+    fetchInvoices(
+      1,
+      currentGlobalFilter.current,
+      'createdAt',
+      'desc',
+      currentPagination.current.limit,
+      statusFilter || '',
+      branchFilter || ''
+    )
+  }, [branchFilter])
 
   console.log('🔄 Table data (invoices):', invoices)
   console.log('🔄 Pagination state:', pagination)
@@ -626,6 +816,25 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
           </CustomTextField>
 
           <CustomTextField
+            select
+            label={t('invoices.fields.branch')}
+            value={branchFilter}
+            onChange={e => {
+              console.log('🔄 Branch filter changed to:', e.target.value)
+              setBranchFilter(e.target.value)
+            }}
+            className='min-w-[180px]'
+            disabled={branchesLoading}
+          >
+            <MenuItem value=''>{t('invoices.allBranches')}</MenuItem>
+            {branches.map(branch => (
+              <MenuItem key={branch.id} value={branch.id}>
+                {branch.name} ({branch.city})
+              </MenuItem>
+            ))}
+          </CustomTextField>
+
+          <CustomTextField
             value={globalFilter ?? ''}
             onChange={e => {
               const value = e.target.value
@@ -641,6 +850,16 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
             placeholder={t('invoices.searchInvoice')}
             className='min-w-[200px]'
           />
+
+          <Button
+            variant='outlined'
+            startIcon={<i className='tabler-file-export' />}
+            onClick={handleExportInvoices}
+            disabled={exportLoading || invoices.length === 0}
+            className='h-[40px]'
+          >
+            {exportLoading ? t('invoices.exporting') : t('invoices.exportExcel')}
+          </Button>
 
           <Button
             variant='contained'

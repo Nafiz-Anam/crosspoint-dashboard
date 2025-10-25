@@ -69,6 +69,17 @@ const EditTaskCard = ({ taskId }) => {
   const watchedCategoryId = watch('categoryId')
   const watchedServiceId = watch('serviceId')
 
+  // Debug form values
+  useEffect(() => {
+    console.log('Form values:', {
+      clientId: watchedClientId,
+      categoryId: watchedCategoryId,
+      serviceId: watchedServiceId,
+      assignedEmployeeId: watch('assignedEmployeeId'),
+      status: watch('status')
+    })
+  }, [watchedClientId, watchedCategoryId, watchedServiceId, watch])
+
   // Fetch task data
   const fetchTaskData = async () => {
     if (!session?.accessToken || !taskId) return
@@ -216,37 +227,60 @@ const EditTaskCard = ({ taskId }) => {
     }
   }, [session?.accessToken, taskId])
 
-  // Populate form when task data and services are loaded
+  // Populate form when task data and all required data are loaded
   useEffect(() => {
-    if (taskData && services.length > 0) {
-      resetForm({
+    if (taskData && services.length > 0 && clients.length > 0 && employees.length > 0) {
+      console.log('Task data:', taskData)
+      console.log('Services:', services)
+      console.log('Clients:', clients)
+      console.log('Employees:', employees)
+
+      // Get the category from the service
+      const taskService = services.find(service => service.id === taskData.serviceId)
+      const categoryFromService = taskService?.category || ''
+
+      console.log('Task service:', taskService)
+      console.log('Category from service:', categoryFromService)
+
+      const formData = {
         description: taskData.description || '',
         clientId: taskData.clientId || '',
-        categoryId: taskData.service?.category || '', // Get category from service
+        categoryId: categoryFromService,
         serviceId: taskData.serviceId || '',
         assignedEmployeeId: taskData.assignedEmployeeId || '',
         status: taskData.status || 'PENDING',
         dueDate: taskData.dueDate ? new Date(taskData.dueDate).toISOString().split('T')[0] : '',
         startDate: taskData.startDate ? new Date(taskData.startDate).toISOString().split('T')[0] : ''
-      })
+      }
+
+      console.log('Setting form data:', formData)
+      resetForm(formData)
     }
-  }, [taskData, services, resetForm])
+  }, [taskData, services, clients, employees, resetForm])
 
   // Available services - filter by selected category
   const availableServices = useMemo(() => {
-    if (!watchedCategoryId) return []
+    if (!watchedCategoryId) {
+      // If no category selected, show all services
+      return services
+    }
+    // Filter services by category
     return services.filter(service => service.category === watchedCategoryId)
   }, [watchedCategoryId, services])
 
-  // Reset serviceId when category changes (only if category actually changed)
+  // Reset serviceId when category changes (only if category actually changed and not during initial load)
   useEffect(() => {
-    if (watchedCategoryId && taskData?.service?.category !== watchedCategoryId) {
-      resetForm({
-        ...watch(),
-        serviceId: ''
-      })
+    if (watchedCategoryId && taskData?.service?.category !== watchedCategoryId && taskData) {
+      // Only reset if the current service is not in the filtered services
+      const currentService = services.find(service => service.id === watch('serviceId'))
+      if (currentService && currentService.category !== watchedCategoryId) {
+        resetForm({
+          ...watch(),
+          serviceId: ''
+        })
+      }
     }
-  }, [watchedCategoryId, resetForm, watch, taskData])
+  }, [watchedCategoryId, resetForm, watch, taskData, services])
 
   const onSubmit = async data => {
     setLoading(true)
@@ -297,13 +331,13 @@ const EditTaskCard = ({ taskId }) => {
     }
   }
 
-  if (fetchLoading) {
+  if (fetchLoading || clientsLoading || categoriesLoading || servicesLoading || employeesLoading) {
     return (
       <Card>
         <CardContent>
           <div className='flex justify-center items-center p-6'>
             <CircularProgress />
-            <span className='ml-4'>Loading task data...</span>
+            <span className='ml-4'>Loading task data and form options...</span>
           </div>
         </CardContent>
       </Card>
@@ -320,10 +354,39 @@ const EditTaskCard = ({ taskId }) => {
     )
   }
 
+  // Check if form is ready (all data loaded and form populated)
+  const isFormReady = taskData && services.length > 0 && clients.length > 0 && employees.length > 0
+
+  if (!isFormReady) {
+    return (
+      <Card>
+        <CardContent>
+          <div className='flex justify-center items-center p-6'>
+            <CircularProgress />
+            <span className='ml-4'>Preparing form...</span>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card>
       <CardHeader title={`Edit Task: ${taskData.title}`} />
       <CardContent>
+        {/* Debug Panel - Remove this in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <Alert severity='info' sx={{ mb: 2 }}>
+            <Typography variant='body2'>
+              <strong>Debug Info:</strong>
+              <br />
+              Client ID: {watch('clientId')} | Category: {watch('categoryId')} | Service ID: {watch('serviceId')} |
+              Employee ID: {watch('assignedEmployeeId')}
+              <br />
+              Available Services: {availableServices.length} | Clients: {clients.length} | Employees: {employees.length}
+            </Typography>
+          </Alert>
+        )}
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={6}>
             <Grid item xs={12} md={6}>
@@ -411,7 +474,7 @@ const EditTaskCard = ({ taskId }) => {
                     InputProps={{
                       endAdornment: servicesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
                     }}
-                    disabled={!watchedCategoryId}
+                    disabled={false}
                   >
                     {servicesLoading ? (
                       <MenuItem disabled>
@@ -420,9 +483,7 @@ const EditTaskCard = ({ taskId }) => {
                       </MenuItem>
                     ) : availableServices.length === 0 ? (
                       <MenuItem disabled>
-                        {!watchedCategoryId
-                          ? 'Please select a category first'
-                          : 'No services available for this category'}
+                        {watchedCategoryId ? 'No services available for this category' : 'No services available'}
                       </MenuItem>
                     ) : (
                       availableServices.map(service => (
