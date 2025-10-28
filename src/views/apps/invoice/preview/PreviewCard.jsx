@@ -190,7 +190,7 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                     </div>
                     <div className='flex items-center gap-4'>
                       <Typography className='min-is-[100px]'>{t('invoices.totalDue')}</Typography>
-                      <Typography className='font-medium'>${calculateFinalTotal().toFixed(2)}</Typography>
+                      <Typography className='font-medium'>€{calculateFinalTotal().toFixed(2)}</Typography>
                     </div>
                     {bankDetails && (
                       <>
@@ -198,18 +198,30 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                           <Typography className='min-is-[100px]'>{t('invoices.bankName')}</Typography>
                           <Typography>{bankDetails.bankName}</Typography>
                         </div>
-                        <div className='flex items-center gap-4'>
-                          <Typography className='min-is-[100px]'>{t('invoices.country')}</Typography>
-                          <Typography>{bankDetails.bankCountry}</Typography>
-                        </div>
-                        <div className='flex items-center gap-4'>
-                          <Typography className='min-is-[100px]'>{t('invoices.iban')}</Typography>
-                          <Typography>{bankDetails.bankIban || 'N/A'}</Typography>
-                        </div>
-                        <div className='flex items-center gap-4'>
-                          <Typography className='min-is-[100px]'>{t('invoices.swiftCode')}</Typography>
-                          <Typography>{bankDetails.bankSwiftCode || 'N/A'}</Typography>
-                        </div>
+                        {bankDetails.accountName && (
+                          <div className='flex items-center gap-4'>
+                            <Typography className='min-is-[100px]'>Account Name:</Typography>
+                            <Typography>{bankDetails.accountName}</Typography>
+                          </div>
+                        )}
+                        {bankDetails.accountNumber && (
+                          <div className='flex items-center gap-4'>
+                            <Typography className='min-is-[100px]'>Account Number:</Typography>
+                            <Typography>{bankDetails.accountNumber}</Typography>
+                          </div>
+                        )}
+                        {bankDetails.bankIban && (
+                          <div className='flex items-center gap-4'>
+                            <Typography className='min-is-[100px]'>{t('invoices.iban')}</Typography>
+                            <Typography>{bankDetails.bankIban}</Typography>
+                          </div>
+                        )}
+                        {bankDetails.bankSwiftCode && (
+                          <div className='flex items-center gap-4'>
+                            <Typography className='min-is-[100px]'>{t('invoices.swiftCode')}</Typography>
+                            <Typography>{bankDetails.bankSwiftCode}</Typography>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -243,14 +255,14 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                         <Typography color='text.primary'>{item.description || ''}</Typography>
                       </td>
                       <td>
-                        <Typography color='text.primary'>${item.rate || 0}</Typography>
+                        <Typography color='text.primary'>€{item.rate || 0}</Typography>
                       </td>
                       <td>
                         <Typography color='text.primary'>{item.discount || 0}%</Typography>
                       </td>
                       <td>
                         <Typography color='text.primary'>
-                          ${item.total || calculateItemTotal(item).toFixed(2)}
+                          €{item.total || calculateItemTotal(item).toFixed(2)}
                         </Typography>
                       </td>
                     </tr>
@@ -300,13 +312,13 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                 <div className='flex items-center justify-between'>
                   <Typography>{t('invoices.subtotalLabel')}</Typography>
                   <Typography className='font-medium' color='text.primary'>
-                    ${calculateSubtotal().toFixed(2)}
+                    €{calculateSubtotal().toFixed(2)}
                   </Typography>
                 </div>
                 <div className='flex items-center justify-between'>
                   <Typography>{t('invoices.discountLabel')}</Typography>
                   <Typography className='font-medium' color='text.primary'>
-                    ${calculateTotalDiscount().toFixed(2)}
+                    €{calculateTotalDiscount().toFixed(2)}
                   </Typography>
                 </div>
                 <div className='flex items-center justify-between'>
@@ -314,14 +326,14 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                     {t('invoices.taxLabel')} ({invoice?.taxRate || 0}%):
                   </Typography>
                   <Typography className='font-medium' color='text.primary'>
-                    ${calculateTax().toFixed(2)}
+                    €{calculateTax().toFixed(2)}
                   </Typography>
                 </div>
                 <Divider className='mlb-2' />
                 <div className='flex items-center justify-between'>
                   <Typography className='font-medium'>{t('invoices.totalLabel')}</Typography>
                   <Typography className='font-medium' color='text.primary'>
-                    ${calculateFinalTotal().toFixed(2)}
+                    €{calculateFinalTotal().toFixed(2)}
                   </Typography>
                 </div>
               </div>

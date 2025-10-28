@@ -612,26 +612,26 @@ const AddActions = ({
                 <div className='space-y-2'>
                   <div className='flex justify-between text-sm'>
                     <span>{t('invoices.subtotalLabel')}</span>
-                    <span>${calculateInvoiceTotal().toFixed(2)}</span>
+                    <span>€{calculateInvoiceTotal().toFixed(2)}</span>
                   </div>
                   {(taxRate || 0) > 0 && (
                     <div className='flex justify-between text-sm'>
                       <span>
                         {t('invoices.taxLabel')} ({taxRate}%):
                       </span>
-                      <span>${calculateTax().toFixed(2)}</span>
+                      <span>€{calculateTax().toFixed(2)}</span>
                     </div>
                   )}
                   {discountAmount > 0 && (
                     <div className='flex justify-between text-sm'>
                       <span>{t('invoices.discountLabel')}</span>
-                      <span>-${discountAmount.toFixed(2)}</span>
+                      <span>-€{discountAmount.toFixed(2)}</span>
                     </div>
                   )}
                   <Divider className='my-2' />
                   <div className='flex justify-between font-medium text-base'>
                     <span>{t('invoices.totalLabel')}</span>
-                    <span>${calculateFinalTotal().toFixed(2)}</span>
+                    <span>€{calculateFinalTotal().toFixed(2)}</span>
                   </div>
                 </div>
               </div>

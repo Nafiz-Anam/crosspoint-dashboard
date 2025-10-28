@@ -26,7 +26,7 @@ import CustomTextField from '@core/components/mui/TextField'
 // Services
 import toastService from '@/services/toastService'
 
-const EditTaskCard = ({ taskId }) => {
+const EditTaskCard = ({ taskId, onTaskUpdated }) => {
   // States
   const [loading, setLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(true)
@@ -104,7 +104,7 @@ const EditTaskCard = ({ taskId }) => {
 
     setClientsLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/list/all`, {
         headers: {
           'Content-Type': 'application/json',
           'x-client-type': 'web',
@@ -114,7 +114,7 @@ const EditTaskCard = ({ taskId }) => {
 
       if (response.ok) {
         const data = await response.json()
-        setClients(data.data?.clients || data.data || [])
+        setClients(data.data || [])
       }
     } catch (error) {
       console.error('Error fetching clients:', error)
@@ -129,7 +129,7 @@ const EditTaskCard = ({ taskId }) => {
 
     setCategoriesLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services/list/all`, {
         headers: {
           'Content-Type': 'application/json',
           'x-client-type': 'web',
@@ -157,7 +157,7 @@ const EditTaskCard = ({ taskId }) => {
 
     setServicesLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services/list/all`, {
         headers: {
           'Content-Type': 'application/json',
           'x-client-type': 'web',
@@ -182,7 +182,7 @@ const EditTaskCard = ({ taskId }) => {
 
     setEmployeesLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/list/all`, {
         headers: {
           'Content-Type': 'application/json',
           'x-client-type': 'web',
@@ -282,10 +282,10 @@ const EditTaskCard = ({ taskId }) => {
 
       if (response.ok) {
         toastService.showSuccess('Task updated successfully!')
-        // Redirect to task list after successful update
-        setTimeout(() => {
-          router.push('/apps/task/list')
-        }, 2000)
+        // Call parent callback to refresh task list
+        if (onTaskUpdated) {
+          onTaskUpdated(responseData.data)
+        }
       } else {
         const errorMessage = responseData.message || `Failed to update task: ${response.status}`
         await toastService.handleApiError(response, errorMessage)
@@ -558,7 +558,7 @@ const EditTaskCard = ({ taskId }) => {
                   variant='tonal'
                   color='secondary'
                   type='button'
-                  onClick={() => router.push('/apps/task/list')}
+                  onClick={() => onTaskUpdated && onTaskUpdated(null)}
                   disabled={loading}
                 >
                   Cancel

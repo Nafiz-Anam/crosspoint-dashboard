@@ -409,6 +409,13 @@
       "branch": "Filiale",
       "bankAccount": "Conto Bancario"
     },
+    "allBranches": "Tutte le Filiali",
+    "status": {
+      "paid": "Pagata",
+      "pending": "In Attesa",
+      "overdue": "Scaduta",
+      "draft": "Bozza"
+    },
     "invoiceActions": "Azioni Fattura",
     "preview": "Anteprima",
     "save": "Salva",
@@ -420,6 +427,8 @@
     "downloading": "Download in corso...",
     "print": "Stampa",
     "edit": "Modifica",
+    "exportReport": "Esporta Report",
+    "exporting": "Esportazione in corso...",
     "invoiceCreatedSuccessfully": "Fattura creata con successo! Fattura #",
     "invoiceUpdatedSuccessfully": "Fattura aggiornata con successo! Fattura #",
     "pleaseSelectClient": "Seleziona un cliente per continuare",

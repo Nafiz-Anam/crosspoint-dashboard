@@ -23,6 +23,25 @@ class EmployeeService {
     }
   }
 
+  // Get all employees for dropdown (no pagination)
+  async getAllEmployees(token = null) {
+    try {
+      const response = await fetch(`${this.baseURL}/list/all`, {
+        method: 'GET',
+        headers: this.getHeaders(token)
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching all employees:', error)
+      throw error
+    }
+  }
+
   // Get all employees with filters
   async getEmployees(token = null, params = {}) {
     try {

@@ -26,7 +26,7 @@ const InvoiceStatsCard = ({ stats }) => {
     },
     {
       title: 'Total Amount',
-      value: `$${(stats.totalAmount || 0).toLocaleString()}`,
+      value: `€${(stats.totalAmount || 0).toLocaleString()}`,
       icon: 'tabler-currency-dollar',
       color: 'success',
       change: null
@@ -54,7 +54,7 @@ const InvoiceStatsCard = ({ stats }) => {
     },
     {
       title: 'Tax Amount',
-      value: `$${(stats.taxAmount || 0).toLocaleString()}`,
+      value: `€${(stats.taxAmount || 0).toLocaleString()}`,
       icon: 'tabler-percentage',
       color: 'info',
       change: null

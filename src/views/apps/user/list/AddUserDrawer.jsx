@@ -65,6 +65,7 @@ const AddEmployeeDrawer = props => {
       email: '',
       password: '',
       name: '',
+      phone: '',
       nationalIdentificationNumber: '',
       dateOfBirth: '',
       role: 'EMPLOYEE',
@@ -187,6 +188,7 @@ const AddEmployeeDrawer = props => {
           email: currentEmployee.email || '',
           password: '', // Password should never be pre-filled for security
           name: currentEmployee.name || '',
+          phone: currentEmployee.phone || '',
           nationalIdentificationNumber: currentEmployee.nationalIdentificationNumber || '',
           dateOfBirth: currentEmployee.dateOfBirth
             ? new Date(currentEmployee.dateOfBirth).toISOString().split('T')[0]
@@ -203,6 +205,7 @@ const AddEmployeeDrawer = props => {
         email: '',
         password: '',
         name: '',
+        phone: '',
         nationalIdentificationNumber: '',
         dateOfBirth: '',
         role: 'EMPLOYEE',
@@ -231,6 +234,7 @@ const AddEmployeeDrawer = props => {
 
     const payload = {
       name: data.name || null,
+      phone: data.phone,
       nationalIdentificationNumber: data.nationalIdentificationNumber,
       dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString() : null,
       branchId: data.branchId || null,
@@ -291,6 +295,7 @@ const AddEmployeeDrawer = props => {
       email: currentEmployee?.email || '',
       password: '',
       name: '',
+      phone: currentEmployee?.phone || '',
       nationalIdentificationNumber: '',
       dateOfBirth: '',
       role: 'EMPLOYEE',
@@ -338,6 +343,29 @@ const AddEmployeeDrawer = props => {
                 required
                 error={!!errors.name}
                 helperText={errors.name?.message}
+              />
+            )}
+          />
+
+          {/* Phone */}
+          <Controller
+            name='phone'
+            control={control}
+            rules={{
+              required: t('employees.phoneRequired'),
+              minLength: { value: 7, message: t('employees.phoneMinLength') },
+              maxLength: { value: 20, message: t('employees.phoneMaxLength') }
+            }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                type='tel'
+                label={t('employees.fields.phone')}
+                placeholder={t('employees.enterPhone')}
+                required
+                error={!!errors.phone}
+                helperText={errors.phone?.message}
               />
             )}
           />

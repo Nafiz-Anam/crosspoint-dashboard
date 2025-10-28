@@ -79,7 +79,7 @@ const invoiceStatusObj = {
 // Column Definitions
 const columnHelper = createColumnHelper()
 
-const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filters }) => {
+const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filters, branches = [], branchesLoading = false }) => {
   console.log('🔄 InvoiceListTable component rendered')
 
   // States for Table Data and API Operations
@@ -100,12 +100,14 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
   // States for Filtering and Search
   const [globalFilter, setGlobalFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [branchFilter, setBranchFilter] = useState('')
   const [rowSelection, setRowSelection] = useState({})
 
   // States for Delete Dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [invoiceToDelete, setInvoiceToDelete] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [exportLoading, setExportLoading] = useState(false)
 
   // Ref to track if initial fetch has been made
   const hasInitiallyFetched = useRef(false)
@@ -292,6 +294,77 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
     }
   }
 
+  // Export handler
+  const handleExportReport = useCallback(async () => {
+    try {
+      setExportLoading(true)
+      
+      // Build query parameters based on current filters
+      const queryParams = new URLSearchParams()
+      
+      if (statusFilter) {
+        queryParams.append('status', statusFilter)
+      }
+      
+      if (branchFilter) {
+        queryParams.append('branchId', branchFilter)
+      }
+      
+      if (globalFilter) {
+        queryParams.append('search', globalFilter)
+      }
+      
+      // Add format parameter
+      queryParams.append('format', 'excel')
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/invoices/export-revenue-report?${queryParams.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.status}`)
+      }
+
+      // Get the blob from response
+      const blob = await response.blob()
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      
+      // Get filename from response headers or use default
+      const contentDisposition = response.headers.get('Content-Disposition')
+      let filename = 'revenue-report.xlsx'
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/)
+        if (filenameMatch) {
+          filename = filenameMatch[1]
+        }
+      }
+      
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      
+    } catch (error) {
+      console.error('Error exporting report:', error)
+      // You can add a toast notification here if you have a toast service
+    } finally {
+      setExportLoading(false)
+    }
+  }, [statusFilter, branchFilter, globalFilter, session?.accessToken])
+
   const columns = useMemo(
     () => [
       // {
@@ -387,7 +460,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
       }),
       columnHelper.accessor('totalAmount', {
         header: t('invoices.fields.amount'),
-        cell: ({ row }) => <Typography>{`$${row.original.totalAmount?.toLocaleString() || '0'}`}</Typography>,
+        cell: ({ row }) => <Typography>{`€${row.original.totalAmount?.toLocaleString() || '0'}`}</Typography>,
         enableSorting: true
       }),
       columnHelper.accessor('issuedDate', {
@@ -626,6 +699,26 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
           </CustomTextField>
 
           <CustomTextField
+            select
+            label={t('invoices.fields.branch')}
+            value={branchFilter}
+            onChange={e => {
+              console.log('🔄 Branch filter changed to:', e.target.value)
+              setBranchFilter(e.target.value)
+              onFilterChange({ branchId: e.target.value })
+            }}
+            className='min-w-[180px]'
+            disabled={branchesLoading}
+          >
+            <MenuItem value=''>{t('invoices.allBranches')}</MenuItem>
+            {branches.map(branch => (
+              <MenuItem key={branch.id} value={branch.id}>
+                {branch.name}
+              </MenuItem>
+            ))}
+          </CustomTextField>
+
+          <CustomTextField
             value={globalFilter ?? ''}
             onChange={e => {
               const value = e.target.value
@@ -650,6 +743,16 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
             className='ml-auto h-[40px]'
           >
             {t('invoices.createInvoice')}
+          </Button>
+
+          <Button
+            variant='outlined'
+            startIcon={<i className='tabler-file-export' />}
+            onClick={handleExportReport}
+            disabled={exportLoading}
+            className='ml-2 h-[40px]'
+          >
+            {exportLoading ? t('invoices.exporting') : t('invoices.exportReport')}
           </Button>
         </div>
         <div className='overflow-x-auto'>

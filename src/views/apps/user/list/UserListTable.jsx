@@ -120,6 +120,7 @@ const EmployeeListTable = () => {
   const [globalFilter, setGlobalFilter] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [branchFilter, setBranchFilter] = useState('')
 
   // Corrected: Initialize rowSelection state
   const [rowSelection, setRowSelection] = useState({}) // <--- Added this line
@@ -149,9 +150,10 @@ const EmployeeListTable = () => {
     sortType = 'desc',
     limit = 10,
     role = '',
-    status = ''
+    status = '',
+    branch = ''
   ) => {
-    console.log('🔄 fetchEmployees called with:', { page, search, sortBy, sortType, limit, role, status })
+    console.log('🔄 fetchEmployees called with:', { page, search, sortBy, sortType, limit, role, status, branch })
     console.log('🔄 Current status:', sessionStatus)
     console.log('🔄 Has initially fetched:', hasInitiallyFetched.current)
 
@@ -183,6 +185,10 @@ const EmployeeListTable = () => {
 
       if (status) {
         queryParams.append('isActive', status)
+      }
+
+      if (branch) {
+        queryParams.append('branchId', branch)
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees?${queryParams.toString()}`, {
@@ -236,10 +242,11 @@ const EmployeeListTable = () => {
         'desc',
         currentPagination.current.limit,
         roleFilter,
-        statusFilter
+        statusFilter,
+        branchFilter
       )
     },
-    [pagination.page, roleFilter, statusFilter]
+    [pagination.page, roleFilter, statusFilter, branchFilter]
   )
 
   const handleRowsPerPageChange = useCallback(
@@ -248,9 +255,9 @@ const EmployeeListTable = () => {
       const newLimit = parseInt(event.target.value, 10)
       currentPagination.current = { page: 1, limit: newLimit }
       setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))
-      fetchEmployees(1, currentGlobalFilter.current, 'createdAt', 'desc', newLimit, roleFilter, statusFilter)
+      fetchEmployees(1, currentGlobalFilter.current, 'createdAt', 'desc', newLimit, roleFilter, statusFilter, branchFilter)
     },
-    [roleFilter, statusFilter]
+    [roleFilter, statusFilter, branchFilter]
   )
 
   const handleSearch = useCallback(
@@ -260,9 +267,9 @@ const EmployeeListTable = () => {
       currentPagination.current = { ...currentPagination.current, page: 1 }
       setGlobalFilter(value)
       setPagination(prev => ({ ...prev, page: 1 }))
-      fetchEmployees(1, value, 'createdAt', 'desc', currentPagination.current.limit, roleFilter, statusFilter)
+      fetchEmployees(1, value, 'createdAt', 'desc', currentPagination.current.limit, roleFilter, statusFilter, branchFilter)
     },
-    [roleFilter, statusFilter]
+    [roleFilter, statusFilter, branchFilter]
   )
 
   const handleSort = useCallback(
@@ -277,10 +284,11 @@ const EmployeeListTable = () => {
         sortType,
         currentPagination.current.limit,
         roleFilter,
-        statusFilter
+        statusFilter,
+        branchFilter
       )
     },
-    [roleFilter, statusFilter]
+    [roleFilter, statusFilter, branchFilter]
   )
 
   // Effect to fetch data on component mount or when session/token changes
@@ -290,7 +298,7 @@ const EmployeeListTable = () => {
     if (sessionStatus === 'authenticated' && !hasInitiallyFetched.current) {
       console.log('🔄 Making initial fetch...')
       hasInitiallyFetched.current = true
-      fetchEmployees(1, '', 'createdAt', 'desc', 10, '', '')
+      fetchEmployees(1, '', 'createdAt', 'desc', 10, '', '', '')
     } else if (sessionStatus === 'unauthenticated') {
       console.log('🔄 User not authenticated')
       setFetchError('Not authenticated')
@@ -323,7 +331,8 @@ const EmployeeListTable = () => {
       'desc',
       currentPagination.current.limit,
       roleFilter || '',
-      statusFilter || ''
+      statusFilter || '',
+      branchFilter || ''
     )
   }, [roleFilter])
 
@@ -344,12 +353,36 @@ const EmployeeListTable = () => {
       'desc',
       currentPagination.current.limit,
       roleFilter || '',
-      statusFilter || ''
+      statusFilter || '',
+      branchFilter || ''
     )
   }, [statusFilter])
 
-  // Derive unique roles for filter dropdowns from the fetched data
+  // Effect to handle branch filter changes
+  useEffect(() => {
+    // Only run if we have fetched data at least once
+    if (!hasInitiallyFetched.current) {
+      return
+    }
+
+    console.log('🔄 Branch filter changed to:', branchFilter)
+    currentPagination.current = { ...currentPagination.current, page: 1 }
+    setPagination(prev => ({ ...prev, page: 1 }))
+    fetchEmployees(
+      1,
+      currentGlobalFilter.current,
+      'createdAt',
+      'desc',
+      currentPagination.current.limit,
+      roleFilter || '',
+      statusFilter || '',
+      branchFilter || ''
+    )
+  }, [branchFilter])
+
+  // Derive unique roles and branches for filter dropdowns from the fetched data
   const roles = useMemo(() => Array.from(new Set(employees.map(item => item.role))), [employees])
+  const branches = useMemo(() => Array.from(new Set(employees.map(item => item.branch?.name).filter(Boolean))), [employees])
 
   // Handle delete click
   const handleDeleteClick = useCallback(employee => {
@@ -381,7 +414,8 @@ const EmployeeListTable = () => {
           'desc',
           currentPagination.current.limit,
           roleFilter,
-          statusFilter
+          statusFilter,
+          branchFilter
         )
         setDeleteDialogOpen(false)
         setEmployeeToDelete(null)
@@ -393,7 +427,7 @@ const EmployeeListTable = () => {
     } finally {
       setDeleteLoading(false)
     }
-  }, [employeeToDelete, currentPagination.current.page, currentGlobalFilter.current, roleFilter, statusFilter])
+  }, [employeeToDelete, currentPagination.current.page, currentGlobalFilter.current, roleFilter, statusFilter, branchFilter])
 
   // Function to open drawer for editing
   const handleEditClick = useCallback(employee => {
@@ -521,15 +555,6 @@ const EmployeeListTable = () => {
               iconClassName='text-textSecondary'
               options={[
                 {
-                  text: t('employees.view'),
-                  icon: 'tabler-eye',
-                  menuItemProps: {
-                    component: Link,
-                    href: getLocalizedUrl(`/pages/account-settings?userId=${row.original.id}`, locale),
-                    className: 'flex items-center gap-2 text-textSecondary'
-                  }
-                },
-                {
                   text: 'Download Report',
                   icon: 'tabler-file-download',
                   menuItemProps: {
@@ -629,6 +654,22 @@ const EmployeeListTable = () => {
             <MenuItem value=''>{t('employees.all')}</MenuItem>
             <MenuItem value='true'>{t('employees.status.active')}</MenuItem>
             <MenuItem value='false'>{t('employees.status.inactive')}</MenuItem>
+          </CustomTextField>
+
+          {/* Branch Filter */}
+          <CustomTextField
+            select
+            label={t('employees.fields.branch')}
+            value={branchFilter}
+            onChange={e => setBranchFilter(e.target.value)}
+            className='min-w-[180px]'
+          >
+            <MenuItem value=''>{t('employees.all')}</MenuItem>
+            {branches.map(branch => (
+              <MenuItem key={branch} value={branch}>
+                {branch}
+              </MenuItem>
+            ))}
           </CustomTextField>
 
           <CustomTextField

@@ -23,6 +23,9 @@ import { attendanceService } from '@/services/attendanceService'
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
 
+// Utils
+import { toItalianTime, formatItalianTime } from '@/utils/timezone'
+
 const ClockInOutCard = () => {
   const { data: session } = useSession()
   const { t } = useTranslation()
@@ -45,7 +48,7 @@ const ClockInOutCard = () => {
         setAttendanceData(response.data)
         setIsClockedIn(!!response.data.checkIn && !response.data.checkOut)
         if (response.data.checkIn) {
-          setClockInTime(new Date(response.data.checkIn))
+          setClockInTime(toItalianTime(new Date(response.data.checkIn)))
         }
       }
     } catch (err) {
@@ -81,7 +84,7 @@ const ClockInOutCard = () => {
         const response = await attendanceService.checkIn(session.accessToken)
         if (response.success) {
           setIsClockedIn(true)
-          setClockInTime(new Date(response.data.checkIn))
+          setClockInTime(toItalianTime(new Date(response.data.checkIn)))
           setAttendanceData(response.data)
         }
       } catch (err) {
@@ -126,7 +129,7 @@ const ClockInOutCard = () => {
 
   const formatTime = date => {
     if (!date) return ''
-    return date.toLocaleTimeString('en-US', {
+    return formatItalianTime(date, {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true

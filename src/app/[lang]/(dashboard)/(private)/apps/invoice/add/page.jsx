@@ -151,10 +151,10 @@ const InvoiceContainer = ({ initialData }) => {
       // Fetch all data in parallel
       const [bankAccountsResponse, clientsResponse, servicesResponse, employeesResponse, companyInfoResponse] =
         await Promise.all([
-          bankAccountService.getActiveBankAccounts(session.accessToken, { limit: 1000 }),
-          clientService.getClients(session.accessToken),
-          serviceService.getServices(session.accessToken, { limit: 1000 }),
-          employeeService.getEmployees(session.accessToken, { limit: 1000 }),
+          bankAccountService.getActiveBankAccounts(session.accessToken),
+          clientService.getAllClients(session.accessToken),
+          serviceService.getAllServices(session.accessToken),
+          employeeService.getAllEmployees(session.accessToken),
           companyInfoService.getCompanyInfo(session.accessToken)
         ])
 
@@ -205,7 +205,8 @@ const InvoiceContainer = ({ initialData }) => {
         if (selectedAccount) {
           newState.bankDetails = {
             bankName: selectedAccount.bankName,
-            country: selectedAccount.bankCountry,
+            accountName: selectedAccount.accountName,
+            accountNumber: selectedAccount.accountNumber,
             iban: selectedAccount.bankIban,
             swiftCode: selectedAccount.bankSwiftCode
           }

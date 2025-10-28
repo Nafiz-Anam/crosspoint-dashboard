@@ -13,6 +13,7 @@ import MenuItem from '@mui/material/MenuItem'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 import Chip from '@mui/material/Chip'
+import Tooltip from '@mui/material/Tooltip'
 import classnames from 'classnames'
 import OptionMenu from '@core/components/option-menu'
 import { rankItem } from '@tanstack/match-sorter-utils' // Added missing import
@@ -414,25 +415,91 @@ const ClientListTable = () => {
           const address = row.original.address
           const city = row.original.city
           const postalCode = row.original.postalCode
+          
           if (!address && !city && !postalCode) return <Typography>-</Typography>
+          
+          // Combine full address for tooltip
+          const fullAddress = [address, city, postalCode].filter(Boolean).join(', ')
+          
+          // Truncate address to 30 characters for display
+          const truncatedAddress = address && address.length > 30 
+            ? `${address.substring(0, 30)}...` 
+            : address
+          
           return (
-            <div className='flex flex-col'>
-              {address && (
-                <Typography variant='body2' color='text.primary'>
-                  {address}
-                </Typography>
-              )}
-              {(city || postalCode) && (
-                <Typography variant='caption' color='text.secondary'>
-                  {city}
-                  {city && postalCode ? ', ' : ''}
-                  {postalCode}
-                </Typography>
-              )}
-            </div>
+            <Tooltip
+              title={
+                <div style={{ 
+                  maxWidth: '300px', 
+                  whiteSpace: 'pre-wrap', 
+                  wordBreak: 'break-word',
+                  lineHeight: '1.4'
+                }}>
+                  {fullAddress}
+                </div>
+              }
+              placement="top"
+              arrow
+              slotProps={{
+                tooltip: {
+                  sx: {
+                    maxWidth: '300px',
+                    fontSize: '0.875rem',
+                    padding: '8px 12px',
+                    backgroundColor: 'rgba(97, 97, 97, 0.9)',
+                    '& .MuiTooltip-arrow': {
+                      color: 'rgba(97, 97, 97, 0.9)',
+                    },
+                  },
+                },
+              }}
+            >
+              <div 
+                className='flex flex-col max-w-[200px] cursor-help'
+                style={{
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
+                {address && (
+                  <Typography 
+                    variant='body2' 
+                    color='text.primary'
+                    className='truncate'
+                    sx={{
+                      maxWidth: '200px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {truncatedAddress}
+                  </Typography>
+                )}
+                {(city || postalCode) && (
+                  <Typography 
+                    variant='caption' 
+                    color='text.secondary'
+                    className='truncate'
+                    sx={{
+                      maxWidth: '200px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {city}
+                    {city && postalCode ? ', ' : ''}
+                    {postalCode}
+                  </Typography>
+                )}
+              </div>
+            </Tooltip>
           )
         },
-        enableSorting: true
+        enableSorting: true,
+        size: 200 // Fixed column width
       }),
       columnHelper.accessor('branch', {
         header: t('clients.fields.branch'),

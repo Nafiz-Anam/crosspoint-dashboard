@@ -193,14 +193,7 @@ const AddBankAccountDrawer = ({ open, onClose, onAdd }) => {
               sx={{ fontFamily: 'monospace' }}
             />
 
-            <Divider />
-
-            <FormControl>
-              <FormControlLabel
-                control={<Switch checked={formData.isActive} onChange={handleChange('isActive')} color='primary' />}
-                label={t('paymentMethods.status.active')}
-              />
-            </FormControl>
+            {/* Status defaults to Active in backend; no toggle needed */}
           </Box>
         </Box>
 

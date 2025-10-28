@@ -12,20 +12,23 @@ import Box from '@mui/material/Box'
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
 
+// Utils
+import { getItalianDate, formatItalianTime, formatItalianDate } from '@/utils/timezone'
+
 const DateTimeCard = () => {
   const { t } = useTranslation()
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const [currentTime, setCurrentTime] = useState(getItalianDate())
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(new Date())
+      setCurrentTime(getItalianDate())
     }, 1000)
 
     return () => clearInterval(timer)
   }, [])
 
   const formatTime = date => {
-    return date.toLocaleTimeString('en-US', {
+    return formatItalianTime(date, {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
@@ -34,7 +37,7 @@ const DateTimeCard = () => {
   }
 
   const formatDate = date => {
-    return date.toLocaleDateString('en-US', {
+    return formatItalianDate(date, {
       weekday: 'long',
       year: 'numeric',
       month: 'long',

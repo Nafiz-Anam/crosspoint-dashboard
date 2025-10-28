@@ -478,10 +478,19 @@
             "branch": "Branch",
             "bankAccount": "Bank Account"
         },
+        "allBranches": "All Branches",
+        "status": {
+            "paid": "Paid",
+            "pending": "Pending",
+            "overdue": "Overdue",
+            "draft": "Draft"
+        },
         "download": "Download",
         "downloading": "Downloading...",
         "print": "Print",
-        "edit": "Edit"
+        "edit": "Edit",
+        "exportReport": "Export Report",
+        "exporting": "Exporting..."
     },
     "tasks": {
         "title": "Tasks",

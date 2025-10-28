@@ -21,6 +21,8 @@ import invoiceService from '@/libs/invoiceService'
 import clientService from '@/libs/clientService'
 import serviceService from '@/libs/serviceService'
 import branchService from '@/libs/branchService'
+import bankAccountService from '@/libs/bankAccountService'
+import employeeService from '@/libs/employeeService'
 
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
@@ -34,6 +36,8 @@ const AddInvoice = () => {
   const [clients, setClients] = useState([])
   const [services, setServices] = useState([])
   const [branches, setBranches] = useState([])
+  const [bankAccounts, setBankAccounts] = useState([])
+  const [employees, setEmployees] = useState([])
 
   // Fetch required data
   const fetchData = async () => {
@@ -41,15 +45,19 @@ const AddInvoice = () => {
       setLoading(true)
       setError(null)
 
-      const [clientsRes, servicesRes, branchesRes] = await Promise.all([
-        clientService.getClients(null, { limit: 1000 }),
-        serviceService.getServices(null, { limit: 1000 }),
-        branchService.getActiveBranches(null)
+      const [clientsRes, servicesRes, branchesRes, bankAccountsRes, employeesRes] = await Promise.all([
+        clientService.getAllClients(),
+        serviceService.getAllServices(),
+        branchService.getActiveBranches(null),
+        bankAccountService.getActiveBankAccounts(),
+        employeeService.getAllEmployees()
       ])
 
-      setClients(clientsRes.data?.clients || [])
+      setClients(clientsRes.data || [])
       setServices(servicesRes.data || [])
       setBranches(branchesRes.data?.branches || [])
+      setBankAccounts(bankAccountsRes.data?.bankAccounts || [])
+      setEmployees(employeesRes.data || [])
     } catch (err) {
       console.error('Error fetching data:', err)
       setError(err.message || t('common.error'))
@@ -127,6 +135,7 @@ const AddInvoice = () => {
           services={services}
           branches={branches}
           bankAccounts={bankAccounts}
+          employees={employees}
           onSubmit={handleSubmit}
           loading={loading}
         />

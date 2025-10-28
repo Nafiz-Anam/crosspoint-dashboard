@@ -28,7 +28,7 @@ import toastService from '@/services/toastService'
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
 
-const AddTaskCard = () => {
+const AddTaskCard = ({ onTaskCreated }) => {
   // States
   const [loading, setLoading] = useState(false)
   const [clients, setClients] = useState([])
@@ -297,10 +297,10 @@ const AddTaskCard = () => {
           startDate: '',
           dueDate: ''
         })
-        // Redirect to task list after successful creation
-        setTimeout(() => {
-          router.push('/apps/task/list')
-        }, 2000)
+        // Call parent callback to refresh task list
+        if (onTaskCreated) {
+          onTaskCreated(responseData.data)
+        }
       } else {
         const errorMessage = responseData.message || `Failed to create task: ${response.status}`
         await toastService.handleApiError(response, errorMessage)
@@ -313,8 +313,10 @@ const AddTaskCard = () => {
   }
 
   const handleCancel = () => {
-    // Redirect to task list
-    router.push('/apps/task/list')
+    // Call parent callback to close the form
+    if (onTaskCreated) {
+      onTaskCreated(null) // Pass null to indicate cancellation
+    }
   }
 
   return (

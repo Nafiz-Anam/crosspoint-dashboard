@@ -35,15 +35,61 @@ const InvoiceList = () => {
   // const [stats, setStats] = useState(null) // Commented out for now
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [branches, setBranches] = useState([])
+  const [branchesLoading, setBranchesLoading] = useState(false)
   const [filters, setFilters] = useState({
     page: 1,
     limit: 10,
     sortBy: 'createdAt',
-    sortType: 'desc'
+    sortType: 'desc',
+    branchId: ''
   })
 
   // Hooks
   const { data: session, status } = useSession()
+
+  // Fetch branches
+  const fetchBranches = useCallback(async () => {
+    if (!session?.accessToken) return
+
+    setBranchesLoading(true)
+    try {
+      // If user is a manager, fetch only their branch details
+      if (session?.user?.role === 'MANAGER' && session?.user?.branchId) {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/${session.user.branchId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const branchData = data.data || data
+          setBranches([branchData])
+        }
+      } else {
+        // For other roles, fetch all active branches
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/active`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setBranches(data.data || [])
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching branches:', error)
+    } finally {
+      setBranchesLoading(false)
+    }
+  }, [session?.accessToken, session?.user?.role, session?.user?.branchId])
 
   // Fetch invoices and stats
   const fetchData = useCallback(async () => {
@@ -129,12 +175,13 @@ const InvoiceList = () => {
 
   useEffect(() => {
     if (status === 'authenticated') {
+      fetchBranches()
       fetchData()
     } else if (status === 'unauthenticated') {
       setError('Not authenticated. Please log in to view invoices.')
       setLoading(false)
     }
-  }, [status, session?.accessToken, filters])
+  }, [status, session?.accessToken, filters, fetchBranches])
 
   // Handle filter changes
   const handleFilterChange = newFilters => {
@@ -240,6 +287,8 @@ const InvoiceList = () => {
           onFilterChange={handleFilterChange}
           onInvoiceAction={handleInvoiceAction}
           filters={filters}
+          branches={branches}
+          branchesLoading={branchesLoading}
         />
       </Grid>
     </Grid>

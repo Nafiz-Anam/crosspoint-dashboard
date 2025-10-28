@@ -91,16 +91,16 @@ const EditPage = () => {
           await Promise.all([
             invoiceService.getInvoiceById(params.id, session.accessToken),
             bankAccountService.getActiveBankAccounts(session.accessToken),
-            clientService.getClients(session.accessToken),
-            serviceService.getServices(session.accessToken, { limit: 1000 }),
-            employeeService.getEmployees(session.accessToken)
+            clientService.getAllClients(session.accessToken),
+            serviceService.getAllServices(session.accessToken),
+            employeeService.getAllEmployees(session.accessToken)
           ])
 
         setInvoiceData(invoiceResponse)
         setBankAccounts(bankAccountsResponse.data?.bankAccounts || [])
-        setClients(clientsResponse.data?.clients || [])
+        setClients(clientsResponse.data || [])
         setServices(servicesResponse.data || [])
-        setEmployees(employeesResponse.data || employeesResponse || [])
+        setEmployees(employeesResponse.data || [])
 
         // Use company info from invoice data if available, otherwise fetch from global company info
         if (invoiceResponse && (invoiceResponse.companyName || invoiceResponse.companyEmail)) {
@@ -131,7 +131,7 @@ const EditPage = () => {
 
         console.log('Fetched data:')
         console.log('Invoice:', invoiceResponse)
-        console.log('Clients:', clientsResponse.data?.clients)
+        console.log('Clients:', clientsResponse.data)
         console.log('Services:', servicesResponse.data)
         console.log('Employees:', employeesResponse.data)
         console.log('Bank Accounts:', bankAccountsResponse.data?.bankAccounts)
@@ -182,7 +182,8 @@ const EditPage = () => {
             bankDetails: selectedBankAccount
               ? {
                   bankName: selectedBankAccount.bankName,
-                  country: selectedBankAccount.bankCountry,
+                  accountName: selectedBankAccount.accountName,
+                  accountNumber: selectedBankAccount.accountNumber,
                   iban: selectedBankAccount.bankIban,
                   swiftCode: selectedBankAccount.bankSwiftCode
                 }
@@ -231,7 +232,8 @@ const EditPage = () => {
         if (selectedAccount) {
           newState.bankDetails = {
             bankName: selectedAccount.bankName,
-            country: selectedAccount.bankCountry,
+            accountName: selectedAccount.accountName,
+            accountNumber: selectedAccount.accountNumber,
             iban: selectedAccount.bankIban,
             swiftCode: selectedAccount.bankSwiftCode
           }

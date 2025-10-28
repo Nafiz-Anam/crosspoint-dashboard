@@ -23,6 +23,25 @@ class ServiceService {
     }
   }
 
+  // Get all services for dropdown (no pagination)
+  async getAllServices(token = null) {
+    try {
+      const response = await fetch(`${this.baseURL}/list/all`, {
+        method: 'GET',
+        headers: this.getHeaders(token)
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching all services:', error)
+      throw error
+    }
+  }
+
   // Get all services with filters
   async getServices(token = null, params = {}) {
     try {

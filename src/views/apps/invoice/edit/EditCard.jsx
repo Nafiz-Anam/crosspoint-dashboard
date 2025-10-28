@@ -210,24 +210,45 @@ const EditCard = ({ invoiceData, id, data, clients, services, employees }) => {
                   <div>
                     <div className='flex items-center gap-4'>
                       <Typography className='min-is-[100px]'>Total Due:</Typography>
-                      <Typography>$12,110.55</Typography>
+                      <Typography>€{invoiceData?.totalAmount || 0}</Typography>
                     </div>
-                    <div className='flex items-center gap-4'>
-                      <Typography className='min-is-[100px]'>Bank name:</Typography>
-                      <Typography>American Bank</Typography>
-                    </div>
-                    <div className='flex items-center gap-4'>
-                      <Typography className='min-is-[100px]'>Country:</Typography>
-                      <Typography>United States</Typography>
-                    </div>
-                    <div className='flex items-center gap-4'>
-                      <Typography className='min-is-[100px]'>IBAN:</Typography>
-                      <Typography>ETD95476213874685</Typography>
-                    </div>
-                    <div className='flex items-center gap-4'>
-                      <Typography className='min-is-[100px]'>SWIFT code:</Typography>
-                      <Typography>BR91905</Typography>
-                    </div>
+                    {invoiceData?.bankAccount ? (
+                      <>
+                        <div className='flex items-center gap-4'>
+                          <Typography className='min-is-[100px]'>Bank name:</Typography>
+                          <Typography>{invoiceData.bankAccount.bankName}</Typography>
+                        </div>
+                        {invoiceData.bankAccount.accountName && (
+                          <div className='flex items-center gap-4'>
+                            <Typography className='min-is-[100px]'>Account Name:</Typography>
+                            <Typography>{invoiceData.bankAccount.accountName}</Typography>
+                          </div>
+                        )}
+                        {invoiceData.bankAccount.accountNumber && (
+                          <div className='flex items-center gap-4'>
+                            <Typography className='min-is-[100px]'>Account Number:</Typography>
+                            <Typography>{invoiceData.bankAccount.accountNumber}</Typography>
+                          </div>
+                        )}
+                        {invoiceData.bankAccount.bankIban && (
+                          <div className='flex items-center gap-4'>
+                            <Typography className='min-is-[100px]'>IBAN:</Typography>
+                            <Typography>{invoiceData.bankAccount.bankIban}</Typography>
+                          </div>
+                        )}
+                        {invoiceData.bankAccount.bankSwiftCode && (
+                          <div className='flex items-center gap-4'>
+                            <Typography className='min-is-[100px]'>SWIFT code:</Typography>
+                            <Typography>{invoiceData.bankAccount.bankSwiftCode}</Typography>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className='flex items-center gap-4'>
+                        <Typography className='min-is-[100px]'>Bank name:</Typography>
+                        <Typography color='textSecondary'>No bank account selected</Typography>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -504,26 +525,26 @@ const EditCard = ({ invoiceData, id, data, clients, services, employees }) => {
                   <div className='flex items-center justify-between'>
                     <Typography>Subtotal:</Typography>
                     <Typography className='font-medium' color='text.primary'>
-                      ${invoiceData?.subTotalAmount || 0}
+                      €{invoiceData?.subTotalAmount || 0}
                     </Typography>
                   </div>
                   <div className='flex items-center justify-between'>
                     <Typography>Discount:</Typography>
                     <Typography className='font-medium' color='text.primary'>
-                      ${invoiceData?.discountAmount || 0}
+                      €{invoiceData?.discountAmount || 0}
                     </Typography>
                   </div>
                   <div className='flex items-center justify-between'>
                     <Typography>Tax ({invoiceData?.taxRate || 0}%):</Typography>
                     <Typography className='font-medium' color='text.primary'>
-                      ${invoiceData?.taxAmount || 0}
+                      €{invoiceData?.taxAmount || 0}
                     </Typography>
                   </div>
                   <Divider className='mlb-2' />
                   <div className='flex items-center justify-between'>
                     <Typography>Total:</Typography>
                     <Typography className='font-medium' color='text.primary'>
-                      ${invoiceData?.totalAmount || 0}
+                      €{invoiceData?.totalAmount || 0}
                     </Typography>
                   </div>
                 </div>

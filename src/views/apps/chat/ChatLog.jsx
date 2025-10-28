@@ -15,6 +15,7 @@ import CustomAvatar from '@core/components/mui/Avatar'
 
 // Util Imports
 import { getInitials } from '@/utils/getInitials'
+import { formatItalianTime } from '@/utils/timezone'
 
 // Formats the chat data into a structured format for display.
 const formatedChatData = (chats, profileUser) => {
@@ -165,11 +166,11 @@ const ChatLog = ({ chatStore, isBelowLgScreen, isBelowMdScreen, isBelowSmScreen 
                           )}
                           {index === activeUserChat.chat.length - 1 ? (
                             <Typography variant='caption'>
-                              {new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })}
+                              {formatItalianTime(new Date(), { hour: 'numeric', minute: 'numeric', hour12: true })}
                             </Typography>
                           ) : msg.time ? (
                             <Typography variant='caption'>
-                              {new Date(msg.time).toLocaleString('en-US', {
+                              {formatItalianTime(new Date(msg.time), {
                                 hour: 'numeric',
                                 minute: 'numeric',
                                 hour12: true
@@ -179,11 +180,11 @@ const ChatLog = ({ chatStore, isBelowLgScreen, isBelowMdScreen, isBelowSmScreen 
                         </div>
                       ) : index === activeUserChat.chat.length - 1 ? (
                         <Typography key={index} variant='caption'>
-                          {new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })}
+                          {formatItalianTime(new Date(), { hour: 'numeric', minute: 'numeric', hour12: true })}
                         </Typography>
                       ) : msg.time ? (
                         <Typography key={index} variant='caption'>
-                          {new Date(msg.time).toLocaleString('en-US', {
+                          {formatItalianTime(new Date(msg.time), {
                             hour: 'numeric',
                             minute: 'numeric',
                             hour12: true

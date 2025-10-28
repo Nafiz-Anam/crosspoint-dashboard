@@ -19,13 +19,12 @@ export const useDashboardData = (params = {}) => {
       setLoading(true)
       setError(null)
 
-      const [statsResponse, weeklyEarningsResponse, earningsDataResponse, invoiceStatsResponse, invoicesResponse] =
+      const [statsResponse, weeklyEarningsResponse, earningsDataResponse, invoiceStatsResponse] =
         await Promise.all([
           dashboardService.getDashboardStats(params, session.accessToken),
           dashboardService.getWeeklyEarnings(params, session.accessToken),
           dashboardService.getEarningsData({ ...params, period: params.period || 'week' }, session.accessToken),
-          dashboardService.getInvoiceStats(params, session.accessToken),
-          dashboardService.getInvoices(params, session.accessToken)
+          dashboardService.getInvoiceStats(params, session.accessToken)
         ])
 
       setData({
@@ -33,7 +32,8 @@ export const useDashboardData = (params = {}) => {
         weeklyEarnings: weeklyEarningsResponse.data || null,
         earningsData: earningsDataResponse.data || null,
         invoiceStats: invoiceStatsResponse.data || null,
-        invoices: invoicesResponse.data?.invoices || null
+        invoices: statsResponse.data?.stats?.invoices || null,
+        tasks: statsResponse.data?.stats?.tasks || null
       })
     } catch (err) {
       console.error('Error fetching dashboard data:', err)

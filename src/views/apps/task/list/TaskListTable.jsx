@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
 import Button from '@mui/material/Button'
@@ -107,6 +107,7 @@ const TaskListTable = ({
 
   // Hooks
   const { lang: locale } = useParams()
+  const router = useRouter()
   const { data: session, status: sessionStatus } = useSession()
   const { t } = useTranslation()
 
@@ -506,10 +507,10 @@ const TaskListTable = ({
       // Store pre-filled data in sessionStorage
       sessionStorage.setItem('invoicePrefillData', JSON.stringify(preFilledData))
 
-      // Redirect to invoice add page
-      window.location.href = getLocalizedUrl('/apps/invoice/add', locale)
+      // Navigate to invoice add page using SPA routing
+      router.push(getLocalizedUrl('/apps/invoice/add', locale))
     },
-    [locale]
+    [locale, router]
   )
 
   // Static filter options for better server-side filtering

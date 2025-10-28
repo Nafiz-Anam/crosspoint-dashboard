@@ -5,6 +5,18 @@ class ClientService extends BaseService {
     super('/clients')
   }
 
+  // Get all clients for dropdown (no pagination)
+  async getAllClients(token = null) {
+    try {
+      const client = this.getApiClient(token)
+      const response = await client.get(`${this.endpoint}/list/all`)
+      return response.data
+    } catch (error) {
+      console.error('Error fetching all clients:', error)
+      throw error
+    }
+  }
+
   // Get all clients with filters (maintains backward compatibility)
   async getClients(token = null, params = {}) {
     return this.getAll(params, token)

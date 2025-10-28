@@ -31,7 +31,7 @@ import CustomTextField from '@core/components/mui/TextField'
 // Util Imports
 import { useTranslation } from '@/hooks/useTranslation'
 
-const InvoiceForm = ({ clients, services, branches, bankAccounts, onSubmit, loading }) => {
+const InvoiceForm = ({ clients, services, branches, bankAccounts, employees, onSubmit, loading }) => {
   // Hooks
   const { t } = useTranslation()
 
@@ -327,9 +327,9 @@ const InvoiceForm = ({ clients, services, branches, bankAccounts, onSubmit, load
                       {formData.items.map((item, index) => (
                         <TableRow key={index}>
                           <TableCell>{item.description}</TableCell>
-                          <TableCell align='right'>${item.rate.toFixed(2)}</TableCell>
-                          <TableCell align='right'>${(item.discount || 0).toFixed(2)}</TableCell>
-                          <TableCell align='right'>${(item.rate - (item.discount || 0)).toFixed(2)}</TableCell>
+                          <TableCell align='right'>€{item.rate.toFixed(2)}</TableCell>
+                          <TableCell align='right'>€{(item.discount || 0).toFixed(2)}</TableCell>
+                          <TableCell align='right'>€{(item.rate - (item.discount || 0)).toFixed(2)}</TableCell>
                           <TableCell align='center'>
                             <IconButton size='small' onClick={() => handleRemoveItem(index)} color='error'>
                               <i className='tabler-trash' />
@@ -457,22 +457,22 @@ const InvoiceForm = ({ clients, services, branches, bankAccounts, onSubmit, load
                 <Box sx={{ minWidth: 300 }}>
                   <Box display='flex' justifyContent='space-between' mb={1}>
                     <Typography>{t('invoices.subtotalLabel')}</Typography>
-                    <Typography>${totals.subTotal.toFixed(2)}</Typography>
+                    <Typography>€{totals.subTotal.toFixed(2)}</Typography>
                   </Box>
                   <Box display='flex' justifyContent='space-between' mb={1}>
                     <Typography>{t('invoices.discountLabel')}</Typography>
-                    <Typography>-${formData.discountAmount.toFixed(2)}</Typography>
+                    <Typography>-€{formData.discountAmount.toFixed(2)}</Typography>
                   </Box>
                   <Box display='flex' justifyContent='space-between' mb={1}>
                     <Typography>
                       {t('invoices.taxLabel')} ({formData.taxRate}%):
                     </Typography>
-                    <Typography>${totals.taxAmount.toFixed(2)}</Typography>
+                    <Typography>€{totals.taxAmount.toFixed(2)}</Typography>
                   </Box>
                   <Divider sx={{ my: 1 }} />
                   <Box display='flex' justifyContent='space-between'>
                     <Typography variant='h6'>{t('invoices.totalLabel')}</Typography>
-                    <Typography variant='h6'>${totals.totalAmount.toFixed(2)}</Typography>
+                    <Typography variant='h6'>€{totals.totalAmount.toFixed(2)}</Typography>
                   </Box>
                 </Box>
               </Box>
