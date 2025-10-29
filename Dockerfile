@@ -1,7 +1,12 @@
 FROM node:20.16.0-alpine
 
-# Install pnpm
+# Install pnpm and timezone data
 RUN npm install -g pnpm
+RUN apk add --no-cache tzdata
+
+# Set timezone to Italian timezone
+ENV TZ=Europe/Rome
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 WORKDIR /app
 
