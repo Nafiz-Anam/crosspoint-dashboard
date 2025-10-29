@@ -330,9 +330,13 @@ const ClientListTable = () => {
         setDeleteDialogOpen(false)
         setClientToDelete(null)
       } else {
-        // Show error toast
-        await toastService.handleApiError(response, 'Failed to delete client')
-        console.error('API Error deleting client:', await response.json())
+        // Clone response before reading (so both reads work)
+        const responseClone = response.clone()
+        // Read original for logging
+        const errorData = await response.json().catch(() => ({}))
+        console.error('API Error deleting client:', errorData)
+        // Show error toast using the cloned response (so handleApiError can read it)
+        await toastService.handleApiError(responseClone, 'Failed to delete client')
       }
     } catch (error) {
       // Show error toast

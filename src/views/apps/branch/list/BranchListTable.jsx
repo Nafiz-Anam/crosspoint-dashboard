@@ -327,9 +327,13 @@ const BranchListTable = () => {
         setDeleteDialogOpen(false)
         setBranchToDelete(null)
       } else {
-        // Show error toast
-        await toastService.handleApiError(response, 'Failed to delete branch')
-        console.error('API Error deleting branch:', await response.json())
+        // Clone response before reading (so both reads work)
+        const responseClone = response.clone()
+        // Read original for logging
+        const errorData = await response.json().catch(() => ({}))
+        console.error('API Error deleting branch:', errorData)
+        // Show error toast using the cloned response (so handleApiError can read it)
+        await toastService.handleApiError(responseClone, 'Failed to delete branch')
       }
     } catch (error) {
       // Show error toast

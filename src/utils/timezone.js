@@ -5,13 +5,12 @@
 const ITALY_TIMEZONE = "Europe/Rome";
 
 /**
- * Get current date in Italian timezone
- * @returns Date object representing current date in Italian timezone
+ * Get current date - returns current Date object
+ * The timezone conversion happens during formatting
+ * @returns Date object representing current date/time
  */
 export const getItalianDate = () => {
-  return new Date(
-    new Date().toLocaleString("en-US", { timeZone: ITALY_TIMEZONE })
-  );
+  return new Date();
 };
 
 /**
@@ -28,10 +27,18 @@ export const getItalianToday = () => {
  * Format a date in Italian timezone
  * @param {Date} date - Date to format
  * @param {Object} options - Intl.DateTimeFormatOptions
+ * @param {string} locale - Locale for formatting (default: 'it-IT')
  * @returns {string} Formatted date string
  */
-export const formatItalianDate = (date, options = {}) => {
-  return date.toLocaleString("it-IT", {
+export const formatItalianDate = (date, options = {}, locale = 'it-IT') => {
+  // Map locale codes to Intl locale format
+  const localeMap = {
+    'it': 'it-IT',
+    'en': 'en-US'
+  };
+  const formattedLocale = localeMap[locale] || locale || 'it-IT';
+  
+  return date.toLocaleString(formattedLocale, {
     timeZone: ITALY_TIMEZONE,
     ...options,
   });
@@ -41,10 +48,18 @@ export const formatItalianDate = (date, options = {}) => {
  * Format time in Italian timezone
  * @param {Date} date - Date to format
  * @param {Object} options - Intl.DateTimeFormatOptions
+ * @param {string} locale - Locale for formatting (default: 'it-IT')
  * @returns {string} Formatted time string
  */
-export const formatItalianTime = (date, options = {}) => {
-  return date.toLocaleTimeString("it-IT", {
+export const formatItalianTime = (date, options = {}, locale = 'it-IT') => {
+  // Map locale codes to Intl locale format
+  const localeMap = {
+    'it': 'it-IT',
+    'en': 'en-US'
+  };
+  const formattedLocale = localeMap[locale] || locale || 'it-IT';
+  
+  return date.toLocaleTimeString(formattedLocale, {
     timeZone: ITALY_TIMEZONE,
     ...options,
   });

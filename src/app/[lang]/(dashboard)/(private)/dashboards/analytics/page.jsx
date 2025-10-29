@@ -119,13 +119,21 @@ const DashboardAnalytics = () => {
       <Grid size={{ xs: 12, md: 12 }}>
         <MinimalInvoiceListTable
           invoiceData={
-            data?.invoices?.map(invoice => ({
-              id: invoice.id,
-              invoiceId: invoice.invoiceId || invoice.invoiceNumber,
-              name: invoice.client?.name || 'Unknown Client',
-              companyEmail: invoice.client?.email || '',
-              serviceName: invoice.items?.[0]?.service?.name || 'N/A',
-              total: invoice.totalAmount || 0,
+            data?.invoices?.map(invoice => {
+              // Get all unique service names from invoice items
+              const services = invoice.items
+                ?.map(item => item.service?.name)
+                .filter(Boolean)
+                .filter((name, index, self) => self.indexOf(name) === index) || [];
+              const serviceName = services.length > 0 ? services.join(', ') : 'N/A';
+
+              return {
+                id: invoice.id,
+                invoiceId: invoice.invoiceId || invoice.invoiceNumber,
+                name: invoice.client?.name || 'Unknown Client',
+                companyEmail: invoice.client?.email || '',
+                serviceName,
+                total: invoice.totalAmount || 0,
               issuedDate: new Date(invoice.issuedDate).toLocaleDateString(),
               invoiceStatus:
                 invoice.status === 'PAID'
@@ -137,10 +145,11 @@ const DashboardAnalytics = () => {
                       : invoice.status === 'CANCELLED'
                         ? 'Cancelled'
                         : 'Unpaid',
-              balance: invoice.totalAmount || 0,
-              dueDate: new Date(invoice.dueDate).toLocaleDateString(),
-              avatar: null
-            })) || []
+                balance: invoice.totalAmount || 0,
+                dueDate: new Date(invoice.dueDate).toLocaleDateString(),
+                avatar: null
+              };
+            }) || []
           }
         />
       </Grid>

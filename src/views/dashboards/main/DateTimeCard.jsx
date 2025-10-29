@@ -2,6 +2,7 @@
 
 // React Imports
 import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
 
 // MUI Imports
 import Card from '@mui/material/Card'
@@ -17,6 +18,8 @@ import { getItalianDate, formatItalianTime, formatItalianDate } from '@/utils/ti
 
 const DateTimeCard = () => {
   const { t } = useTranslation()
+  const params = useParams()
+  const locale = params?.lang || 'it'
   const [currentTime, setCurrentTime] = useState(getItalianDate())
 
   useEffect(() => {
@@ -33,7 +36,7 @@ const DateTimeCard = () => {
       minute: '2-digit',
       second: '2-digit',
       hour12: true
-    })
+    }, locale)
   }
 
   const formatDate = date => {
@@ -42,7 +45,7 @@ const DateTimeCard = () => {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
-    })
+    }, locale)
   }
 
   return (

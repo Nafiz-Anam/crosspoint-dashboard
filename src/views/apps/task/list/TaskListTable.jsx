@@ -460,9 +460,13 @@ const TaskListTable = ({
         setDeleteDialogOpen(false)
         setTaskToDelete(null)
       } else {
-        // Show error toast
-        await toastService.handleApiError(response, 'Failed to delete task')
-        console.error('API Error deleting task:', await response.json())
+        // Clone response before reading (so both reads work)
+        const responseClone = response.clone()
+        // Read original for logging
+        const errorData = await response.json().catch(() => ({}))
+        console.error('API Error deleting task:', errorData)
+        // Show error toast using the cloned response (so handleApiError can read it)
+        await toastService.handleApiError(responseClone, 'Failed to delete task')
       }
     } catch (error) {
       // Show error toast

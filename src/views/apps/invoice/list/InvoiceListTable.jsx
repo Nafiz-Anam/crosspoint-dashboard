@@ -287,8 +287,11 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
       )
       setDeleteDialogOpen(false)
       setInvoiceToDelete(null)
+      // Success toast is already shown in handleInvoiceAction
     } catch (error) {
       console.error('Error deleting invoice:', error)
+      // Error toast is already shown in handleInvoiceAction
+      // Don't close dialog on error so user can retry
     } finally {
       setDeleteLoading(false)
     }
