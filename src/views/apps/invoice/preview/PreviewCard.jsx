@@ -232,8 +232,21 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
 
           {/* Services Table */}
           <Grid size={{ xs: 12 }}>
-            <div className='overflow-x-auto border rounded'>
-              <table className={tableStyles.table}>
+            <div className='border rounded'>
+              <table 
+                className={tableStyles.table}
+                style={{
+                  width: '100%',
+                  tableLayout: 'fixed'
+                }}
+              >
+                <colgroup>
+                  <col style={{ width: '30%' }} /> {/* SERVICE - Fixed width */}
+                  <col style={{ width: '40%' }} /> {/* DESCR - Flexible */}
+                  <col style={{ width: '10%' }} /> {/* RATE */}
+                  <col style={{ width: '10%' }} /> {/* DISCOUNT */}
+                  <col style={{ width: '10%' }} /> {/* TOTAL */}
+                </colgroup>
                 <thead className='border-bs-0'>
                   <tr>
                     <th className='!bg-transparent'>{t('invoices.service')}</th>
@@ -246,21 +259,33 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                 <tbody>
                   {invoiceItems?.map((item, index) => (
                     <tr key={index}>
-                      <td>
-                        <Typography color='text.primary'>
+                      <td style={{ 
+                        wordWrap: 'break-word', 
+                        overflowWrap: 'break-word',
+                        whiteSpace: 'normal',
+                        verticalAlign: 'top'
+                      }}>
+                        <Typography color='text.primary' style={{ wordBreak: 'break-word' }}>
                           {item.service?.name || item.serviceName || 'Service'}
                         </Typography>
                       </td>
-                      <td>
-                        <Typography color='text.primary'>{item.description || ''}</Typography>
+                      <td style={{ 
+                        wordWrap: 'break-word', 
+                        overflowWrap: 'break-word',
+                        whiteSpace: 'normal',
+                        verticalAlign: 'top'
+                      }}>
+                        <Typography color='text.primary' style={{ wordBreak: 'break-word' }}>
+                          {item.description || ''}
+                        </Typography>
                       </td>
-                      <td>
+                      <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
                         <Typography color='text.primary'>€{item.rate || 0}</Typography>
                       </td>
-                      <td>
+                      <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
                         <Typography color='text.primary'>{item.discount || 0}%</Typography>
                       </td>
-                      <td>
+                      <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
                         <Typography color='text.primary'>
                           €{item.total || calculateItemTotal(item).toFixed(2)}
                         </Typography>
