@@ -110,17 +110,7 @@ const DashboardAnalytics = () => {
       {!isHR() && (
         <Grid size={{ xs: 12, md: 12 }}>
           <MinimalTaskListTable
-            taskData={
-              data?.tasks?.map(task => ({
-                id: task.id,
-                title: task.title,
-                clientName: task.client?.name || 'N/A',
-                serviceName: task.service?.name || 'N/A',
-                status: task.status,
-                dueDate: task.dueDate,
-                assignedTo: task.assignedTo?.name || 'N/A'
-              })) || []
-            }
+            taskData={data?.tasks || []}
           />
         </Grid>
       )}

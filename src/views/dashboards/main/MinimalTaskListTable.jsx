@@ -41,7 +41,7 @@ const MinimalTaskListTable = ({ taskData = [] }) => {
 
       // For employees, only show tasks assigned to them
       if (userRole === 'EMPLOYEE') {
-        const filteredTasks = tasks.filter(task => task.assignedTo?.id === session?.user?.id)
+        const filteredTasks = tasks.filter(task => task.assignedEmployeeId === session?.user?.id)
         console.log('MinimalTaskListTable - Employee filtered tasks:', filteredTasks.length)
         return filteredTasks
       }
