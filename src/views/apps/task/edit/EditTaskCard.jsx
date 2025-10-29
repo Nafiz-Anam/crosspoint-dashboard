@@ -462,7 +462,7 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
                     ) : (
                       employees.map(employee => (
                         <MenuItem key={employee.id} value={employee.id}>
-                          {employee.name} - {employee.role}
+                          {employee.name} - {employee.email}
                         </MenuItem>
                       ))
                     )}

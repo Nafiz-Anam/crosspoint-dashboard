@@ -511,7 +511,7 @@ const EditCard = ({ invoiceData, id, data, clients, services, employees }) => {
                       </MenuItem>
                       {employees?.map((employee, idx) => (
                         <MenuItem key={idx} value={employee.id}>
-                          {employee.name} - {employee.role}
+                          {employee.name} - {employee.email}
                         </MenuItem>
                       ))}
                     </CustomTextField>
