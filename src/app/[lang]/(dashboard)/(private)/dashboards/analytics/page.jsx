@@ -109,49 +109,15 @@ const DashboardAnalytics = () => {
       {/* Task List Row - Hidden for HR users */}
       {!isHR() && (
         <Grid size={{ xs: 12, md: 12 }}>
-          <MinimalTaskListTable
-            taskData={data?.tasks || []}
-          />
+          {/* Do not pass taskData so the component hits the real /tasks API */}
+          <MinimalTaskListTable />
         </Grid>
       )}
 
       {/* Invoice List Row */}
       <Grid size={{ xs: 12, md: 12 }}>
-        <MinimalInvoiceListTable
-          invoiceData={
-            data?.invoices?.map(invoice => {
-              // Get all unique service names from invoice items
-              const services = invoice.items
-                ?.map(item => item.service?.name)
-                .filter(Boolean)
-                .filter((name, index, self) => self.indexOf(name) === index) || [];
-              const serviceName = services.length > 0 ? services.join(', ') : 'N/A';
-
-              return {
-                id: invoice.id,
-                invoiceId: invoice.invoiceId || invoice.invoiceNumber,
-                name: invoice.client?.name || 'Unknown Client',
-                companyEmail: invoice.client?.email || '',
-                serviceName,
-                total: invoice.totalAmount || 0,
-              issuedDate: new Date(invoice.issuedDate).toLocaleDateString(),
-              invoiceStatus:
-                invoice.status === 'PAID'
-                  ? 'Paid'
-                  : invoice.status === 'UNPAID'
-                    ? 'Unpaid'
-                    : invoice.status === 'OVERDUE'
-                      ? 'Past Due'
-                      : invoice.status === 'CANCELLED'
-                        ? 'Cancelled'
-                        : 'Unpaid',
-                balance: invoice.totalAmount || 0,
-                dueDate: new Date(invoice.dueDate).toLocaleDateString(),
-                avatar: null
-              };
-            }) || []
-          }
-        />
+        {/* Do not pass invoiceData so the component hits the real /invoices API */}
+        <MinimalInvoiceListTable />
       </Grid>
 
       {/* Italian Calendar Row */}

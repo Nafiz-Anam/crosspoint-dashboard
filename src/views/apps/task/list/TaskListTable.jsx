@@ -74,7 +74,7 @@ const TaskListTable = ({
   // States for Table Data and API Operations
   const [tasks, setTasks] = useState(externalTasks || []) // Stores fetched task data
   const [branches, setBranches] = useState([])
-  const [fetchLoading, setFetchLoading] = useState(true) // Loading state for data fetch
+  const [fetchLoading, setFetchLoading] = useState(externalTasks ? false : true) // Loading state for data fetch
   const [fetchError, setFetchError] = useState(null) // Error state for data fetch
 
   // States for Pagination
@@ -100,6 +100,7 @@ const TaskListTable = ({
 
   // Ref to track if initial fetch has been made
   const hasInitiallyFetched = useRef(false)
+  const isUsingExternalData = useRef(false)
 
   // Refs to store current values without causing re-renders
   const currentGlobalFilter = useRef('')
@@ -110,6 +111,24 @@ const TaskListTable = ({
   const router = useRouter()
   const { data: session, status: sessionStatus } = useSession()
   const { t } = useTranslation()
+
+  // Determine if we're rendering with externally provided data (dashboard) or fetching from API (management page)
+  // Only treat as external if it's actually an array (not null/undefined)
+  const isExternalData = Array.isArray(externalTasks)
+
+  // When external data is provided, use it. Otherwise, fetch from API (handled by normal useEffect)
+  useEffect(() => {
+    if (isExternalData && externalTasks) {
+      isUsingExternalData.current = true
+      setTasks(externalTasks)
+      setFetchLoading(false)
+      hasInitiallyFetched.current = true // Mark as fetched so the normal useEffect doesn't run
+    } else {
+      isUsingExternalData.current = false
+    }
+    // If externalTasks is null/undefined, don't do anything - let the normal fetch logic handle it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalTasks]) // Only depend on externalTasks, not isExternalData (which is derived from it)
 
   // Function to fetch branches
   const fetchBranches = useCallback(async () => {
@@ -323,9 +342,10 @@ const TaskListTable = ({
       return
     }
 
-    console.log('🔄 useEffect triggered with:', { sessionStatus, hasInitiallyFetched: hasInitiallyFetched.current })
+    console.log('🔄 useEffect triggered with:', { sessionStatus, hasInitiallyFetched: hasInitiallyFetched.current, isUsingExternalData: isUsingExternalData.current })
 
-    if (sessionStatus === 'authenticated' && !hasInitiallyFetched.current) {
+    // Only fetch if we don't have external data AND haven't fetched yet
+    if (!isUsingExternalData.current && sessionStatus === 'authenticated' && !hasInitiallyFetched.current) {
       console.log('🔄 Making initial fetch...')
       hasInitiallyFetched.current = true
       fetchTasks(1, '', 'createdAt', 'desc', 10, '', '', '')
@@ -701,8 +721,9 @@ const TaskListTable = ({
     [handleDeleteClick, handleGenerateInvoiceClick, locale]
   )
 
-  const table = useReactTable({
-    data: tasks, // Use tasks directly instead of filteredData
+  // Memoize table config to prevent recreation
+  const tableConfig = useMemo(() => ({
+    data: tasks || [], // Ensure always an array
     columns,
     filterFns: { fuzzy: fuzzyFilter },
     state: { globalFilter },
@@ -710,11 +731,21 @@ const TaskListTable = ({
     globalFilterFn: fuzzyFilter,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    manualPagination: true, // Enable manual pagination
-    manualSorting: true, // Enable manual sorting
-    pageCount: pagination.totalPages,
+    getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    // For dashboard (external data), use client-side pagination. For management page, keep manual pagination.
+    manualPagination: !isExternalData,
+    manualSorting: !isExternalData,
+    pageCount: isExternalData 
+      ? Math.ceil((tasks?.length || 0) / 10) 
+      : (pagination.totalPages || 0),
+  }), [tasks, columns, globalFilter, isExternalData, pagination.totalPages])
+
+  const table = useReactTable({
+    ...tableConfig,
     onSortingChange: updater => {
-      if (typeof updater === 'function') {
+      if (typeof updater === 'function' && !isExternalData) {
         const newSorting = updater(table.getState().sorting)
         if (newSorting.length > 0) {
           const sort = newSorting[0]
@@ -892,19 +923,35 @@ const TaskListTable = ({
 
         <TablePagination
           component={() => (
-            <TablePaginationComponent
-              table={table}
-              totalCount={pagination.total}
-              currentPage={pagination.page - 1}
-              pageSize={pagination.limit}
-              onPageChange={handlePageChange}
-            />
+            isExternalData ? (
+              <TablePaginationComponent table={table} />
+            ) : (
+              <TablePaginationComponent
+                table={table}
+                totalCount={pagination.total}
+                currentPage={pagination.page - 1}
+                pageSize={pagination.limit}
+                onPageChange={handlePageChange}
+              />
+            )
           )}
-          count={pagination.total}
-          rowsPerPage={pagination.limit}
-          page={pagination.page - 1} // MUI uses 0-based indexing
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
+          count={isExternalData ? (tasks?.length || 0) : (pagination.total || 0)}
+          rowsPerPage={isExternalData ? (table.getState().pagination?.pageSize || 10) : (pagination.limit || 10)}
+          page={isExternalData ? (table.getState().pagination?.pageIndex || 0) : ((pagination.page - 1) || 0)}
+          onPageChange={isExternalData ? (_, page) => {
+            try {
+              table.setPageIndex(page)
+            } catch (err) {
+              console.error('Error setting page index:', err)
+            }
+          } : handlePageChange}
+          onRowsPerPageChange={isExternalData ? e => {
+            try {
+              table.setPageSize(parseInt(e.target.value, 10))
+            } catch (err) {
+              console.error('Error setting page size:', err)
+            }
+          } : handleRowsPerPageChange}
           rowsPerPageOptions={[5, 10, 25, 50]}
         />
       </Card>

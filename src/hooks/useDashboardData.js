@@ -31,9 +31,7 @@ export const useDashboardData = (params = {}) => {
         stats: statsResponse.data?.stats || null,
         weeklyEarnings: weeklyEarningsResponse.data || null,
         earningsData: earningsDataResponse.data || null,
-        invoiceStats: invoiceStatsResponse.data || null,
-        invoices: statsResponse.data?.stats?.invoices || null,
-        tasks: statsResponse.data?.stats?.tasks || null
+        invoiceStats: invoiceStatsResponse.data || null
       })
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
