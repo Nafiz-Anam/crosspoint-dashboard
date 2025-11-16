@@ -21,6 +21,7 @@ import { useSession } from 'next-auth/react'
 
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
+import CustomAutocomplete from '@core/components/mui/Autocomplete'
 
 // Services
 import toastService from '@/services/toastService'
@@ -355,32 +356,42 @@ const AddTaskCard = ({ onTaskCreated }) => {
                 name='clientId'
                 control={control}
                 rules={{ required: 'Client is required.' }}
-                render={({ field }) => (
-                  <CustomTextField
-                    select
-                    fullWidth
-                    label={`${t('tasks.selectClient')} *`}
+                render={({ field: { onChange, value, ...field } }) => (
+                  <CustomAutocomplete
                     {...field}
-                    {...(errors.clientId && { error: true, helperText: errors.clientId.message })}
-                    InputProps={{
-                      endAdornment: clientsLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
+                    fullWidth
+                    size='small'
+                    options={clients}
+                    loading={clientsLoading}
+                    value={clients.find(client => client.id === value) || null}
+                    onChange={(event, newValue) => {
+                      onChange(newValue ? newValue.id : '')
                     }}
-                  >
-                    {clientsLoading ? (
-                      <MenuItem disabled>
-                        <CircularProgress size={16} sx={{ mr: 1 }} />
-                        {t('tasks.loadingClients')}
-                      </MenuItem>
-                    ) : clients.length === 0 ? (
-                      <MenuItem disabled>{t('tasks.noClientsAvailable')}</MenuItem>
-                    ) : (
-                      clients.map(client => (
-                        <MenuItem key={client.id} value={client.id}>
-                          {client.name} - {client.email}
-                        </MenuItem>
-                      ))
+                    getOptionLabel={option => {
+                      if (typeof option === 'string') return option
+                      return `${option.name} - ${option.email}`
+                    }}
+                    isOptionEqualToValue={(option, value) => option.id === value?.id}
+                    renderInput={params => (
+                      <CustomTextField
+                        {...params}
+                        label={`${t('tasks.selectClient')} *`}
+                        {...(errors.clientId && { error: true, helperText: errors.clientId.message })}
+                        slotProps={{
+                          input: {
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {clientsLoading ? <CircularProgress size={20} /> : null}
+                                {params.InputProps.endAdornment}
+                              </>
+                            )
+                          }
+                        }}
+                      />
                     )}
-                  </CustomTextField>
+                    noOptionsText={clients.length === 0 ? t('tasks.noClientsAvailable') : 'No options'}
+                  />
                 )}
               />
             </Grid>
@@ -390,32 +401,37 @@ const AddTaskCard = ({ onTaskCreated }) => {
                 name='categoryId'
                 control={control}
                 rules={{ required: t('tasks.categoryRequired') }}
-                render={({ field }) => (
-                  <CustomTextField
-                    select
-                    fullWidth
-                    label={`${t('tasks.selectCategory')} *`}
+                render={({ field: { onChange, value, ...field } }) => (
+                  <CustomAutocomplete
                     {...field}
-                    {...(errors.categoryId && { error: true, helperText: errors.categoryId.message })}
-                    InputProps={{
-                      endAdornment: categoriesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
+                    fullWidth
+                    size='small'
+                    options={categories}
+                    loading={categoriesLoading}
+                    value={value || null}
+                    onChange={(event, newValue) => {
+                      onChange(newValue || '')
                     }}
-                  >
-                    {categoriesLoading ? (
-                      <MenuItem disabled>
-                        <CircularProgress size={16} sx={{ mr: 1 }} />
-                        {t('tasks.loadingCategories')}
-                      </MenuItem>
-                    ) : categories.length === 0 ? (
-                      <MenuItem disabled>{t('tasks.noCategoriesAvailable')}</MenuItem>
-                    ) : (
-                      categories.map(category => (
-                        <MenuItem key={category} value={category}>
-                          {category}
-                        </MenuItem>
-                      ))
+                    renderInput={params => (
+                      <CustomTextField
+                        {...params}
+                        label={`${t('tasks.selectCategory')} *`}
+                        {...(errors.categoryId && { error: true, helperText: errors.categoryId.message })}
+                        slotProps={{
+                          input: {
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {categoriesLoading ? <CircularProgress size={20} /> : null}
+                                {params.InputProps.endAdornment}
+                              </>
+                            )
+                          }
+                        }}
+                      />
                     )}
-                  </CustomTextField>
+                    noOptionsText={categories.length === 0 ? t('tasks.noCategoriesAvailable') : 'No options'}
+                  />
                 )}
               />
             </Grid>
@@ -425,35 +441,49 @@ const AddTaskCard = ({ onTaskCreated }) => {
                 name='serviceId'
                 control={control}
                 rules={{ required: t('tasks.serviceRequired') }}
-                render={({ field }) => (
-                  <CustomTextField
-                    select
-                    fullWidth
-                    label={`${t('tasks.selectService')} *`}
+                render={({ field: { onChange, value, ...field } }) => (
+                  <CustomAutocomplete
                     {...field}
-                    {...(errors.serviceId && { error: true, helperText: errors.serviceId.message })}
-                    InputProps={{
-                      endAdornment: servicesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
-                    }}
+                    fullWidth
+                    size='small'
+                    options={services}
+                    loading={servicesLoading}
                     disabled={!watchedCategoryId}
-                  >
-                    {servicesLoading ? (
-                      <MenuItem disabled>
-                        <CircularProgress size={16} sx={{ mr: 1 }} />
-                        {t('tasks.loadingServices')}
-                      </MenuItem>
-                    ) : services.length === 0 ? (
-                      <MenuItem disabled>
-                        {!watchedCategoryId ? t('tasks.selectCategoryFirst') : t('tasks.noServicesAvailable')}
-                      </MenuItem>
-                    ) : (
-                      services.map(service => (
-                        <MenuItem key={service.id} value={service.id}>
-                          {service.name} - €{service.price}
-                        </MenuItem>
-                      ))
+                    value={services.find(service => service.id === value) || null}
+                    onChange={(event, newValue) => {
+                      onChange(newValue ? newValue.id : '')
+                    }}
+                    getOptionLabel={option => {
+                      if (typeof option === 'string') return option
+                      return `${option.name} - €${option.price}`
+                    }}
+                    isOptionEqualToValue={(option, value) => option.id === value?.id}
+                    renderInput={params => (
+                      <CustomTextField
+                        {...params}
+                        label={`${t('tasks.selectService')} *`}
+                        {...(errors.serviceId && { error: true, helperText: errors.serviceId.message })}
+                        slotProps={{
+                          input: {
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {servicesLoading ? <CircularProgress size={20} /> : null}
+                                {params.InputProps.endAdornment}
+                              </>
+                            )
+                          }
+                        }}
+                      />
                     )}
-                  </CustomTextField>
+                    noOptionsText={
+                      !watchedCategoryId
+                        ? t('tasks.selectCategoryFirst')
+                        : services.length === 0
+                          ? t('tasks.noServicesAvailable')
+                          : 'No options'
+                    }
+                  />
                 )}
               />
             </Grid>
@@ -463,32 +493,42 @@ const AddTaskCard = ({ onTaskCreated }) => {
                 name='assignedEmployeeId'
                 control={control}
                 rules={{ required: t('tasks.employeeRequired') }}
-                render={({ field }) => (
-                  <CustomTextField
-                    select
-                    fullWidth
-                    label={`${t('tasks.assignToEmployee')} *`}
+                render={({ field: { onChange, value, ...field } }) => (
+                  <CustomAutocomplete
                     {...field}
-                    {...(errors.assignedEmployeeId && { error: true, helperText: errors.assignedEmployeeId.message })}
-                    InputProps={{
-                      endAdornment: employeesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
+                    fullWidth
+                    size='small'
+                    options={employees}
+                    loading={employeesLoading}
+                    value={employees.find(employee => employee.id === value) || null}
+                    onChange={(event, newValue) => {
+                      onChange(newValue ? newValue.id : '')
                     }}
-                  >
-                    {employeesLoading ? (
-                      <MenuItem disabled>
-                        <CircularProgress size={16} sx={{ mr: 1 }} />
-                        {t('tasks.loadingEmployees')}
-                      </MenuItem>
-                    ) : employees.length === 0 ? (
-                      <MenuItem disabled>{t('tasks.noEmployeesAvailable')}</MenuItem>
-                    ) : (
-                      employees.map(employee => (
-                        <MenuItem key={employee.id} value={employee.id}>
-                          {employee.name} - {employee.email}
-                        </MenuItem>
-                      ))
+                    getOptionLabel={option => {
+                      if (typeof option === 'string') return option
+                      return `${option.name} - ${option.email}`
+                    }}
+                    isOptionEqualToValue={(option, value) => option.id === value?.id}
+                    renderInput={params => (
+                      <CustomTextField
+                        {...params}
+                        label={`${t('tasks.assignToEmployee')} *`}
+                        {...(errors.assignedEmployeeId && { error: true, helperText: errors.assignedEmployeeId.message })}
+                        slotProps={{
+                          input: {
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {employeesLoading ? <CircularProgress size={20} /> : null}
+                                {params.InputProps.endAdornment}
+                              </>
+                            )
+                          }
+                        }}
+                      />
                     )}
-                  </CustomTextField>
+                    noOptionsText={employees.length === 0 ? t('tasks.noEmployeesAvailable') : 'No options'}
+                  />
                 )}
               />
             </Grid>
