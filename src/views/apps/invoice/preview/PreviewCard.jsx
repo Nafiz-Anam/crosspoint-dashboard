@@ -15,7 +15,6 @@ import './print.css'
 
 // Util Imports
 import { useTranslation } from '@/hooks/useTranslation'
-import { getInvoiceDueDateColor, getInvoiceTimeRemaining } from '@/utils/dateColorUtils'
 
 const PreviewCard = ({ invoiceData, invoiceState, id }) => {
   // Hooks
@@ -28,7 +27,6 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
   const selectedClient = invoice?.client
   const selectedSalesperson = invoice?.employee
   const issuedDate = invoice?.issuedDate
-  const dueDate = invoice?.dueDate
   const invoiceItems = invoice?.items || []
   const paymentMethod = invoice?.paymentMethod
   const paymentTerms = invoice?.paymentTerms
@@ -56,8 +54,9 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
 
   // Calculation functions
   const calculateItemTotal = item => {
-    const discountAmount = (item.rate * (item.discount || 0)) / 100
-    return item.rate - discountAmount
+    // Discount is now a flat rate, not percentage
+    const discount = item.discount || 0
+    return item.rate - discount
   }
 
   const calculateSubtotal = () => {
@@ -65,11 +64,10 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
   }
 
   const calculateTotalDiscount = () => {
-    // Calculate total discount from items
+    // Calculate total discount from items (flat rate, not percentage)
     const itemDiscounts = invoiceItems.reduce((total, item) => {
-      const discountPercent = item.discount || 0
-      const discountAmount = (item.rate * discountPercent) / 100
-      return total + discountAmount
+      const discount = item.discount || 0
+      return total + discount
     }, 0)
 
     // Add overall invoice discount if any
@@ -135,16 +133,6 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                   <Typography variant='h5'>{`${t('invoices.title')} #${invoice?.invoiceNumber || invoice?.invoiceId || id || 'INV-001'}`}</Typography>
                   <div className='flex flex-col gap-1'>
                     <Typography color='text.primary'>{`${t('invoices.dateIssued')} ${formatDate(issuedDate)}`}</Typography>
-                    <div className='flex flex-col'>
-                      <Typography
-                        color={getInvoiceDueDateColor(dueDate, invoice?.status)}
-                      >{`${t('invoices.dateDue')} ${formatDate(dueDate)}`}</Typography>
-                      {getInvoiceTimeRemaining(dueDate, invoice?.status) && (
-                        <Typography variant='caption' color={getInvoiceDueDateColor(dueDate, invoice?.status)}>
-                          {getInvoiceTimeRemaining(dueDate, invoice?.status)}
-                        </Typography>
-                      )}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -169,7 +157,7 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                       {selectedClient.address && <Typography>{selectedClient.address}</Typography>}
                       {selectedClient.city && (
                         <Typography>
-                          {selectedClient.city} {selectedClient.postalCode} ({selectedClient.province})
+                          {selectedClient.city}
                         </Typography>
                       )}
                     </div>
@@ -283,7 +271,7 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                         <Typography color='text.primary'>€{item.rate || 0}</Typography>
                       </td>
                       <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
-                        <Typography color='text.primary'>{item.discount || 0}%</Typography>
+                        <Typography color='text.primary'>€{item.discount || 0}</Typography>
                       </td>
                       <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
                         <Typography color='text.primary'>
@@ -315,7 +303,7 @@ const PreviewCard = ({ invoiceData, invoiceState, id }) => {
                   </Typography>
                   <Typography>
                     {selectedSalesperson
-                      ? `${selectedSalesperson.name} - ${selectedSalesperson.role}`
+                      ? selectedSalesperson.name
                       : t('invoices.notAssigned')}
                   </Typography>
                 </div>

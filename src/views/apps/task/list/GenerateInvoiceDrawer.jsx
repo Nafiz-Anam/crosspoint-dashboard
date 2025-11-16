@@ -37,7 +37,6 @@ const GenerateInvoiceDrawer = ({ open, handleClose, task, onInvoiceGenerated }) 
     formState: { errors }
   } = useForm({
     defaultValues: {
-      dueDate: '',
       notes: '',
       thanksMessage: 'Thank you for your business!',
       paymentTerms: 'Payment due within 30 days',
@@ -46,13 +45,6 @@ const GenerateInvoiceDrawer = ({ open, handleClose, task, onInvoiceGenerated }) 
       paymentMethod: 'Internet Banking'
     }
   })
-
-  // Calculate due date (30 days from now)
-  const getDefaultDueDate = () => {
-    const date = new Date()
-    date.setDate(date.getDate() + 30)
-    return date.toISOString().split('T')[0]
-  }
 
   const onSubmit = async data => {
     if (!task) return
@@ -66,7 +58,6 @@ const GenerateInvoiceDrawer = ({ open, handleClose, task, onInvoiceGenerated }) 
     }
 
     const payload = {
-      dueDate: data.dueDate,
       notes: data.notes || `Invoice for task: ${task.title}`,
       thanksMessage: data.thanksMessage,
       paymentTerms: data.paymentTerms,
@@ -108,7 +99,6 @@ const GenerateInvoiceDrawer = ({ open, handleClose, task, onInvoiceGenerated }) 
   const handleReset = () => {
     handleClose()
     resetForm({
-      dueDate: '',
       notes: '',
       thanksMessage: 'Thank you for your business!',
       paymentTerms: 'Payment due within 30 days',
@@ -179,23 +169,6 @@ const GenerateInvoiceDrawer = ({ open, handleClose, task, onInvoiceGenerated }) 
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6 p-6'>
-          <Controller
-            name='dueDate'
-            control={control}
-            rules={{ required: 'Due date is required.' }}
-            render={({ field }) => (
-              <CustomTextField
-                {...field}
-                fullWidth
-                type='date'
-                label='Due Date'
-                InputLabelProps={{ shrink: true }}
-                defaultValue={getDefaultDueDate()}
-                {...(errors.dueDate && { error: true, helperText: errors.dueDate.message })}
-              />
-            )}
-          />
-
           <Controller
             name='notes'
             control={control}

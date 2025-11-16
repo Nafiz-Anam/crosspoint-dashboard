@@ -51,7 +51,6 @@ const AddCard = ({
     selectedClient,
     selectedSalesperson,
     issuedDate,
-    dueDate,
     invoiceItems,
     paymentMethod,
     paymentTerms,
@@ -225,8 +224,8 @@ const AddCard = ({
   const calculateItemTotal = item => {
     const rate = parseFloat(item.rate) || 0
     const discount = parseFloat(item.discount) || 0
-    const discountAmount = (rate * discount) / 100
-    return rate - discountAmount
+    // Discount is now a flat rate, not percentage
+    return rate - discount
   }
 
   const calculateInvoiceTotal = () => {
@@ -245,10 +244,9 @@ const AddCard = ({
 
   const calculateTotalDiscount = () => {
     return invoiceItems.reduce((total, item) => {
-      const rate = parseFloat(item.rate) || 0
       const discount = parseFloat(item.discount) || 0
-      const discountAmount = (rate * discount) / 100
-      return total + (isNaN(discountAmount) ? 0 : discountAmount)
+      // Discount is now a flat rate, not percentage
+      return total + (isNaN(discount) ? 0 : discount)
     }, 0)
   }
 
@@ -328,17 +326,6 @@ const AddCard = ({
                     />
                   </div>
                   <div className='flex items-center'>
-                    <Typography className='min-is-[95px] mie-4' color='text.primary'>
-                      {t('invoices.dateDue')}
-                    </Typography>
-                    <AppReactDatepicker
-                      boxProps={{ className: 'is-full' }}
-                      selected={dueDate}
-                      placeholderText='YYYY-MM-DD'
-                      dateFormat={'yyyy-MM-dd'}
-                      onChange={date => handleDateChange('dueDate', date)}
-                      customInput={<CustomTextField fullWidth />}
-                    />
                   </div>
                 </div>
               </div>
@@ -384,7 +371,7 @@ const AddCard = ({
                     {selectedClient.address && <Typography>{selectedClient.address}</Typography>}
                     {selectedClient.city && (
                       <Typography>
-                        {selectedClient.city} {selectedClient.postalCode} ({selectedClient.province})
+                        {selectedClient.city}
                       </Typography>
                     )}
                   </div>
@@ -575,11 +562,11 @@ const AddCard = ({
                         onChange={e => handleItemChange(index, 'discount', parseFloat(e.target.value) || 0)}
                         placeholder='0'
                         InputProps={{
-                          endAdornment: <InputAdornment position='end'>%</InputAdornment>
+                          startAdornment: <InputAdornment position='start'>€</InputAdornment>
                         }}
                         inputProps={{
                           min: 0,
-                          max: 100,
+                          step: 0.01,
                           style: { MozAppearance: 'textfield' }
                         }}
                         sx={{
@@ -710,8 +697,8 @@ const AddCard = ({
                 <CustomTextField
                   fullWidth
                   placeholder={t('invoices.thanksForBusiness')}
-                  label={`${t('invoices.thanksMessage')}`}
-                  value={thanksMessage || ''}
+                  label={`${t('invoices.thanksMessage')} *`}
+                  value={thanksMessage || t('invoices.defaultThankYouMessage')}
                   onChange={e => updateInvoiceState({ thanksMessage: e.target.value })}
                   required
                 />

@@ -62,7 +62,6 @@ const InvoiceContainer = ({ initialData }) => {
         selectedClient: prefillData.selectedClient || null,
         selectedSalesperson: prefillData.selectedSalesperson || null,
         issuedDate: prefillData.issuedDate ? new Date(prefillData.issuedDate) : new Date(),
-        dueDate: prefillData.dueDate ? new Date(prefillData.dueDate) : null,
         invoiceNumber: null,
         invoiceItems: prefillData.serviceItems || [
           {
@@ -89,7 +88,7 @@ const InvoiceContainer = ({ initialData }) => {
         employeeId: prefillData.selectedSalesperson?.id || null,
         branchId: prefillData.selectedClient?.branchId || null,
         notes: prefillData.notes || '',
-        thanksMessage: '',
+        thanksMessage: prefillData.thanksMessage || '',
         taxRate: 0,
         discountAmount: 0
       }
@@ -101,7 +100,6 @@ const InvoiceContainer = ({ initialData }) => {
       selectedClient: null,
       selectedSalesperson: null,
       issuedDate: null,
-      dueDate: null,
       invoiceNumber: null,
       invoiceItems: [
         {
@@ -133,6 +131,13 @@ const InvoiceContainer = ({ initialData }) => {
       discountAmount: 0
     }
   })
+
+  // Set default thank you message on mount
+  useEffect(() => {
+    if (!invoiceState.thanksMessage) {
+      updateInvoiceState({ thanksMessage: t('invoices.defaultThankYouMessage') })
+    }
+  }, [t])
 
   // Fetch all required data
   const fetchData = useCallback(async () => {

@@ -111,11 +111,6 @@ const InvoiceListTable = ({ invoiceData }) => {
                   Balance:
                 </Typography>{' '}
                 {row.original.balance}
-                <br />
-                <Typography variant='body2' component='span' className='text-inherit'>
-                  Due Date:
-                </Typography>{' '}
-                {row.original.dueDate}
               </div>
             }
           >

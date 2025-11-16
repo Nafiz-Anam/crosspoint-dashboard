@@ -410,7 +410,38 @@ const ClientListTable = () => {
       }),
       columnHelper.accessor('phone', {
         header: t('clients.fields.phone'),
-        cell: ({ row }) => <Typography color='text.primary'>{row.original.phone || '-'}</Typography>,
+        cell: ({ row }) => {
+          const primaryPhone = row.original.phone
+          const additionalPhone = row.original.additionalPhone
+          
+          if (!primaryPhone && !additionalPhone) {
+            return <Typography color='text.primary'>-</Typography>
+          }
+          
+          return (
+            <div className='flex flex-col'>
+              {primaryPhone && (
+                <Typography color='text.primary' className='font-medium'>
+                  {primaryPhone}
+                </Typography>
+              )}
+              {additionalPhone && (
+                <Typography variant='caption' color='text.secondary'>
+                  {additionalPhone}
+                </Typography>
+              )}
+            </div>
+          )
+        },
+        enableSorting: true
+      }),
+      columnHelper.accessor('createdBy', {
+        header: t('clients.fields.createdBy'),
+        cell: ({ row }) => (
+          <Typography color='text.primary'>
+            {row.original.createdBy || '-'}
+          </Typography>
+        ),
         enableSorting: true
       }),
       columnHelper.accessor('address', {
@@ -418,12 +449,11 @@ const ClientListTable = () => {
         cell: ({ row }) => {
           const address = row.original.address
           const city = row.original.city
-          const postalCode = row.original.postalCode
           
-          if (!address && !city && !postalCode) return <Typography>-</Typography>
+          if (!address && !city) return <Typography>-</Typography>
           
           // Combine full address for tooltip
-          const fullAddress = [address, city, postalCode].filter(Boolean).join(', ')
+          const fullAddress = [address, city].filter(Boolean).join(', ')
           
           // Truncate address to 30 characters for display
           const truncatedAddress = address && address.length > 30 
@@ -481,7 +511,7 @@ const ClientListTable = () => {
                     {truncatedAddress}
                   </Typography>
                 )}
-                {(city || postalCode) && (
+                {city && (
                   <Typography 
                     variant='caption' 
                     color='text.secondary'
@@ -494,8 +524,6 @@ const ClientListTable = () => {
                     }}
                   >
                     {city}
-                    {city && postalCode ? ', ' : ''}
-                    {postalCode}
                   </Typography>
                 )}
               </div>

@@ -59,7 +59,6 @@ const AddActions = ({
     bankDetails,
     employeeId,
     branchId,
-    dueDate,
     notes,
     thanksMessage,
     taxRate,
@@ -75,8 +74,7 @@ const AddActions = ({
     employeeId: employeeId || selectedSalesperson?.id,
     branchId: branchId || selectedClient?.branchId,
     thanksMessage: thanksMessage,
-    invoiceItems: invoiceItems?.length,
-    dueDate: dueDate
+    invoiceItems: invoiceItems?.length
   })
 
   // Handlers that update shared state
@@ -145,10 +143,6 @@ const AddActions = ({
       errors.push(t('invoices.pleaseSelectSalesperson'))
     }
 
-    if (!dueDate) {
-      errors.push(t('invoices.pleaseSelectDueDate'))
-    }
-
     if (!thanksMessage?.trim()) {
       errors.push(t('invoices.pleaseAddThanksMessage'))
     }
@@ -162,9 +156,7 @@ const AddActions = ({
       if (!item.serviceId) {
         errors.push(`Item ${index + 1}: ${t('invoices.service')} is required`)
       }
-      if (!item.description?.trim()) {
-        errors.push(`Item ${index + 1}: ${t('invoices.description')} is required`)
-      }
+      // Description is now optional - removed validation
       if (!item.rate || parseFloat(item.rate) <= 0) {
         errors.push(`Item ${index + 1}: ${t('invoices.rate')} must be greater than 0`)
       }
@@ -216,8 +208,7 @@ const AddActions = ({
           branchId: finalBranchId,
           employeeId: finalEmployeeId,
           invoiceNumber: currentInvoiceNumber,
-          dueDate: new Date(dueDate).toISOString(),
-          thanksMessage: thanksMessage || 'Thank you for your business!',
+          thanksMessage: thanksMessage || t('invoices.defaultThankYouMessage'),
           notes: clientNotesText || null,
           paymentTerms: paymentTerms ? paymentTermsText : null,
           taxRate: taxRate || 0,
@@ -286,8 +277,7 @@ const AddActions = ({
           branchId: finalBranchId,
           employeeId: finalEmployeeId,
           invoiceNumber: currentInvoiceNumber,
-          dueDate: new Date(dueDate).toISOString(),
-          thanksMessage: thanksMessage || 'Thank you for your business!',
+          thanksMessage: thanksMessage || t('invoices.defaultThankYouMessage'),
           notes: clientNotesText || null,
           paymentTerms: paymentTerms ? paymentTermsText : null,
           taxRate: taxRate || 0,
@@ -385,20 +375,25 @@ const AddActions = ({
   // }
 
   // Calculate totals for display (NO QUANTITY)
+  // Discount is now a flat rate, not percentage
   const calculateItemTotal = item => {
     const rate = parseFloat(item.rate) || 0
     const discount = parseFloat(item.discount) || 0
-    const discountAmount = (rate * discount) / 100
-    return rate - discountAmount
+    // Discount is now a flat rate, not percentage - SIMPLE SUBTRACTION
+    const total = rate - discount
+    console.log('calculateItemTotal:', { rate, discount, total, item })
+    return total
   }
 
   const calculateInvoiceTotal = () => {
-    return (
+    const result = (
       invoiceItems?.reduce((total, item) => {
         const itemTotal = calculateItemTotal(item)
         return total + (isNaN(itemTotal) ? 0 : itemTotal)
       }, 0) || 0
     )
+    console.log('calculateInvoiceTotal:', { invoiceItems, result })
+    return result
   }
 
   const calculateSubtotal = () => {
@@ -413,10 +408,9 @@ const AddActions = ({
   const calculateTotalDiscount = () => {
     return (
       invoiceItems?.reduce((total, item) => {
-        const rate = parseFloat(item.rate) || 0
         const discount = parseFloat(item.discount) || 0
-        const discountAmount = (rate * discount) / 100
-        return total + (isNaN(discountAmount) ? 0 : discountAmount)
+        // Discount is now a flat rate, not percentage
+        return total + (isNaN(discount) ? 0 : discount)
       }, 0) || 0
     )
   }
@@ -440,7 +434,7 @@ const AddActions = ({
   const finalBranchId = branchId || selectedClient?.branchId
 
   const isReadyToSave =
-    selectedClient && invoiceItems?.length > 0 && thanksMessage?.trim() && finalEmployeeId && finalBranchId && dueDate
+    selectedClient && invoiceItems?.length > 0 && thanksMessage?.trim() && finalEmployeeId && finalBranchId
 
   const isSaved = createdInvoiceId && saveStatus !== 'saving'
 
@@ -597,11 +591,6 @@ const AddActions = ({
               </Alert>
             )}
 
-            {selectedClient && invoiceItems?.length > 0 && thanksMessage?.trim() && finalEmployeeId && !dueDate && (
-              <Alert severity='warning' size='small'>
-                {t('invoices.pleaseSelectDueDate')}
-              </Alert>
-            )}
 
             {/* Invoice Summary */}
             {invoiceItems?.length > 0 && (
@@ -612,7 +601,15 @@ const AddActions = ({
                 <div className='space-y-2'>
                   <div className='flex justify-between text-sm'>
                     <span>{t('invoices.subtotalLabel')}</span>
-                    <span>€{calculateInvoiceTotal().toFixed(2)}</span>
+                    <span>€{(() => {
+                      // FLAT RATE DISCOUNT: Simple subtraction - rate - discount
+                      const total = invoiceItems?.reduce((sum, item) => {
+                        const rate = Number(item.rate) || 0
+                        const discount = Number(item.discount) || 0
+                        return sum + (rate - discount) // FLAT RATE: direct subtraction
+                      }, 0) || 0
+                      return total.toFixed(2)
+                    })()}</span>
                   </div>
                   {(taxRate || 0) > 0 && (
                     <div className='flex justify-between text-sm'>
@@ -631,7 +628,18 @@ const AddActions = ({
                   <Divider className='my-2' />
                   <div className='flex justify-between font-medium text-base'>
                     <span>{t('invoices.totalLabel')}</span>
-                    <span>€{calculateFinalTotal().toFixed(2)}</span>
+                    <span>€{(() => {
+                      // FLAT RATE DISCOUNT: Calculate total with tax
+                      const subtotal = invoiceItems?.reduce((sum, item) => {
+                        const rate = Number(item.rate) || 0
+                        const discount = Number(item.discount) || 0
+                        return sum + (rate - discount) // FLAT RATE: direct subtraction
+                      }, 0) || 0
+                      const tax = subtotal * ((Number(taxRate) || 0) / 100)
+                      const overallDiscount = Number(discountAmount) || 0
+                      const finalTotal = subtotal + tax - overallDiscount
+                      return finalTotal.toFixed(2)
+                    })()}</span>
                   </div>
                 </div>
               </div>

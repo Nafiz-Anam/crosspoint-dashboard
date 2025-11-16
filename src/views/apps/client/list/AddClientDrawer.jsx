@@ -55,8 +55,8 @@ const AddClientDrawer = props => {
       phone: '',
       address: '',
       city: '',
-      postalCode: '',
-      province: '',
+      additionalPhone: '',
+      createdBy: '',
       branchId: session?.user?.role === 'MANAGER' ? session?.user?.branchId || '' : '',
       status: 'PENDING'
     },
@@ -143,8 +143,8 @@ const AddClientDrawer = props => {
         phone: currentClient.phone || '',
         address: currentClient.address || '',
         city: currentClient.city || '',
-        postalCode: currentClient.postalCode || '',
-        province: currentClient.province || '',
+        additionalPhone: currentClient.additionalPhone || '',
+        createdBy: currentClient.createdBy || '',
 
         branchId: currentClient.branchId || '',
 
@@ -158,8 +158,8 @@ const AddClientDrawer = props => {
         phone: '',
         address: '',
         city: '',
-        postalCode: '',
-        province: '',
+        additionalPhone: '',
+        createdBy: '',
 
         branchId: '',
 
@@ -249,8 +249,8 @@ const AddClientDrawer = props => {
       phone: data.phone?.trim() || null,
       address: data.address?.trim() || null,
       city: data.city?.trim() || null,
-      postalCode: data.postalCode?.trim() || null,
-      province: data.province?.trim() || null,
+      additionalPhone: data.additionalPhone?.trim() || null,
+      createdBy: data.createdBy?.trim() || null,
       branchId: data.branchId,
       status: data.status
     }
@@ -300,8 +300,8 @@ const AddClientDrawer = props => {
       phone: '',
       address: '',
       city: '',
-      postalCode: '',
-      province: '',
+      additionalPhone: '',
+      createdBy: '',
       branchId: '',
       status: 'PENDING'
     })
@@ -521,43 +521,43 @@ const AddClientDrawer = props => {
           />
 
           <Controller
-            name='postalCode'
+            name='additionalPhone'
             control={control}
             rules={{
               pattern: {
-                value: /^\d{5}$/,
-                message: t('clients.postalCodeInvalid')
+                value: /^[\+]?[0-9\s\-\(\)]{8,20}$/,
+                message: t('clients.phoneInvalid')
               }
             }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label={`${t('clients.fields.postalCode')} (${t('clients.optional')})`}
-                placeholder={t('clients.enterPostalCode')}
+                label={`${t('clients.fields.additionalPhone')} (${t('clients.optional')})`}
+                placeholder={t('clients.enterAdditionalPhone')}
                 disabled={isViewMode}
-                {...(errors.postalCode && { error: true, helperText: errors.postalCode.message })}
+                {...(errors.additionalPhone && { error: true, helperText: errors.additionalPhone.message })}
               />
             )}
           />
 
           <Controller
-            name='province'
+            name='createdBy'
             control={control}
             rules={{
-              pattern: {
-                value: /^[A-Z]{2}$/,
-                message: t('clients.provinceInvalid')
+              maxLength: {
+                value: 100,
+                message: t('clients.nameMaxLength')
               }
             }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label={`${t('clients.fields.province')} (${t('clients.optional')})`}
-                placeholder={t('clients.enterProvince')}
+                label={`${t('clients.fields.createdBy')} (${t('clients.optional')})`}
+                placeholder={t('clients.enterCreatedBy')}
                 disabled={isViewMode}
-                {...(errors.province && { error: true, helperText: errors.province.message })}
+                {...(errors.createdBy && { error: true, helperText: errors.createdBy.message })}
               />
             )}
           />

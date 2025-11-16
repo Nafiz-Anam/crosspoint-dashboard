@@ -28,12 +28,16 @@ import CustomTextField from '@core/components/mui/TextField'
 // Styled Component Imports
 import AppReactDatepicker from '@/libs/styles/AppReactDatepicker'
 
+// Hooks
+import { useTranslation } from '@/hooks/useTranslation'
+
 const EditCard = ({ invoiceData, id, data, clients, services, employees }) => {
+  // Hooks
+  const { t } = useTranslation()
   // States
   const [selectData, setSelectData] = useState(invoiceData?.client || null)
   const [count, setCount] = useState(invoiceData?.items?.length || 1)
   const [issueDate, setIssueDate] = useState(invoiceData?.issuedDate ? new Date(invoiceData.issuedDate) : new Date())
-  const [dueDate, setDueDate] = useState(invoiceData?.dueDate ? new Date(invoiceData.dueDate) : null)
   const [invoiceItems, setInvoiceItems] = useState(invoiceData?.items || [])
   const [categories, setCategories] = useState([])
   const [isFormReady, setIsFormReady] = useState(false)
@@ -143,18 +147,6 @@ const EditCard = ({ invoiceData, id, data, clients, services, employees }) => {
                         customInput={<CustomTextField fullWidth />}
                       />
                     </div>
-                    <div className='flex items-center'>
-                      <Typography className='min-is-[95px] mie-4' color='text.primary'>
-                        Date Due:
-                      </Typography>
-                      <AppReactDatepicker
-                        boxProps={{ className: 'is-full' }}
-                        selected={dueDate}
-                        id='payment-date'
-                        onChange={date => date !== null && setDueDate(date)}
-                        customInput={<CustomTextField fullWidth />}
-                      />
-                    </div>
                   </div>
                 </div>
               </div>
@@ -193,7 +185,7 @@ const EditCard = ({ invoiceData, id, data, clients, services, employees }) => {
                       {selectData.address && <Typography>{selectData.address}</Typography>}
                       {selectData.city && (
                         <Typography>
-                          {selectData.city} {selectData.postalCode} ({selectData.province})
+                          {selectData.city}
                         </Typography>
                       )}
                     </div>
@@ -379,7 +371,8 @@ const EditCard = ({ invoiceData, id, data, clients, services, employees }) => {
                             }}
                             slotProps={{
                               input: {
-                                inputProps: { min: 0, max: 100 }
+                                inputProps: { min: 0, step: 0.01 },
+                                startAdornment: <InputAdornment position='start'>€</InputAdornment>
                               }
                             }}
                           />
@@ -398,7 +391,8 @@ const EditCard = ({ invoiceData, id, data, clients, services, employees }) => {
                         render={({ field }) => {
                           const rate = watchedItems[index]?.rate || 0
                           const discount = watchedItems[index]?.discount || 0
-                          const total = rate - (rate * discount) / 100
+                          // Discount is now a flat rate, not percentage
+                          const total = rate - discount
                           return (
                             <div className='bg-primary-50 rounded border text-center min-h-[40px] flex items-center justify-center border-primary-200 mbe-5'>
                               <Typography variant='h6' color='primary' className='font-semibold'>
@@ -517,8 +511,8 @@ const EditCard = ({ invoiceData, id, data, clients, services, employees }) => {
                     </CustomTextField>
                   </div>
                   <CustomTextField
-                    value={invoiceData?.thanksMessage || 'Thanks for your business'}
-                    label='Thanks Message'
+                    value={invoiceData?.thanksMessage || t('invoices.defaultThankYouMessage')}
+                    label={t('invoices.thanksMessage')}
                   />
                 </div>
                 <div className='min-is-[200px]'>

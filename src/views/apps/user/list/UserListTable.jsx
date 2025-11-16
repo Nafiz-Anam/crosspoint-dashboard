@@ -516,6 +516,15 @@ const EmployeeListTable = () => {
         cell: info => <Typography color='text.primary'>{info.getValue()}</Typography>,
         enableSorting: true
       }),
+      columnHelper.accessor('phone', {
+        header: t('employees.fields.phone'),
+        cell: ({ row }) => (
+          <Typography color='text.primary'>
+            {row.original.phone || '-'}
+          </Typography>
+        ),
+        enableSorting: true
+      }),
       columnHelper.accessor('role', {
         header: t('employees.fields.role'),
         cell: ({ row }) => (

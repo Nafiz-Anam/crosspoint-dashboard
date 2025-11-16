@@ -48,7 +48,6 @@ import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDial
 import { getInitials } from '@/utils/getInitials'
 import { getLocalizedUrl } from '@/utils/i18n'
 import { useTranslation } from '@/hooks/useTranslation'
-import { getInvoiceDueDateColor, getInvoiceTimeRemaining } from '@/utils/dateColorUtils'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
@@ -469,26 +468,6 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
       columnHelper.accessor('issuedDate', {
         header: t('invoices.fields.date'),
         cell: ({ row }) => <Typography>{new Date(row.original.issuedDate).toLocaleDateString()}</Typography>,
-        enableSorting: true
-      }),
-      columnHelper.accessor('dueDate', {
-        header: t('invoices.fields.dueDate'),
-        cell: ({ row }) => {
-          const dueDate = new Date(row.original.dueDate)
-          const timeRemaining = getInvoiceTimeRemaining(row.original.dueDate, row.original.status)
-          return (
-            <div className='flex flex-col'>
-              <Typography color={getInvoiceDueDateColor(row.original.dueDate, row.original.status)}>
-                {dueDate.toLocaleDateString()}
-              </Typography>
-              {timeRemaining && (
-                <Typography variant='caption' color={getInvoiceDueDateColor(row.original.dueDate, row.original.status)}>
-                  {timeRemaining}
-                </Typography>
-              )}
-            </div>
-          )
-        },
         enableSorting: true
       }),
       columnHelper.accessor('action', {
