@@ -32,23 +32,16 @@ const AddTaskCard = ({ onTaskCreated }) => {
   // States
   const [loading, setLoading] = useState(false)
   const [clients, setClients] = useState([])
-  const [services, setServices] = useState([])
+  const [allServices, setAllServices] = useState([]) // All services for category extraction
+  const [services, setServices] = useState([]) // Filtered services for selected category
   const [employees, setEmployees] = useState([])
+  const [categories, setCategories] = useState([]) // Dynamic categories extracted from services
 
   // Individual loading states for each dropdown
   const [clientsLoading, setClientsLoading] = useState(false)
   const [servicesLoading, setServicesLoading] = useState(false)
   const [employeesLoading, setEmployeesLoading] = useState(false)
-
-  // Hardcoded categories from service creation form
-  const hardcodedCategories = [
-    { value: 'CAF', translationKey: 'caf' },
-    { value: 'Patronato', translationKey: 'patronato' },
-    { value: 'Immigrazione', translationKey: 'immigrazione' },
-    { value: 'Partita IVA', translationKey: 'partitaIva' },
-    { value: 'Reparto Legale', translationKey: 'repartoLegale' },
-    { value: 'Varie pratiche', translationKey: 'variePratiche' }
-  ]
+  const [categoriesLoading, setCategoriesLoading] = useState(false)
 
   // Hooks
   const { data: session } = useSession()
@@ -108,7 +101,38 @@ const AddTaskCard = ({ onTaskCreated }) => {
     }
   }, [session?.accessToken])
 
-  // Fetch services with category filtering
+  // Fetch all services to extract categories (like invoice form)
+  const fetchAllServices = useCallback(async () => {
+    if (!session?.accessToken) return
+
+    setCategoriesLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services/list/all`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const servicesData = data.data || []
+        setAllServices(servicesData)
+        
+        // Extract unique categories from services (same as invoice form)
+        const uniqueCategories = [...new Set(servicesData.map(service => service.category).filter(Boolean))]
+        setCategories(uniqueCategories || [])
+        console.log('Extracted categories from services:', uniqueCategories)
+      }
+    } catch (error) {
+      console.error('Error fetching all services:', error)
+    } finally {
+      setCategoriesLoading(false)
+    }
+  }, [session?.accessToken])
+
+  // Fetch services filtered by category
   const fetchServices = useCallback(
     async (category = null) => {
       if (!session?.accessToken) return
@@ -184,8 +208,9 @@ const AddTaskCard = ({ onTaskCreated }) => {
     if (session?.accessToken) {
       fetchClients()
       fetchEmployees()
+      fetchAllServices() // Fetch all services to extract categories
     }
-  }, [session?.accessToken, fetchClients, fetchEmployees])
+  }, [session?.accessToken, fetchClients, fetchEmployees, fetchAllServices])
 
   // Handle category changes and fetch services
   useEffect(() => {
@@ -372,12 +397,24 @@ const AddTaskCard = ({ onTaskCreated }) => {
                     label={`${t('tasks.selectCategory')} *`}
                     {...field}
                     {...(errors.categoryId && { error: true, helperText: errors.categoryId.message })}
+                    InputProps={{
+                      endAdornment: categoriesLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null
+                    }}
                   >
-                    {hardcodedCategories.map(category => (
-                      <MenuItem key={category.value} value={category.value}>
-                        {t(`services.categories.${category.translationKey}`)}
+                    {categoriesLoading ? (
+                      <MenuItem disabled>
+                        <CircularProgress size={16} sx={{ mr: 1 }} />
+                        {t('tasks.loadingCategories')}
                       </MenuItem>
-                    ))}
+                    ) : categories.length === 0 ? (
+                      <MenuItem disabled>{t('tasks.noCategoriesAvailable')}</MenuItem>
+                    ) : (
+                      categories.map(category => (
+                        <MenuItem key={category} value={category}>
+                          {category}
+                        </MenuItem>
+                      ))
+                    )}
                   </CustomTextField>
                 )}
               />

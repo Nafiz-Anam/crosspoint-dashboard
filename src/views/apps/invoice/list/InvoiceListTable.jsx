@@ -48,6 +48,8 @@ import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDial
 import { getInitials } from '@/utils/getInitials'
 import { getLocalizedUrl } from '@/utils/i18n'
 import { useTranslation } from '@/hooks/useTranslation'
+import useRoleBasedAccess from '@/hooks/useRoleBasedAccess'
+import { canDelete } from '@/utils/roleBasedAccess'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
@@ -119,6 +121,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
   const { lang: locale } = useParams()
   const { data: session, status: sessionStatus } = useSession()
   const { t } = useTranslation()
+  const { userRole, userPermissions } = useRoleBasedAccess()
 
   // Function to fetch invoice data from API with pagination
   const fetchInvoices = async (
@@ -530,13 +533,17 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
                       }
                     ]
                   : []),
-                // Always show delete option
-                {
-                  text: t('invoices.delete'),
-                  icon: 'tabler-trash',
-                  onClick: () => handleDeleteClick(row.original),
-                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
-                }
+                // Only show delete option if user has DELETE permission (employees cannot delete)
+                ...(canDelete('INVOICE', userRole, userPermissions)
+                  ? [
+                      {
+                        text: t('invoices.delete'),
+                        icon: 'tabler-trash',
+                        onClick: () => handleDeleteClick(row.original),
+                        menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
+                      }
+                    ]
+                  : [])
               ]}
             />
           </div>

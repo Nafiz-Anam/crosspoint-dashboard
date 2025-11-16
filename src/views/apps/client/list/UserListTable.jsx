@@ -45,6 +45,8 @@ import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDial
 
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
+import useRoleBasedAccess from '@/hooks/useRoleBasedAccess'
+import { canDelete } from '@/utils/roleBasedAccess'
 
 const columnHelper = createColumnHelper()
 // Removed clientStatusObj - status not used for clients
@@ -101,6 +103,7 @@ const ClientListTable = () => {
   const { lang: locale } = useParams()
   const { data: session, status: sessionStatus } = useSession()
   const { t } = useTranslation()
+  const { userRole, userPermissions } = useRoleBasedAccess()
 
   // Removed fetchInvoiceCounts - using _count.invoices from API response
 
@@ -580,24 +583,26 @@ const ClientListTable = () => {
           }
 
           // Add remaining options
-          baseOptions.push(
-            {
-              text: t('clients.edit'),
-              icon: 'tabler-edit',
-              menuItemProps: {
-                className: 'flex items-center gap-2 text-textSecondary',
-                onClick: () => handleEditClick(row.original)
-              }
-            },
-            {
+          baseOptions.push({
+            text: t('clients.edit'),
+            icon: 'tabler-edit',
+            menuItemProps: {
+              className: 'flex items-center gap-2 text-textSecondary',
+              onClick: () => handleEditClick(row.original)
+            }
+          })
+
+          // Only show delete option if user has DELETE permission (employees cannot delete)
+          if (canDelete('CLIENT', userRole, userPermissions)) {
+            baseOptions.push({
               text: t('clients.delete'),
               icon: 'tabler-trash',
               menuItemProps: {
                 className: 'flex items-center gap-2 text-textSecondary',
                 onClick: () => handleDeleteClick(row.original.id)
               }
-            }
-          )
+            })
+          }
 
           return (
             <div className='flex items-center'>
@@ -612,7 +617,7 @@ const ClientListTable = () => {
         enableSorting: false
       })
     ],
-    [handleDeleteClick, handleEditClick, handleViewClick, locale, session?.user?.role]
+    [handleDeleteClick, handleEditClick, handleViewClick, locale, session?.user?.role, userRole, userPermissions]
   )
 
   const table = useReactTable({

@@ -43,6 +43,8 @@ import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDial
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
 import { getTaskDueDateColor, getTaskTimeRemaining } from '@/utils/dateColorUtils'
+import useRoleBasedAccess from '@/hooks/useRoleBasedAccess'
+import { canDelete } from '@/utils/roleBasedAccess'
 
 const columnHelper = createColumnHelper()
 
@@ -111,6 +113,7 @@ const TaskListTable = ({
   const router = useRouter()
   const { data: session, status: sessionStatus } = useSession()
   const { t } = useTranslation()
+  const { userRole, userPermissions } = useRoleBasedAccess()
 
   // Determine if we're rendering with externally provided data (dashboard) or fetching from API (management page)
   // Only treat as external if it's actually an array (not null/undefined)
@@ -702,14 +705,19 @@ const TaskListTable = ({
                         }
                       ]
                     : []),
-                  {
-                    text: t('tasks.delete'),
-                    icon: 'tabler-trash',
-                    menuItemProps: {
-                      className: 'flex items-center gap-2 text-textSecondary',
-                      onClick: () => handleDeleteClick(row.original.id)
-                    }
-                  }
+                  // Only show delete option if user has DELETE permission (employees cannot delete)
+                  ...(canDelete('TASK', userRole, userPermissions)
+                    ? [
+                        {
+                          text: t('tasks.delete'),
+                          icon: 'tabler-trash',
+                          menuItemProps: {
+                            className: 'flex items-center gap-2 text-textSecondary',
+                            onClick: () => handleDeleteClick(row.original.id)
+                          }
+                        }
+                      ]
+                    : [])
                 ]}
               />
             )}
@@ -718,7 +726,7 @@ const TaskListTable = ({
         enableSorting: false
       })
     ],
-    [handleDeleteClick, handleGenerateInvoiceClick, locale]
+    [handleDeleteClick, handleGenerateInvoiceClick, locale, userRole, userPermissions]
   )
 
   // Memoize table config to prevent recreation

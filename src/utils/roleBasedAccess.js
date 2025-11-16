@@ -20,13 +20,13 @@ export const MODULE_PERMISSIONS = {
   // Task Management Module
   TASK: {
     requiredPermissions: ['CREATE_TASK', 'READ_TASK', 'UPDATE_TASK', 'DELETE_TASK', 'ASSIGN_TASK'],
-    roles: ['ADMIN', 'MANAGER', 'EMPLOYEE']
+    roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] // ADMIN, HR, and MANAGER have same permissions
   },
 
   // Branch Management Module
   BRANCH: {
     requiredPermissions: ['CREATE_BRANCH', 'READ_BRANCH', 'UPDATE_BRANCH', 'DELETE_BRANCH'],
-    roles: ['ADMIN']
+    roles: ['ADMIN', 'HR', 'MANAGER'] // ADMIN, HR, and MANAGER have same permissions
   },
 
   // Service Management Module
@@ -43,7 +43,7 @@ export const MODULE_PERMISSIONS = {
       'UPDATE_PAYMENT_METHOD',
       'DELETE_PAYMENT_METHOD'
     ],
-    roles: ['ADMIN', 'HR']
+    roles: ['ADMIN', 'HR', 'MANAGER'] // ADMIN, HR, and MANAGER have same permissions
   },
 
   // Invoice Management Module
@@ -168,4 +168,22 @@ export const getRoleDisplayName = role => {
   }
 
   return roleNames[role] || role
+}
+
+/**
+ * Check if user can delete items in a specific module
+ * @param {string} moduleName - The module name (e.g., 'TASK', 'INVOICE', 'CLIENT')
+ * @param {string} userRole - The user's role
+ * @param {Array} userPermissions - The user's permissions array
+ * @returns {boolean} - Whether the user can delete items
+ */
+export const canDelete = (moduleName, userRole, userPermissions = []) => {
+  // Employees cannot delete anything
+  if (userRole === 'EMPLOYEE') {
+    return false
+  }
+
+  // Check if user has DELETE permission for the module
+  const deletePermission = `DELETE_${moduleName}`
+  return userPermissions.includes(deletePermission)
 }
