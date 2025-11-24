@@ -532,6 +532,8 @@
     "dueDateRequired": "La data di scadenza è obbligatoria.",
     "statusRequired": "Lo stato è obbligatorio.",
     "descriptionRequired": "La descrizione è obbligatoria.",
+    "exportReport": "Esporta Report",
+    "exporting": "Esportazione in corso...",
     "taskDescriptionRequired": "La descrizione del compito è obbligatoria.",
     "pleaseSelectClient": "Seleziona un cliente.",
     "pleaseSelectEmployee": "Seleziona un collega assegnato.",

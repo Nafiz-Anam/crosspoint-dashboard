@@ -540,6 +540,8 @@
         "noEmployeesAvailable": "No employees available",
         "taskDescriptionRequired": "Task description is required.",
         "pleaseSelectClient": "Please select a client.",
+        "exportReport": "Export Report",
+        "exporting": "Exporting...",
         "pleaseSelectEmployee": "Please select an assigned employee.",
         "startDateAfterDueDate": "Start date cannot be after due date.",
         "categoryRequired": "Category is required.",

@@ -100,6 +100,9 @@ const TaskListTable = ({
   const [taskToDelete, setTaskToDelete] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  // States for Export
+  const [exportLoading, setExportLoading] = useState(false)
+
   // Ref to track if initial fetch has been made
   const hasInitiallyFetched = useRef(false)
   const isUsingExternalData = useRef(false)
@@ -540,6 +543,82 @@ const TaskListTable = ({
     [locale, router]
   )
 
+  // Export handler
+  const handleExportReport = useCallback(async () => {
+    try {
+      setExportLoading(true)
+      
+      // Build query parameters based on current filters
+      const queryParams = new URLSearchParams()
+      
+      if (statusFilter) {
+        queryParams.append('status', statusFilter)
+      }
+      
+      if (branchFilter) {
+        queryParams.append('branchId', branchFilter)
+      }
+      
+      if (assignedEmployeeFilter) {
+        queryParams.append('employeeId', assignedEmployeeFilter)
+      }
+      
+      if (globalFilter) {
+        queryParams.append('search', globalFilter)
+      }
+      
+      // Add format parameter
+      queryParams.append('format', 'excel')
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/tasks/export-report?${queryParams.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-type': 'web',
+            Authorization: `Bearer ${session.accessToken}`
+          }
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.status}`)
+      }
+
+      // Get the blob from response
+      const blob = await response.blob()
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      
+      // Get filename from response headers or use default
+      const contentDisposition = response.headers.get('Content-Disposition')
+      let filename = 'task-report.xlsx'
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/)
+        if (filenameMatch) {
+          filename = filenameMatch[1]
+        }
+      }
+      
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      
+      toastService.handleApiSuccess('exported', 'Task Report')
+    } catch (error) {
+      console.error('Error exporting report:', error)
+      toastService.handleApiError(error, 'Failed to export task report')
+    } finally {
+      setExportLoading(false)
+    }
+  }, [session?.accessToken, statusFilter, branchFilter, assignedEmployeeFilter, globalFilter])
+
   // Static filter options for better server-side filtering
   const statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'ON_HOLD']
 
@@ -860,17 +939,28 @@ const TaskListTable = ({
             className='min-w-[200px]'
           />
 
-          {showAddButton && (
+          <div className='flex gap-2 ml-auto'>
             <Button
-              variant='contained'
-              startIcon={<i className='tabler-plus' />}
-              component={Link}
-              href={getLocalizedUrl('/apps/task/add', locale)}
-              className='ml-auto h-[40px]'
+              variant='outlined'
+              startIcon={<i className='tabler-file-export' />}
+              onClick={handleExportReport}
+              disabled={exportLoading}
+              className='h-[40px]'
             >
-              {t('tasks.addNewTask')}
+              {exportLoading ? t('tasks.exporting') : t('tasks.exportReport')}
             </Button>
-          )}
+            {showAddButton && (
+              <Button
+                variant='contained'
+                startIcon={<i className='tabler-plus' />}
+                component={Link}
+                href={getLocalizedUrl('/apps/task/add', locale)}
+                className='h-[40px]'
+              >
+                {t('tasks.addNewTask')}
+              </Button>
+            )}
+          </div>
         </div>
 
         {fetchLoading ? (
