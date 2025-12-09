@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 
 // MUI Imports
 import CardContent from '@mui/material/CardContent'
-import Grid from '@mui/material/Grid2'
+import Grid from '@mui/material/Grid'
 import MenuItem from '@mui/material/MenuItem'
 
 // Component Imports

@@ -351,7 +351,7 @@ const AddTaskCard = ({ onTaskCreated }) => {
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={6}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name='clientId'
                 control={control}
@@ -396,7 +396,7 @@ const AddTaskCard = ({ onTaskCreated }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name='categoryId'
                 control={control}
@@ -415,8 +415,8 @@ const AddTaskCard = ({ onTaskCreated }) => {
                     renderInput={params => (
                       <CustomTextField
                         {...params}
-                        label={`${t('tasks.selectCategory')} *`}
-                        {...(errors.categoryId && { error: true, helperText: errors.categoryId.message })}
+                    label={`${t('tasks.selectCategory')} *`}
+                    {...(errors.categoryId && { error: true, helperText: errors.categoryId.message })}
                         slotProps={{
                           input: {
                             ...params.InputProps,
@@ -436,7 +436,7 @@ const AddTaskCard = ({ onTaskCreated }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name='serviceId'
                 control={control}
@@ -488,7 +488,7 @@ const AddTaskCard = ({ onTaskCreated }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name='assignedEmployeeId'
                 control={control}
@@ -533,7 +533,7 @@ const AddTaskCard = ({ onTaskCreated }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name='startDate'
                 control={control}
@@ -551,7 +551,7 @@ const AddTaskCard = ({ onTaskCreated }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name='dueDate'
                 control={control}
@@ -569,7 +569,7 @@ const AddTaskCard = ({ onTaskCreated }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name='status'
                 control={control}
@@ -603,7 +603,7 @@ const AddTaskCard = ({ onTaskCreated }) => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Controller
                 name='description'
                 control={control}
@@ -622,7 +622,7 @@ const AddTaskCard = ({ onTaskCreated }) => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <div className='flex items-center gap-4'>
                 <LoadingButton
                   variant='contained'

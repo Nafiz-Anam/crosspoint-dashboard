@@ -5,7 +5,7 @@ import { useState } from 'react'
 
 // MUI Imports
 import { styled } from '@mui/material/styles'
-import Grid from '@mui/material/Grid2'
+import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
 import Step from '@mui/material/Step'
 import Button from '@mui/material/Button'

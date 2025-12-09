@@ -787,14 +787,14 @@ const TaskListTable = ({
                   // Only show delete option if user has DELETE permission (employees cannot delete)
                   ...(canDelete('TASK', userRole, userPermissions)
                     ? [
-                        {
-                          text: t('tasks.delete'),
-                          icon: 'tabler-trash',
-                          menuItemProps: {
-                            className: 'flex items-center gap-2 text-textSecondary',
-                            onClick: () => handleDeleteClick(row.original.id)
-                          }
-                        }
+                  {
+                    text: t('tasks.delete'),
+                    icon: 'tabler-trash',
+                    menuItemProps: {
+                      className: 'flex items-center gap-2 text-textSecondary',
+                      onClick: () => handleDeleteClick(row.original.id)
+                    }
+                  }
                       ]
                     : [])
                 ]}
@@ -949,17 +949,17 @@ const TaskListTable = ({
             >
               {exportLoading ? t('tasks.exporting') : t('tasks.exportReport')}
             </Button>
-            {showAddButton && (
-              <Button
-                variant='contained'
-                startIcon={<i className='tabler-plus' />}
-                component={Link}
-                href={getLocalizedUrl('/apps/task/add', locale)}
+          {showAddButton && (
+            <Button
+              variant='contained'
+              startIcon={<i className='tabler-plus' />}
+              component={Link}
+              href={getLocalizedUrl('/apps/task/add', locale)}
                 className='h-[40px]'
-              >
-                {t('tasks.addNewTask')}
-              </Button>
-            )}
+            >
+              {t('tasks.addNewTask')}
+            </Button>
+          )}
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 // MUI Imports
-import Grid from '@mui/material/Grid2'
+import Grid from '@mui/material/Grid'
 
 // Component Imports
 import CardStatVertical from '@/components/card-statistics/Vertical'

@@ -7,10 +7,11 @@ import TaskList from '@views/apps/task/list'
 // Util Imports
 import { getServerMode } from '@core/utils/serverHelpers'
 
-const TaskListApp = () => {
+const TaskListApp = async () => {
   // Vars
-  const direction = cookies().get('direction')?.value || 'ltr'
-  const mode = getServerMode()
+  const cookieStore = await cookies()
+  const direction = cookieStore.get('direction')?.value || 'ltr'
+  const mode = await getServerMode()
 
   return <TaskList mode={mode} direction={direction} />
 }

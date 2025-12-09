@@ -1,6 +1,6 @@
 // MUI Imports
 import Typography from '@mui/material/Typography'
-import Grid from '@mui/material/Grid2'
+import Grid from '@mui/material/Grid'
 
 // SVG Imports
 import Check from '@assets/svg/front-pages/landing-page/Check'

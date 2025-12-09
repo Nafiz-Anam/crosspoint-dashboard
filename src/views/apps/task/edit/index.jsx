@@ -1,11 +1,7 @@
 'use client'
 
 // React Imports
-import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-
-// MUI Imports
-import Grid from '@mui/material/Grid'
 
 // Component Imports
 import EditTaskCard from './EditTaskCard'
@@ -31,13 +27,7 @@ const EditTask = ({ taskId }) => {
     }
   }
 
-  return (
-    <Grid container spacing={6}>
-      <Grid item xs={12}>
-        <EditTaskCard taskId={taskId} onTaskUpdated={handleTaskUpdated} />
-      </Grid>
-    </Grid>
-  )
+  return <EditTaskCard taskId={taskId} onTaskUpdated={handleTaskUpdated} />
 }
 
 export default EditTask

@@ -16,12 +16,6 @@ const nextConfig = {
         permanent: true,
         locale: false
       },
-      {
-        source: '/((?!(?:en|it|front-pages|favicon.ico)\\b)):path',
-        destination: '/it/:path',
-        permanent: true,
-        locale: false
-      }
     ]
   }
 }

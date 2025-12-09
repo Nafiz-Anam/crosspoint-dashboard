@@ -2,7 +2,7 @@
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import FormControlLabel from '@mui/material/FormControlLabel'
-import Grid from '@mui/material/Grid2'
+import Grid from '@mui/material/Grid'
 import Switch from '@mui/material/Switch'
 import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'

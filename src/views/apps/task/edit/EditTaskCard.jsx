@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
 // MUI Imports
@@ -27,6 +27,8 @@ import CustomTextField from '@core/components/mui/TextField'
 import toastService from '@/services/toastService'
 
 const EditTaskCard = ({ taskId, onTaskUpdated }) => {
+  console.log('EditTaskCard rendered with taskId:', taskId)
+  
   // States
   const [loading, setLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(true)
@@ -70,9 +72,20 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
   const watchedServiceId = watch('serviceId')
 
   // Fetch task data
-  const fetchTaskData = async () => {
-    if (!session?.accessToken || !taskId) return
+  const fetchTaskData = useCallback(async () => {
+    if (!session?.accessToken) {
+      console.log('No access token, waiting for session...')
+      setFetchLoading(false)
+      return
+    }
+    
+    if (!taskId) {
+      console.error('Task ID is missing')
+      setFetchLoading(false)
+      return
+    }
 
+    console.log('Fetching task data for ID:', taskId)
     setFetchLoading(true)
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${taskId}`, {
@@ -86,8 +99,11 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
       if (response.ok) {
         const data = await response.json()
         const task = data.data.task
+        console.log('Task data fetched successfully:', task)
         setTaskData(task)
       } else {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Failed to fetch task:', errorData)
         await toastService.handleApiError(response, 'Failed to fetch task data')
       }
     } catch (error) {
@@ -96,7 +112,7 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
     } finally {
       setFetchLoading(false)
     }
-  }
+  }, [session?.accessToken, taskId])
 
   // Fetch clients
   const fetchClients = async () => {
@@ -207,14 +223,21 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
 
   // Fetch all data when component mounts
   useEffect(() => {
-    if (session?.accessToken) {
+    console.log('useEffect triggered:', { hasToken: !!session?.accessToken, taskId })
+    if (session?.accessToken && taskId) {
       fetchTaskData()
       fetchClients()
       fetchCategories()
       fetchServices()
       fetchEmployees()
+    } else if (!session?.accessToken) {
+      console.log('Waiting for session...')
+      setFetchLoading(false)
+    } else if (!taskId) {
+      console.error('TaskId is missing!')
+      setFetchLoading(false)
     }
-  }, [session?.accessToken, taskId])
+  }, [session?.accessToken, taskId, fetchTaskData])
 
   // Populate form when task data and services are loaded
   useEffect(() => {
@@ -326,7 +349,7 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={6}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name='clientId'
                 control={control}
@@ -361,7 +384,7 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name='categoryId'
                 control={control}
@@ -396,7 +419,7 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name='serviceId'
                 control={control}
@@ -436,7 +459,7 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name='assignedEmployeeId'
                 control={control}
@@ -471,7 +494,7 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name='startDate'
                 control={control}
@@ -487,7 +510,7 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name='dueDate'
                 control={control}
@@ -503,7 +526,7 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name='status'
                 control={control}
@@ -526,7 +549,7 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Controller
                 name='description'
                 control={control}
@@ -543,7 +566,7 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <div className='flex items-center gap-4'>
                 <LoadingButton
                   variant='contained'

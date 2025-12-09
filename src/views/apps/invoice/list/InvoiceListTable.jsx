@@ -536,12 +536,12 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
                 // Only show delete option if user has DELETE permission (employees cannot delete)
                 ...(canDelete('INVOICE', userRole, userPermissions)
                   ? [
-                      {
-                        text: t('invoices.delete'),
-                        icon: 'tabler-trash',
-                        onClick: () => handleDeleteClick(row.original),
-                        menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
-                      }
+                {
+                  text: t('invoices.delete'),
+                  icon: 'tabler-trash',
+                  onClick: () => handleDeleteClick(row.original),
+                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
+                }
                     ]
                   : [])
               ]}

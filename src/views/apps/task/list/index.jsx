@@ -1,22 +1,10 @@
 'use client'
 
-// React Imports
-import { useState } from 'react'
-
-// MUI Imports
-import Grid from '@mui/material/Grid'
-
 // Component Imports
 import TaskListTable from './TaskListTable'
 
 const TaskList = () => {
-  return (
-    <Grid container spacing={6}>
-      <Grid item xs={12}>
-        <TaskListTable />
-      </Grid>
-    </Grid>
-  )
+  return <TaskListTable />
 }
 
 export default TaskList

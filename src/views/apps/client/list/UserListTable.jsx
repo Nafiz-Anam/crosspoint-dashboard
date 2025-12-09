@@ -584,12 +584,12 @@ const ClientListTable = () => {
 
           // Add remaining options
           baseOptions.push({
-            text: t('clients.edit'),
-            icon: 'tabler-edit',
-            menuItemProps: {
-              className: 'flex items-center gap-2 text-textSecondary',
-              onClick: () => handleEditClick(row.original)
-            }
+              text: t('clients.edit'),
+              icon: 'tabler-edit',
+              menuItemProps: {
+                className: 'flex items-center gap-2 text-textSecondary',
+                onClick: () => handleEditClick(row.original)
+              }
           })
 
           // Only show delete option if user has DELETE permission (employees cannot delete)
@@ -602,7 +602,7 @@ const ClientListTable = () => {
                 onClick: () => handleDeleteClick(row.original.id)
               }
             })
-          }
+            }
 
           return (
             <div className='flex items-center'>

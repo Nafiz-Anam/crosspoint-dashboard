@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 
 // MUI Imports
 import Typography from '@mui/material/Typography'
-import Grid from '@mui/material/Grid2'
+import Grid from '@mui/material/Grid'
 import Chip from '@mui/material/Chip'
 import { styled } from '@mui/material/styles'
 

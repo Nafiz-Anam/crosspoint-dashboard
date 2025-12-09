@@ -156,13 +156,13 @@ const TaskViewCard = () => {
       <CardContent>
         <Grid container spacing={4}>
           {/* Basic Information */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant='h6' gutterBottom>
               {t('tasks.basicInformation')}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.taskId')}
                 </Typography>
@@ -170,7 +170,7 @@ const TaskViewCard = () => {
                   {task.taskId || '-'}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.fields.status')}
                 </Typography>
@@ -202,7 +202,7 @@ const TaskViewCard = () => {
                   />
                 </Box>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.createdDate')}
                 </Typography>
@@ -213,7 +213,7 @@ const TaskViewCard = () => {
 
           {/* Description */}
           {task.description && (
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant='h6' gutterBottom>
                 {t('tasks.description')}
               </Typography>
@@ -225,13 +225,13 @@ const TaskViewCard = () => {
           )}
 
           {/* Client Information */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant='h6' gutterBottom>
               {t('tasks.clientInformation')}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.clientName')}
                 </Typography>
@@ -239,19 +239,19 @@ const TaskViewCard = () => {
                   {task.client?.name || '-'}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.clientEmail')}
                 </Typography>
                 <Typography variant='body1'>{task.client?.email || '-'}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.clientPhone')}
                 </Typography>
                 <Typography variant='body1'>{task.client?.phone || '-'}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('employees.fields.branch')}
                 </Typography>
@@ -261,13 +261,13 @@ const TaskViewCard = () => {
           </Grid>
 
           {/* Service Information */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant='h6' gutterBottom>
               {t('tasks.serviceInformation')}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.serviceName')}
                 </Typography>
@@ -275,13 +275,13 @@ const TaskViewCard = () => {
                   {task.service?.name || '-'}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.servicePrice')}
                 </Typography>
                 <Typography variant='body1'>{task.service?.price ? `€${task.service.price}` : '-'}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.serviceCategory')}
                 </Typography>
@@ -291,13 +291,13 @@ const TaskViewCard = () => {
           </Grid>
 
           {/* Assignment Information */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant='h6' gutterBottom>
               {t('tasks.assignmentInformation')}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.assignedEmployee')}
                 </Typography>
@@ -305,13 +305,13 @@ const TaskViewCard = () => {
                   {task.assignedEmployee?.name || '-'}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.employeeRole')}
                 </Typography>
                 <Typography variant='body1'>{task.assignedEmployee?.role || '-'}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.employeeEmail')}
                 </Typography>
@@ -321,19 +321,19 @@ const TaskViewCard = () => {
           </Grid>
 
           {/* Timeline Information */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant='h6' gutterBottom>
               {t('tasks.timeline')}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.startDate')}
                 </Typography>
                 <Typography variant='body1'>{formatDate(task.startDate)}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.dueDate')}
                 </Typography>
@@ -348,7 +348,7 @@ const TaskViewCard = () => {
                   )}
                 </div>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.estimatedHours')}
                 </Typography>
@@ -356,7 +356,7 @@ const TaskViewCard = () => {
                   {task.estimatedHours ? `${task.estimatedHours} ${t('tasks.hours')}` : '-'}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.actualHours')}
                 </Typography>
@@ -368,13 +368,13 @@ const TaskViewCard = () => {
           </Grid>
 
           {/* Additional Information */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant='h6' gutterBottom>
               {t('tasks.additionalInformation')}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={3}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant='body2' color='text.secondary'>
                   {t('tasks.lastUpdated')}
                 </Typography>

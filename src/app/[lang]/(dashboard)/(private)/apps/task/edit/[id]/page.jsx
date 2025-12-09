@@ -7,12 +7,14 @@ import EditTask from '@views/apps/task/edit'
 // Util Imports
 import { getServerMode } from '@core/utils/serverHelpers'
 
-const EditTaskApp = ({ params }) => {
+const EditTaskApp = async ({ params }) => {
   // Vars
-  const direction = cookies().get('direction')?.value || 'ltr'
-  const mode = getServerMode()
+  const resolvedParams = await params
+  const cookieStore = await cookies()
+  const direction = cookieStore.get('direction')?.value || 'ltr'
+  const mode = await getServerMode()
 
-  return <EditTask mode={mode} direction={direction} taskId={params.id} />
+  return <EditTask mode={mode} direction={direction} taskId={resolvedParams.id} />
 }
 
 export default EditTaskApp

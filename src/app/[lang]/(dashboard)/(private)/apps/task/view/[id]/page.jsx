@@ -7,10 +7,11 @@ import TaskView from '@views/apps/task/view'
 // Util Imports
 import { getServerMode } from '@core/utils/serverHelpers'
 
-const TaskViewApp = () => {
+const TaskViewApp = async () => {
   // Vars
-  const direction = cookies().get('direction')?.value || 'ltr'
-  const mode = getServerMode()
+  const cookieStore = await cookies()
+  const direction = cookieStore.get('direction')?.value || 'ltr'
+  const mode = await getServerMode()
 
   return <TaskView mode={mode} direction={direction} />
 }

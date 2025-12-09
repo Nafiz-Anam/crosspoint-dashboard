@@ -7,10 +7,11 @@ import AddTask from '@views/apps/task/add'
 // Util Imports
 import { getServerMode } from '@core/utils/serverHelpers'
 
-const AddTaskApp = () => {
+const AddTaskApp = async () => {
   // Vars
-  const direction = cookies().get('direction')?.value || 'ltr'
-  const mode = getServerMode()
+  const cookieStore = await cookies()
+  const direction = cookieStore.get('direction')?.value || 'ltr'
+  const mode = await getServerMode()
 
   return <AddTask mode={mode} direction={direction} />
 }

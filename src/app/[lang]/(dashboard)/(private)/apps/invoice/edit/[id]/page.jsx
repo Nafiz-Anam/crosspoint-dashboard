@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useParams } from 'next/navigation'
 
 // MUI Imports
-import Grid from '@mui/material/Grid2'
+import Grid from '@mui/material/Grid'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 

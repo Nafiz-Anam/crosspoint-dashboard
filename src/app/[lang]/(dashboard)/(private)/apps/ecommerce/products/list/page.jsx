@@ -1,5 +1,5 @@
 // MUI Imports
-import Grid from '@mui/material/Grid2'
+import Grid from '@mui/material/Grid'
 
 // Component Imports
 import ProductListTable from '@views/apps/ecommerce/products/list/ProductListTable'
