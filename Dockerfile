@@ -17,13 +17,17 @@ COPY package.json pnpm-lock.yaml* ./
 ENV CI=true
 RUN pnpm install
 
-# Copy source code (including .env.docker)
+# Copy source code
 COPY . .
+
+# Copy environment file if it exists (for local development)
+# Next.js will automatically load .env.production during build
+# If .env.production doesn't exist, environment variables can be passed via docker-compose
 
 # Generate the missing icon CSS files
 RUN pnpm run build:icons
 
-# Build the app
+# Build the app (Next.js will use .env.production if available)
 RUN pnpm build
 
 EXPOSE 3000

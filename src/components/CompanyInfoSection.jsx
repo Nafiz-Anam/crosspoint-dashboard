@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from 'react'
 import {
   Box,
   Typography,
-  TextField,
   Button,
   IconButton,
   Dialog,
@@ -15,9 +14,11 @@ import {
   Avatar,
   Alert
 } from '@mui/material'
+import CustomTextField from '@core/components/mui/TextField'
+import DialogCloseButton from '@/components/dialogs/DialogCloseButton'
 import { useTranslation } from '@/hooks/useTranslation'
 
-const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = false, showEditButton = true }) => {
+const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = false, showEditButton = true, onResetCompanyInfo = null }) => {
   const { t } = useTranslation()
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState(companyInfo || {})
@@ -63,9 +64,23 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
   }
 
   const handleCancel = () => {
+    // Reset edit data to current info (discard unsaved changes in dialog)
     setEditData(currentInfo)
     setIsEditing(false)
     setLogoPreview(null)
+    // Note: This only cancels the dialog edit, not the saved company info
+    // If user wants to reset to defaults, they can use the "Reset to Defaults" button
+    // Or navigate away and come back (which will reset to defaults on mount)
+  }
+  
+  // Handle reset to defaults - resets company info to default values
+  const handleResetToDefaults = () => {
+    if (onResetCompanyInfo) {
+      onResetCompanyInfo()
+      // Update edit data to show defaults in the dialog
+      setEditData(defaultCompanyInfo)
+      setLogoPreview(null)
+    }
   }
 
   const handleInputChange = (field, value) => {
@@ -190,67 +205,99 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
       </Box>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditing} onClose={handleCancel} maxWidth='md' fullWidth>
-        <DialogTitle>
-          <Box display='flex' alignItems='center' gap={1}>
+      <Dialog 
+        open={isEditing} 
+        onClose={handleCancel} 
+        maxWidth='md' 
+        fullWidth
+        scroll='body'
+        closeAfterTransition={false}
+        sx={{ '& .MuiDialog-paper': { overflow: 'visible' } }}
+      >
+        <DialogCloseButton onClick={handleCancel} disableRipple>
+          <i className='tabler-x' />
+        </DialogCloseButton>
+        <DialogTitle variant='h4' className='flex gap-2 flex-col text-center sm:pbs-16 sm:pbe-6 sm:pli-6'>
+          <Box display='flex' alignItems='center' justifyContent='center' gap={1}>
             <i className='tabler-building text-2xl text-primary' />
-            <Typography variant='h6'>{t('common.editCompanyInfo')}</Typography>
+            <Typography variant='h4'>{t('common.editCompanyInfo')}</Typography>
           </Box>
         </DialogTitle>
 
-        <DialogContent>
-          <Grid container spacing={3} sx={{ mt: 1 }}>
-            {/* Logo Upload */}
-            <Grid item xs={12}>
-              <Typography variant='subtitle2' sx={{ mb: 2 }}>
+        <DialogContent className='pbs-0 sm:pli-6'>
+          <Grid container spacing={6}>
+            {/* Logo Upload Section */}
+            <Grid size={{ xs: 12 }}>
+              <Typography variant='subtitle2' sx={{ mb: 2, fontWeight: 600 }}>
                 {t('common.companyLogo')}
               </Typography>
-              <Box display='flex' alignItems='center' gap={2}>
+              <Box display='flex' alignItems='flex-start' gap={3} flexWrap='wrap'>
                 {logoPreview || editData.logo ? (
-                  <img
-                    src={logoPreview || editData.logo}
-                    alt='Company logo'
-                    style={{
-                      maxWidth: 80,
-                      maxHeight: 80,
-                      cursor: 'pointer',
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      outline: 'none',
-                      display: 'block',
-                      objectFit: 'contain'
-                    }}
-                    onClick={() => fileInputRef.current?.click()}
-                  />
-                ) : (
                   <Box
                     sx={{
-                      width: 80,
-                      height: 80,
+                      width: 120,
+                      height: 120,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      border: '2px dashed #ccc',
-                      borderRadius: 1,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
                       cursor: 'pointer',
-                      backgroundColor: '#f5f5f5'
+                      overflow: 'hidden',
+                      backgroundColor: 'background.paper',
+                      '&:hover': {
+                        opacity: 0.8
+                      }
                     }}
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    <Typography variant='h6' color='text.secondary'>
+                    <img
+                      src={logoPreview || editData.logo}
+                      alt='Company logo'
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        display: 'block'
+                      }}
+                    />
+                  </Box>
+                ) : (
+                  <Box
+                    sx={{
+                      width: 120,
+                      height: 120,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px dashed',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      cursor: 'pointer',
+                      backgroundColor: 'action.hover',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        backgroundColor: 'action.selected'
+                      }
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Typography variant='h4' color='text.secondary'>
                       {editData.companyName?.charAt(0) || 'C'}
                     </Typography>
                   </Box>
                 )}
-                <Box>
+                <Box display='flex' flexDirection='column' gap={1}>
                   <Button
                     variant='outlined'
                     startIcon={<i className='tabler-upload' />}
                     onClick={() => fileInputRef.current?.click()}
+                    sx={{ alignSelf: 'flex-start' }}
                   >
                     {t('common.uploadLogo')}
                   </Button>
-                  <Typography variant='caption' color='text.secondary' display='block' sx={{ mt: 1 }}>
+                  <Typography variant='caption' color='text.secondary'>
                     {t('common.recommendedSize')}
                   </Typography>
                 </Box>
@@ -265,8 +312,8 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
             </Grid>
 
             {/* Company Details */}
-            <Grid item xs={12} sm={6}>
-              <TextField
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <CustomTextField
                 fullWidth
                 label={t('common.companyName')}
                 value={editData.companyName || ''}
@@ -274,8 +321,8 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <CustomTextField
                 fullWidth
                 label={t('common.tagline')}
                 value={editData.tagline || ''}
@@ -283,8 +330,8 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
               />
             </Grid>
 
-            <Grid item xs={12}>
-              <TextField
+            <Grid size={{ xs: 12 }}>
+              <CustomTextField
                 fullWidth
                 label={t('common.address')}
                 value={editData.address || ''}
@@ -292,8 +339,8 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <CustomTextField
                 fullWidth
                 label={t('common.cityStateZip')}
                 value={editData.city || ''}
@@ -301,8 +348,8 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <CustomTextField
                 fullWidth
                 label={t('common.phoneNumbers')}
                 value={editData.phone || ''}
@@ -310,8 +357,8 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <CustomTextField
                 fullWidth
                 label={t('common.email')}
                 type='email'
@@ -320,8 +367,8 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <CustomTextField
                 fullWidth
                 label={t('common.website')}
                 value={editData.website || ''}
@@ -331,11 +378,16 @@ const CompanyInfoSection = ({ companyInfo, onCompanyInfoChange, isEditable = fal
           </Grid>
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={handleCancel} color='inherit'>
+        <DialogActions className='flex gap-2 justify-end pbs-0 sm:pbe-6 sm:pli-6'>
+          <Button onClick={handleCancel} color='inherit' variant='outlined'>
             {t('common.cancel')}
           </Button>
-          <Button onClick={handleSave} variant='contained'>
+          {onResetCompanyInfo && (
+            <Button onClick={handleResetToDefaults} color='warning' variant='outlined'>
+              {t('common.resetToDefaults')}
+            </Button>
+          )}
+          <Button onClick={handleSave} variant='contained' color='primary'>
             {t('common.saveChanges')}
           </Button>
         </DialogActions>

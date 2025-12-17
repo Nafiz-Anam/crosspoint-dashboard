@@ -70,6 +70,7 @@
         "phoneNumbers": "Phone Numbers",
         "website": "Website",
         "saveChanges": "Save Changes",
+        "resetToDefaults": "Reset to Defaults",
         "serviceId": "Service ID",
         "usage": "Usage",
         "createdAt": "Created At",

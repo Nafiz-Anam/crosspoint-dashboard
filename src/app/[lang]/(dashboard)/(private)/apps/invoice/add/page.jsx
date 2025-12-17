@@ -3,6 +3,7 @@
 // React Imports
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 
 // MUI Imports
 import Grid from '@mui/material/Grid'
@@ -31,13 +32,32 @@ const InvoiceContainer = ({ initialData }) => {
   const [clients, setClients] = useState([])
   const [services, setServices] = useState([])
   const [employees, setEmployees] = useState([])
-  const [companyInfo, setCompanyInfo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const { data: session } = useSession()
+  const router = useRouter()
+  
+  // Default company info - this is the base template
+  // Note: This function needs to be called after t is available, so we'll use it in useEffect
+  const getDefaultCompanyInfo = useCallback(() => ({
+    companyName: 'Crosspoint',
+    tagline: t('common.toMakeABetterCommunity'),
+    address: 'Office 149, 450 South Brand Brooklyn',
+    city: 'San Diego County, CA 91905, USA',
+    phone: '+1 (123) 456 7891, +44 (876) 543 2198',
+    email: 'info@crosspoint.com',
+    website: 'www.crosspoint.com',
+    logo: '/images/logos/main_logo.png'
+  }), [t])
 
   // Function to get pre-filled data from sessionStorage
+  // Only works in browser (client-side), not during SSR
   const getPrefillData = () => {
+    // Check if we're in the browser (client-side)
+    if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') {
+      return null
+    }
+    
     try {
       const prefillData = sessionStorage.getItem('invoicePrefillData')
       if (prefillData) {
@@ -53,8 +73,10 @@ const InvoiceContainer = ({ initialData }) => {
   }
 
   // SHARED STATE - This connects AddCard and AddActions
+  // Note: getPrefillData is only called on client-side (in useEffect), not during SSR
   const [invoiceState, setInvoiceState] = useState(() => {
-    const prefillData = getPrefillData()
+    // Don't call getPrefillData during SSR - it will be handled in useEffect
+    const prefillData = typeof window !== 'undefined' ? getPrefillData() : null
 
     if (prefillData) {
       return {
@@ -90,11 +112,15 @@ const InvoiceContainer = ({ initialData }) => {
         notes: prefillData.notes || '',
         thanksMessage: prefillData.thanksMessage || '',
         taxRate: 0,
-        discountAmount: 0
+        discountAmount: 0,
+        
+        // Company info - starts with defaults, can be edited per invoice
+        companyInfo: null // Will be initialized with defaults
       }
     }
 
     // Default state if no prefill data
+    // Note: companyInfo is null here, will be initialized with defaults in useEffect
     return {
       // Invoice form data
       selectedClient: null,
@@ -128,16 +154,42 @@ const InvoiceContainer = ({ initialData }) => {
       notes: '',
       thanksMessage: '',
       taxRate: 0,
-      discountAmount: 0
+      discountAmount: 0,
+      
+      // Company info - starts with defaults, can be edited per invoice
+      // Will be initialized with defaults when component mounts
+      companyInfo: null
     }
   })
 
-  // Set default thank you message on mount
+  // Set default thank you message and company info on mount
   useEffect(() => {
     if (!invoiceState.thanksMessage) {
       updateInvoiceState({ thanksMessage: t('invoices.defaultThankYouMessage') })
     }
-  }, [t])
+    // Initialize company info with defaults if not already set
+    if (!invoiceState.companyInfo) {
+      updateInvoiceState({ companyInfo: getDefaultCompanyInfo() })
+    }
+    
+    // Load prefill data from sessionStorage on client-side only
+    if (typeof window !== 'undefined') {
+      const prefillData = getPrefillData()
+      if (prefillData) {
+        // Apply prefill data to invoice state
+        updateInvoiceState({
+          selectedClient: prefillData.selectedClient || invoiceState.selectedClient,
+          selectedSalesperson: prefillData.selectedSalesperson || invoiceState.selectedSalesperson,
+          issuedDate: prefillData.issuedDate ? new Date(prefillData.issuedDate) : invoiceState.issuedDate,
+          invoiceItems: prefillData.serviceItems || invoiceState.invoiceItems,
+          employeeId: prefillData.selectedSalesperson?.id || invoiceState.employeeId,
+          branchId: prefillData.selectedClient?.branchId || invoiceState.branchId,
+          notes: prefillData.notes || invoiceState.notes,
+          thanksMessage: prefillData.thanksMessage || invoiceState.thanksMessage
+        })
+      }
+    }
+  }, [t, getDefaultCompanyInfo])
 
   // Fetch all required data
   const fetchData = useCallback(async () => {
@@ -153,29 +205,32 @@ const InvoiceContainer = ({ initialData }) => {
       setError(null)
       console.log('Starting to fetch data...')
 
-      // Fetch all data in parallel
-      const [bankAccountsResponse, clientsResponse, servicesResponse, employeesResponse, companyInfoResponse] =
+      // Fetch all data in parallel (no longer fetching company info - using defaults)
+      const [bankAccountsResponse, clientsResponse, servicesResponse, employeesResponse] =
         await Promise.all([
           bankAccountService.getActiveBankAccounts(session.accessToken),
           clientService.getAllClients(session.accessToken),
           serviceService.getAllServices(session.accessToken),
-          employeeService.getAllEmployees(session.accessToken),
-          companyInfoService.getCompanyInfo(session.accessToken)
+          employeeService.getAllEmployees(session.accessToken)
         ])
 
       console.log('Responses received:', {
         bankAccounts: bankAccountsResponse?.data?.bankAccounts?.length || 0,
         clients: clientsResponse?.data?.length || 0,
         services: servicesResponse?.data?.length || 0,
-        employees: employeesResponse?.data?.length || 0,
-        companyInfo: !!companyInfoResponse?.data
+        employees: employeesResponse?.data?.length || 0
       })
 
       setBankAccounts(bankAccountsResponse.data?.bankAccounts || [])
       setClients(clientsResponse.data || [])
       setServices(servicesResponse.data || [])
       setEmployees(employeesResponse.data || [])
-      setCompanyInfo(companyInfoResponse.data || null)
+      
+      // Initialize company info with defaults in invoiceState if not already set
+      updateInvoiceState(prev => ({
+        ...prev,
+        companyInfo: prev.companyInfo || getDefaultCompanyInfo()
+      }))
 
       // Debug client data
       console.log('Client response structure:', clientsResponse.data)
@@ -198,6 +253,16 @@ const InvoiceContainer = ({ initialData }) => {
       fetchData()
     }
   }, [session?.accessToken])
+  
+  // Reset company info to defaults when component unmounts (user navigates away)
+  // This ensures if user edited company info but didn't save invoice, it resets on next visit
+  useEffect(() => {
+    return () => {
+      // Cleanup: When component unmounts (user navigates away), the state is lost
+      // Next time they visit, it will initialize with defaults
+      console.log('Invoice add page unmounting - company info will reset on next mount')
+    }
+  }, [])
 
   // Update function passed to both components
   const updateInvoiceState = updates => {
@@ -222,18 +287,15 @@ const InvoiceContainer = ({ initialData }) => {
     })
   }
 
-  // Company info update handler
-  const handleCompanyInfoChange = async newCompanyInfo => {
-    try {
-      if (session?.accessToken) {
-        await companyInfoService.updateCompanyInfo(newCompanyInfo, session.accessToken)
-      }
-      setCompanyInfo(newCompanyInfo)
-    } catch (error) {
-      console.error('Error updating company info:', error)
-      // Still update local state even if API call fails
-      setCompanyInfo(newCompanyInfo)
-    }
+  // Company info update handler - updates invoiceState only (temporary, per invoice)
+  const handleCompanyInfoChange = newCompanyInfo => {
+    // Update company info in invoiceState (not global)
+    updateInvoiceState({ companyInfo: newCompanyInfo })
+  }
+  
+  // Reset company info to defaults
+  const resetCompanyInfo = () => {
+    updateInvoiceState({ companyInfo: getDefaultCompanyInfo() })
   }
 
   console.log('Render state:', { loading, error, session: !!session, accessToken: !!session?.accessToken })
@@ -287,8 +349,9 @@ const InvoiceContainer = ({ initialData }) => {
           clients={clients}
           services={services}
           employees={employees}
-          companyInfo={companyInfo}
+          companyInfo={invoiceState.companyInfo || getDefaultCompanyInfo()}
           onCompanyInfoChange={handleCompanyInfoChange}
+          onResetCompanyInfo={resetCompanyInfo}
         />
       </Grid>
       <Grid size={{ xs: 12, md: 3 }}>
@@ -296,7 +359,8 @@ const InvoiceContainer = ({ initialData }) => {
           invoiceState={invoiceState}
           updateInvoiceState={updateInvoiceState}
           bankAccounts={bankAccounts}
-          companyInfo={companyInfo}
+          companyInfo={invoiceState.companyInfo || getDefaultCompanyInfo()}
+          onResetCompanyInfo={resetCompanyInfo}
         />
       </Grid>
     </Grid>

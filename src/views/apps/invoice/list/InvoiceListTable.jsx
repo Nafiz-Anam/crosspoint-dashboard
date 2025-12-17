@@ -42,6 +42,7 @@ import OptionMenu from '@core/components/option-menu'
 import CustomAvatar from '@core/components/mui/Avatar'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
+import CustomAutocomplete from '@core/components/mui/Autocomplete'
 import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
 
 // Util Imports
@@ -80,13 +81,20 @@ const invoiceStatusObj = {
 // Column Definitions
 const columnHelper = createColumnHelper()
 
-const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filters, branches = [], branchesLoading = false }) => {
+const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filters, branches: externalBranches = [], branchesLoading: externalBranchesLoading = false }) => {
   console.log('🔄 InvoiceListTable component rendered')
+  console.log('📊 Branches prop received:', externalBranches, 'Type:', Array.isArray(externalBranches), 'Length:', externalBranches?.length)
 
   // States for Table Data and API Operations
   const [invoices, setInvoices] = useState(invoiceData || []) // Stores fetched invoice data
+  const [internalBranches, setInternalBranches] = useState([]) // Branches fetched internally
+  const [internalBranchesLoading, setInternalBranchesLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(false) // Loading state for data fetch
   const [fetchError, setFetchError] = useState(null) // Error state for data fetch
+
+  // Use external branches if provided, otherwise use internal branches
+  const branches = externalBranches.length > 0 ? externalBranches : internalBranches
+  const branchesLoading = externalBranches.length > 0 ? externalBranchesLoading : internalBranchesLoading
 
   // States for Pagination
   const [pagination, setPagination] = useState({
@@ -123,6 +131,54 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
   const { t } = useTranslation()
   const { userRole, userPermissions } = useRoleBasedAccess()
 
+  // Function to fetch branches (only if not provided externally)
+  const fetchBranches = useCallback(async () => {
+    // If branches are provided externally, don't fetch
+    if (externalBranches.length > 0) {
+      console.log('📊 Using external branches, skipping fetch')
+      return
+    }
+
+    if (!session?.accessToken) {
+      console.log('⚠️ No access token, skipping fetchBranches')
+      return
+    }
+
+    console.log('🔄 Fetching branches internally...')
+    setInternalBranchesLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/active`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('📊 Internal branches API response:', data)
+        let branchesData = []
+        if (Array.isArray(data)) {
+          branchesData = data
+        } else if (Array.isArray(data.data)) {
+          branchesData = data.data
+        } else if (data.data && !Array.isArray(data.data)) {
+          branchesData = [data.data]
+        }
+        console.log('📊 Internal branches array after processing:', branchesData, 'Length:', branchesData.length)
+        setInternalBranches(branchesData)
+      } else {
+        console.error('Failed to fetch branches:', response.status, response.statusText)
+      }
+    } catch (error) {
+      console.error('Error fetching branches:', error)
+    } finally {
+      setInternalBranchesLoading(false)
+    }
+  }, [session?.accessToken, externalBranches.length])
+
   // Function to fetch invoice data from API with pagination
   const fetchInvoices = async (
     page = 1,
@@ -130,9 +186,10 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
     sortBy = 'createdAt',
     sortType = 'desc',
     limit = 10,
-    status = ''
+    status = '',
+    branch = ''
   ) => {
-    console.log('🔄 fetchInvoices called with:', { page, search, sortBy, sortType, limit, status })
+    console.log('🔄 fetchInvoices called with:', { page, search, sortBy, sortType, limit, status, branch })
     console.log('🔄 Current status:', sessionStatus)
     console.log('🔄 Has initially fetched:', hasInitiallyFetched.current)
 
@@ -160,6 +217,10 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
 
       if (status) {
         queryParams.append('status', status)
+      }
+
+      if (branch) {
+        queryParams.append('branchId', branch)
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices?${queryParams.toString()}`, {
@@ -220,10 +281,11 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         'createdAt',
         'desc',
         currentPagination.current.limit,
-        statusFilter || ''
+        statusFilter || '',
+        branchFilter || ''
       )
     },
-    [pagination.page, statusFilter]
+    [pagination.page, statusFilter, branchFilter]
   )
 
   const handleRowsPerPageChange = useCallback(
@@ -232,9 +294,9 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
       const newLimit = parseInt(event.target.value, 10)
       currentPagination.current = { page: 1, limit: newLimit }
       setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))
-      fetchInvoices(1, currentGlobalFilter.current, 'createdAt', 'desc', newLimit, statusFilter || '')
+      fetchInvoices(1, currentGlobalFilter.current, 'createdAt', 'desc', newLimit, statusFilter || '', branchFilter || '')
     },
-    [statusFilter]
+    [statusFilter, branchFilter]
   )
 
   const handleSearch = useCallback(
@@ -244,9 +306,9 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
       currentPagination.current = { ...currentPagination.current, page: 1 }
       setGlobalFilter(value)
       setPagination(prev => ({ ...prev, page: 1 }))
-      fetchInvoices(1, value, 'createdAt', 'desc', currentPagination.current.limit, statusFilter || '')
+      fetchInvoices(1, value, 'createdAt', 'desc', currentPagination.current.limit, statusFilter || '', branchFilter || '')
     },
-    [statusFilter]
+    [statusFilter, branchFilter]
   )
 
   const handleSort = useCallback(
@@ -260,10 +322,11 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         sortBy,
         sortType,
         currentPagination.current.limit,
-        statusFilter || ''
+        statusFilter || '',
+        branchFilter || ''
       )
     },
-    [statusFilter]
+    [statusFilter, branchFilter]
   )
 
   // Delete handlers
@@ -285,7 +348,8 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         'createdAt',
         'desc',
         currentPagination.current.limit,
-        statusFilter || ''
+        statusFilter || '',
+        branchFilter || ''
       )
       setDeleteDialogOpen(false)
       setInvoiceToDelete(null)
@@ -566,7 +630,8 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
     if (sessionStatus === 'authenticated' && !hasInitiallyFetched.current) {
       console.log('🔄 Making initial fetch...')
       hasInitiallyFetched.current = true
-      fetchInvoices(1, '', 'createdAt', 'desc', 10, '')
+      fetchInvoices(1, '', 'createdAt', 'desc', 10, '', '')
+      fetchBranches() // Fetch branches if not provided externally
     } else if (sessionStatus === 'unauthenticated') {
       console.log('🔄 User not authenticated')
       setFetchError('Not authenticated')
@@ -580,7 +645,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
         clearTimeout(window.searchTimeout)
       }
     }
-  }, [sessionStatus, session?.accessToken]) // Re-fetch if session status or token changes
+  }, [sessionStatus, session?.accessToken, fetchBranches]) // Re-fetch if session status or token changes
 
   // Effect to handle status filter changes
   useEffect(() => {
@@ -604,13 +669,36 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
       'createdAt',
       'desc',
       currentPagination.current.limit,
-      statusFilter || ''
+      statusFilter || '',
+      branchFilter || ''
     )
-  }, [statusFilter])
+  }, [statusFilter, branchFilter])
+
+  // Effect to handle branch filter changes
+  useEffect(() => {
+    // Only run if we have fetched data at least once
+    if (!hasInitiallyFetched.current) {
+      console.log('🔄 Branch filter effect: Skipping because not initially fetched yet')
+      return
+    }
+
+    console.log('🔄 Branch filter changed to:', branchFilter)
+    currentPagination.current = { ...currentPagination.current, page: 1 }
+    setPagination(prev => ({ ...prev, page: 1 }))
+    fetchInvoices(
+      1,
+      currentGlobalFilter.current,
+      'createdAt',
+      'desc',
+      currentPagination.current.limit,
+      statusFilter || '',
+      branchFilter || ''
+    )
+  }, [branchFilter, statusFilter])
 
   console.log('🔄 Table data (invoices):', invoices)
   console.log('🔄 Pagination state:', pagination)
-  console.log('🔄 Filter states:', { statusFilter, globalFilter })
+  console.log('🔄 Filter states:', { statusFilter, branchFilter, globalFilter })
   console.log('🔄 Has initially fetched:', hasInitiallyFetched.current)
 
   const table = useReactTable({
@@ -687,25 +775,41 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
             <MenuItem value='CANCELLED'>{t('invoices.cancelled')}</MenuItem>
           </CustomTextField>
 
-          <CustomTextField
-            select
-            label={t('invoices.fields.branch')}
-            value={branchFilter}
-            onChange={e => {
-              console.log('🔄 Branch filter changed to:', e.target.value)
-              setBranchFilter(e.target.value)
-              onFilterChange({ branchId: e.target.value })
+          <CustomAutocomplete
+            size='small'
+            options={Array.isArray(branches) ? branches : []}
+            loading={branchesLoading}
+            value={Array.isArray(branches) ? branches.find(branch => branch.id === branchFilter) || null : null}
+            onChange={(event, newValue) => {
+              console.log('🔄 Branch filter onChange triggered:', { newValue, branchId: newValue?.id })
+              const branchId = newValue ? newValue.id : ''
+              console.log('🔄 Setting branchFilter to:', branchId)
+              setBranchFilter(branchId)
+              // Call onFilterChange if provided (for parent component)
+              if (onFilterChange) {
+                onFilterChange({ branchId })
+              }
+              // The useEffect will handle the fetch when branchFilter changes
             }}
-            className='min-w-[180px]'
-            disabled={branchesLoading}
-          >
-            <MenuItem value=''>{t('invoices.allBranches')}</MenuItem>
-            {branches.map(branch => (
-              <MenuItem key={branch.id} value={branch.id}>
-                {branch.name}
-              </MenuItem>
-            ))}
-          </CustomTextField>
+            getOptionLabel={option => {
+              if (typeof option === 'string') return option
+              return option.name || ''
+            }}
+            isOptionEqualToValue={(option, value) => option.id === value?.id}
+            renderInput={params => (
+              <CustomTextField
+                {...params}
+                label={t('invoices.fields.branch')}
+                className='min-w-[180px]'
+              />
+            )}
+            renderOption={(props, option) => (
+              <li {...props} key={option.id}>
+                {option.name}
+              </li>
+            )}
+            noOptionsText={t('invoices.allBranches')}
+          />
 
           <CustomTextField
             value={globalFilter ?? ''}

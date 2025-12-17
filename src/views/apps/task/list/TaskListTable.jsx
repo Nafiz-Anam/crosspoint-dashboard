@@ -29,6 +29,7 @@ import {
 } from '@tanstack/react-table'
 import { useSession } from 'next-auth/react'
 import CustomTextField from '@core/components/mui/TextField'
+import CustomAutocomplete from '@core/components/mui/Autocomplete'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import { getLocalizedUrl } from '@/utils/i18n'
 import tableStyles from '@core/styles/table.module.css'
@@ -76,6 +77,9 @@ const TaskListTable = ({
   // States for Table Data and API Operations
   const [tasks, setTasks] = useState(externalTasks || []) // Stores fetched task data
   const [branches, setBranches] = useState([])
+  const [allEmployees, setAllEmployees] = useState([]) // All employees for filter
+  const [employeesLoading, setEmployeesLoading] = useState(false)
+  const [branchesLoading, setBranchesLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(externalTasks ? false : true) // Loading state for data fetch
   const [fetchError, setFetchError] = useState(null) // Error state for data fetch
 
@@ -136,10 +140,41 @@ const TaskListTable = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalTasks]) // Only depend on externalTasks, not isExternalData (which is derived from it)
 
+  // Function to fetch all employees
+  const fetchAllEmployees = useCallback(async () => {
+    if (!session?.accessToken) return
+
+    setEmployeesLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/list/all`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        // Filter only active employees
+        const activeEmployees = (data.data || []).filter(emp => emp.isActive !== false)
+        setAllEmployees(activeEmployees)
+      } else {
+        console.error('Failed to fetch employees')
+      }
+    } catch (error) {
+      console.error('Error fetching employees:', error)
+    } finally {
+      setEmployeesLoading(false)
+    }
+  }, [session?.accessToken])
+
   // Function to fetch branches
   const fetchBranches = useCallback(async () => {
     if (!session?.accessToken) return
 
+    setBranchesLoading(true)
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/active`, {
         method: 'GET',
@@ -158,6 +193,8 @@ const TaskListTable = ({
       }
     } catch (error) {
       console.error('Error fetching branches:', error)
+    } finally {
+      setBranchesLoading(false)
     }
   }, [session?.accessToken])
 
@@ -356,6 +393,7 @@ const TaskListTable = ({
       hasInitiallyFetched.current = true
       fetchTasks(1, '', 'createdAt', 'desc', 10, '', '', '')
       fetchBranches()
+      fetchAllEmployees()
     } else if (sessionStatus === 'unauthenticated') {
       console.log('🔄 User not authenticated')
       setFetchError('Not authenticated')
@@ -622,27 +660,6 @@ const TaskListTable = ({
   // Static filter options for better server-side filtering
   const statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'ON_HOLD']
 
-  // Derive unique values for filter dropdowns from the fetched data
-  const assignedEmployees = useMemo(() => {
-    const employeeMap = new Map()
-    tasks.forEach(item => {
-      if (item.assignedEmployee?.id && item.assignedEmployee?.name) {
-        employeeMap.set(item.assignedEmployee.id, item.assignedEmployee.name)
-      }
-    })
-    return Array.from(employeeMap.entries()).map(([id, name]) => ({ id, name }))
-  }, [tasks])
-
-  const branchNames = useMemo(() => {
-    const branchMap = new Map()
-    tasks.forEach(item => {
-      if (item.client?.branch?.id && item.client?.branch?.name) {
-        branchMap.set(item.client.branch.id, item.client.branch.name)
-      }
-    })
-    return Array.from(branchMap.entries()).map(([id, name]) => ({ id, name }))
-  }, [tasks])
-
   // Function to format date
   const formatDate = dateString => {
     if (!dateString) return '-'
@@ -885,42 +902,64 @@ const TaskListTable = ({
           </CustomTextField>
 
           {/* Assigned Employee Filter */}
-          <CustomTextField
-            select
-            label={t('tasks.fields.assignedTo')}
-            value={assignedEmployeeFilter}
-            onChange={e => {
-              console.log('🔄 Assigned employee filter changed to:', e.target.value)
-              setAssignedEmployeeFilter(e.target.value)
+          <CustomAutocomplete
+            size='small'
+            options={allEmployees}
+            loading={employeesLoading}
+            value={allEmployees.find(employee => employee.id === assignedEmployeeFilter) || null}
+            onChange={(event, newValue) => {
+              console.log('🔄 Assigned employee filter changed to:', newValue?.id || '')
+              setAssignedEmployeeFilter(newValue ? newValue.id : '')
             }}
-            className='min-w-[180px]'
-          >
-            <MenuItem value=''>{t('tasks.all')}</MenuItem>
-            {assignedEmployees.map(employee => (
-              <MenuItem key={employee.id} value={employee.id}>
-                {employee.name}
-              </MenuItem>
-            ))}
-          </CustomTextField>
+            getOptionLabel={option => {
+              if (typeof option === 'string') return option
+              return `${option.name || ''} - ${option.email || ''}`
+            }}
+            isOptionEqualToValue={(option, value) => option.id === value?.id}
+            renderInput={params => (
+              <CustomTextField
+                {...params}
+                label={t('tasks.fields.assignedTo')}
+                className='min-w-[180px]'
+              />
+            )}
+            renderOption={(props, option) => (
+              <li {...props} key={option.id}>
+                {option.name} - {option.email}
+              </li>
+            )}
+            noOptionsText={t('tasks.all')}
+          />
 
           {/* Branch Filter */}
-          <CustomTextField
-            select
-            label={t('employees.fields.branch')}
-            value={branchFilter}
-            onChange={e => {
-              console.log('🔄 Branch filter changed to:', e.target.value)
-              setBranchFilter(e.target.value)
+          <CustomAutocomplete
+            size='small'
+            options={branches}
+            loading={branchesLoading}
+            value={branches.find(branch => branch.id === branchFilter) || null}
+            onChange={(event, newValue) => {
+              console.log('🔄 Branch filter changed to:', newValue?.id || '')
+              setBranchFilter(newValue ? newValue.id : '')
             }}
-            className='min-w-[180px]'
-          >
-            <MenuItem value=''>{t('tasks.all')}</MenuItem>
-            {branchNames.map(branch => (
-              <MenuItem key={branch.id} value={branch.id}>
-                {branch.name}
-              </MenuItem>
-            ))}
-          </CustomTextField>
+            getOptionLabel={option => {
+              if (typeof option === 'string') return option
+              return option.name || ''
+            }}
+            isOptionEqualToValue={(option, value) => option.id === value?.id}
+            renderInput={params => (
+              <CustomTextField
+                {...params}
+                label={t('employees.fields.branch')}
+                className='min-w-[180px]'
+              />
+            )}
+            renderOption={(props, option) => (
+              <li {...props} key={option.id}>
+                {option.name}
+              </li>
+            )}
+            noOptionsText={t('tasks.all')}
+          />
 
           <CustomTextField
             value={globalFilter ?? ''}

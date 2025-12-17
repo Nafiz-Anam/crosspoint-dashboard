@@ -38,6 +38,11 @@ const InvoiceList = () => {
   const [error, setError] = useState(null)
   const [branches, setBranches] = useState([])
   const [branchesLoading, setBranchesLoading] = useState(false)
+  
+  // Debug: Log branches state changes
+  useEffect(() => {
+    console.log('📊 Branches state updated:', branches, 'Length:', branches?.length)
+  }, [branches])
   const [filters, setFilters] = useState({
     page: 1,
     limit: 10,
@@ -51,8 +56,13 @@ const InvoiceList = () => {
 
   // Fetch branches
   const fetchBranches = useCallback(async () => {
-    if (!session?.accessToken) return
+    console.log('🔄 fetchBranches function called', { hasToken: !!session?.accessToken, role: session?.user?.role, branchId: session?.user?.branchId })
+    if (!session?.accessToken) {
+      console.log('⚠️ No access token, skipping fetchBranches')
+      return
+    }
 
+    console.log('🔄 Starting to fetch branches...')
     setBranchesLoading(true)
     try {
       // If user is a manager, fetch only their branch details
@@ -67,8 +77,12 @@ const InvoiceList = () => {
 
         if (response.ok) {
           const data = await response.json()
+          console.log('📊 Manager branch API response:', data)
           const branchData = data.data || data
-          setBranches([branchData])
+          console.log('📊 Manager branch data:', branchData)
+          setBranches(Array.isArray(branchData) ? branchData : [branchData])
+        } else {
+          console.error('Failed to fetch manager branch:', response.status)
         }
       } else {
         // For other roles, fetch all active branches
@@ -82,7 +96,23 @@ const InvoiceList = () => {
 
         if (response.ok) {
           const data = await response.json()
-          setBranches(data.data || [])
+          console.log('📊 Branches API response:', data)
+          // Handle different possible response structures
+          let branchesData = []
+          if (Array.isArray(data)) {
+            branchesData = data
+          } else if (Array.isArray(data.data)) {
+            branchesData = data.data
+          } else if (data.data && !Array.isArray(data.data)) {
+            // If data.data is a single object, wrap it in array
+            branchesData = [data.data]
+          }
+          console.log('📊 Branches array after processing:', branchesData, 'Length:', branchesData.length)
+          setBranches(branchesData)
+        } else {
+          console.error('Failed to fetch branches:', response.status, response.statusText)
+          const errorData = await response.json().catch(() => ({}))
+          console.error('Error details:', errorData)
         }
       }
     } catch (error) {
@@ -93,6 +123,8 @@ const InvoiceList = () => {
   }, [session?.accessToken, session?.user?.role, session?.user?.branchId])
 
   // Fetch invoices and stats
+  // NOTE: This is no longer used - child component handles all fetching
+  // Keeping it for potential future use but it won't be called
   const fetchData = useCallback(async () => {
     if (status === 'loading') return
     if (status === 'unauthenticated' || !session?.accessToken) {
@@ -105,7 +137,7 @@ const InvoiceList = () => {
       setLoading(true)
       setError(null)
 
-      // Build query string for filters
+      // Build query string for filters (only for initial load)
       const queryParams = new URLSearchParams()
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== null && value !== undefined && value !== '') {
@@ -172,17 +204,26 @@ const InvoiceList = () => {
     } finally {
       setLoading(false)
     }
-  }, [status, session?.accessToken, filters])
+  }, [status, session?.accessToken]) // Removed filters - child component handles all filtering
 
+  // Only fetch on initial mount or when session changes, not when filters change
+  // The child component (InvoiceListTable) handles all filtering independently
   useEffect(() => {
-    if (status === 'authenticated') {
+    console.log('🔄 Invoice list useEffect triggered:', { status, hasToken: !!session?.accessToken })
+    if (status === 'authenticated' && session?.accessToken) {
+      console.log('🔄 Calling fetchBranches (initial load only)')
       fetchBranches()
-      fetchData()
+      // Don't fetch invoices here - let the child component handle it
+      // This prevents conflicts when filters change
+      setLoading(false) // Set loading to false since child will handle its own loading
     } else if (status === 'unauthenticated') {
       setError('Not authenticated. Please log in to view invoices.')
       setLoading(false)
+    } else if (status === 'loading') {
+      // Keep loading state while session is loading
+      setLoading(true)
     }
-  }, [status, session?.accessToken, filters, fetchBranches])
+  }, [status, session?.accessToken, fetchBranches]) // Removed filters and fetchData from dependencies
 
   // Handle filter changes
   const handleFilterChange = newFilters => {
@@ -298,7 +339,7 @@ const InvoiceList = () => {
       {/* Invoice List Table */}
       <Grid size={{ xs: 12 }}>
         <InvoiceListTable
-          invoiceData={invoices}
+          invoiceData={null}
           onFilterChange={handleFilterChange}
           onInvoiceAction={handleInvoiceAction}
           filters={filters}

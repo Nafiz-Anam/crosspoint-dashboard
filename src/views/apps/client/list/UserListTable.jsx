@@ -31,6 +31,7 @@ import {
 } from '@tanstack/react-table'
 import { useSession } from 'next-auth/react' // Added session import
 import CustomTextField from '@core/components/mui/TextField'
+import CustomAutocomplete from '@core/components/mui/Autocomplete'
 import AddClientDrawer from './AddClientDrawer'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import { getLocalizedUrl } from '@/utils/i18n'
@@ -70,6 +71,8 @@ const ClientListTable = () => {
 
   // States for Table Data and API Operations
   const [clients, setClients] = useState([]) // Stores fetched client data
+  const [branches, setBranches] = useState([]) // All branches for filter
+  const [branchesLoading, setBranchesLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(true) // Loading state for data fetch
   const [fetchError, setFetchError] = useState(null) // Error state for data fetch
 
@@ -106,6 +109,34 @@ const ClientListTable = () => {
   const { userRole, userPermissions } = useRoleBasedAccess()
 
   // Removed fetchInvoiceCounts - using _count.invoices from API response
+
+  // Function to fetch all branches
+  const fetchBranches = useCallback(async () => {
+    if (!session?.accessToken) return
+
+    setBranchesLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/active`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setBranches(data.data || [])
+      } else {
+        console.error('Failed to fetch branches')
+      }
+    } catch (error) {
+      console.error('Error fetching branches:', error)
+    } finally {
+      setBranchesLoading(false)
+    }
+  }, [session?.accessToken])
 
   // Function to fetch client data from API with pagination
   const fetchClients = async (
@@ -251,6 +282,7 @@ const ClientListTable = () => {
       console.log('🔄 Making initial fetch...')
       hasInitiallyFetched.current = true
       fetchClients(1, '', 'createdAt', 'desc', 10, '')
+      fetchBranches()
     } else if (sessionStatus === 'unauthenticated') {
       console.log('🔄 User not authenticated')
       setFetchError('Not authenticated')
@@ -371,16 +403,6 @@ const ClientListTable = () => {
     setViewingClient(null)
   }
 
-  // Derive unique values for filter dropdowns from the fetched data
-  const branches = useMemo(() => {
-    const branchMap = new Map()
-    clients.forEach(item => {
-      if (item.branch?.id && item.branch?.name) {
-        branchMap.set(item.branch.id, item.branch.name)
-      }
-    })
-    return Array.from(branchMap.entries()).map(([id, name]) => ({ id, name }))
-  }, [clients])
 
   // Column definitions
   const columns = useMemo(
@@ -649,20 +671,34 @@ const ClientListTable = () => {
         <CardHeader title={t('clients.clientManagement')} className='pbe-4' />
         <div className='flex flex-wrap items-end gap-4 p-6 border-bs'>
           {/* Branch Filter */}
-          <CustomTextField
-            select
-            label={t('clients.fields.branch')}
-            value={branchFilter}
-            onChange={e => setBranchFilter(e.target.value)}
-            className='min-w-[180px]'
-          >
-            <MenuItem value=''>{t('clients.all')}</MenuItem>
-            {branches.map(branch => (
-              <MenuItem key={branch.id} value={branch.id}>
-                {branch.name}
-              </MenuItem>
-            ))}
-          </CustomTextField>
+          <CustomAutocomplete
+            size='small'
+            options={branches}
+            loading={branchesLoading}
+            value={branches.find(branch => branch.id === branchFilter) || null}
+            onChange={(event, newValue) => {
+              console.log('🔄 Branch filter changed to:', newValue?.id || '')
+              setBranchFilter(newValue ? newValue.id : '')
+            }}
+            getOptionLabel={option => {
+              if (typeof option === 'string') return option
+              return option.name || ''
+            }}
+            isOptionEqualToValue={(option, value) => option.id === value?.id}
+            renderInput={params => (
+              <CustomTextField
+                {...params}
+                label={t('clients.fields.branch')}
+                className='min-w-[180px]'
+              />
+            )}
+            renderOption={(props, option) => (
+              <li {...props} key={option.id}>
+                {option.name}
+              </li>
+            )}
+            noOptionsText={t('clients.all')}
+          />
 
           <CustomTextField
             value={globalFilter ?? ''}

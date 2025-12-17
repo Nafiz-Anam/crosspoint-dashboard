@@ -33,7 +33,8 @@ const AddActions = ({
   bankAccounts = [],
   isEdit = false,
   invoiceId = null,
-  companyInfo = null
+  companyInfo = null,
+  onResetCompanyInfo = null
 }) => {
   // Local states
   const [saveStatus, setSaveStatus] = useState('')
@@ -259,6 +260,11 @@ const AddActions = ({
             invoiceNumber: currentInvoiceNumber
           })
 
+          // Reset company info to defaults after successful save
+          if (onResetCompanyInfo) {
+            onResetCompanyInfo()
+          }
+
           // Clear success message after 3 seconds
           setTimeout(() => {
             setSaveStatus('')
@@ -330,6 +336,11 @@ const AddActions = ({
             invoiceNumber: responseData.data.invoice.invoiceNumber
           })
 
+          // Reset company info to defaults after successful save
+          if (onResetCompanyInfo) {
+            onResetCompanyInfo()
+          }
+          
           // Clear success message after 3 seconds
           setTimeout(() => {
             setSaveStatus('')

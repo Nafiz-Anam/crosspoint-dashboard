@@ -43,6 +43,7 @@ import AddUserDrawer from './AddUserDrawer'
 import OptionMenu from '@core/components/option-menu'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
+import CustomAutocomplete from '@core/components/mui/Autocomplete'
 import CustomAvatar from '@core/components/mui/Avatar'
 import AttendanceReportDialog from '@/components/AttendanceReportDialog'
 import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
@@ -103,6 +104,8 @@ const EmployeeListTable = () => {
 
   // States for Table Data and API Operations
   const [employees, setEmployees] = useState([]) // Stores fetched employee data
+  const [branches, setBranches] = useState([]) // All branches for filter
+  const [branchesLoading, setBranchesLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(true) // Loading state for data fetch
   const [fetchError, setFetchError] = useState(null) // Error state for data fetch
 
@@ -141,6 +144,34 @@ const EmployeeListTable = () => {
   const { lang: locale } = useParams()
   const { data: session, status: sessionStatus } = useSession()
   const { t } = useTranslation()
+
+  // Function to fetch all branches
+  const fetchBranches = useCallback(async () => {
+    if (!session?.accessToken) return
+
+    setBranchesLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/active`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-type': 'web',
+          Authorization: `Bearer ${session.accessToken}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setBranches(data.data || [])
+      } else {
+        console.error('Failed to fetch branches')
+      }
+    } catch (error) {
+      console.error('Error fetching branches:', error)
+    } finally {
+      setBranchesLoading(false)
+    }
+  }, [session?.accessToken])
 
   // Function to fetch employee data from API with pagination
   const fetchEmployees = async (
@@ -299,6 +330,7 @@ const EmployeeListTable = () => {
       console.log('🔄 Making initial fetch...')
       hasInitiallyFetched.current = true
       fetchEmployees(1, '', 'createdAt', 'desc', 10, '', '', '')
+      fetchBranches()
     } else if (sessionStatus === 'unauthenticated') {
       console.log('🔄 User not authenticated')
       setFetchError('Not authenticated')
@@ -380,9 +412,8 @@ const EmployeeListTable = () => {
     )
   }, [branchFilter])
 
-  // Derive unique roles and branches for filter dropdowns from the fetched data
-  const roles = useMemo(() => Array.from(new Set(employees.map(item => item.role))), [employees])
-  const branches = useMemo(() => Array.from(new Set(employees.map(item => item.branch?.name).filter(Boolean))), [employees])
+  // Define all possible roles (static list, not derived from filtered data)
+  const allRoles = ['ADMIN', 'HR', 'EMPLOYEE', 'MANAGER']
 
   // Handle delete click
   const handleDeleteClick = useCallback(employee => {
@@ -645,7 +676,7 @@ const EmployeeListTable = () => {
             className='min-w-[180px]'
           >
             <MenuItem value=''>{t('employees.all')}</MenuItem>
-            {roles.map(role => (
+            {allRoles.map(role => (
               <MenuItem key={role} value={role}>
                 {role}
               </MenuItem>
@@ -666,20 +697,34 @@ const EmployeeListTable = () => {
           </CustomTextField>
 
           {/* Branch Filter */}
-          <CustomTextField
-            select
-            label={t('employees.fields.branch')}
-            value={branchFilter}
-            onChange={e => setBranchFilter(e.target.value)}
-            className='min-w-[180px]'
-          >
-            <MenuItem value=''>{t('employees.all')}</MenuItem>
-            {branches.map(branch => (
-              <MenuItem key={branch} value={branch}>
-                {branch}
-              </MenuItem>
-            ))}
-          </CustomTextField>
+          <CustomAutocomplete
+            size='small'
+            options={branches}
+            loading={branchesLoading}
+            value={branches.find(branch => branch.id === branchFilter) || null}
+            onChange={(event, newValue) => {
+              console.log('🔄 Branch filter changed to:', newValue?.id || '')
+              setBranchFilter(newValue ? newValue.id : '')
+            }}
+            getOptionLabel={option => {
+              if (typeof option === 'string') return option
+              return option.name || ''
+            }}
+            isOptionEqualToValue={(option, value) => option.id === value?.id}
+            renderInput={params => (
+              <CustomTextField
+                {...params}
+                label={t('employees.fields.branch')}
+                className='min-w-[180px]'
+              />
+            )}
+            renderOption={(props, option) => (
+              <li {...props} key={option.id}>
+                {option.name}
+              </li>
+            )}
+            noOptionsText={t('employees.all')}
+          />
 
           <CustomTextField
             value={globalFilter ?? ''}

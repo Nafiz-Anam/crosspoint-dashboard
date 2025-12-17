@@ -41,7 +41,8 @@ const AddCard = ({
   services = [],
   employees = [],
   companyInfo = null,
-  onCompanyInfoChange = () => {}
+  onCompanyInfoChange = () => {},
+  onResetCompanyInfo = null
 }) => {
   // Hooks
   const { t } = useTranslation()
@@ -293,6 +294,7 @@ const AddCard = ({
                     onCompanyInfoChange={onCompanyInfoChange}
                     isEditable={true}
                     showEditButton={true}
+                    onResetCompanyInfo={onResetCompanyInfo}
                   />
                 </div>
                 <div className='flex flex-col gap-2'>
