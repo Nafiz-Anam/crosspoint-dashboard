@@ -40,15 +40,15 @@ const InvoiceContainer = ({ initialData }) => {
   // Default company info - this is the base template
   // Note: This function needs to be called after t is available, so we'll use it in useEffect
   const getDefaultCompanyInfo = useCallback(() => ({
-    companyName: 'Crosspoint',
-    tagline: t('common.toMakeABetterCommunity'),
-    address: 'Office 149, 450 South Brand Brooklyn',
-    city: 'San Diego County, CA 91905, USA',
-    phone: '+1 (123) 456 7891, +44 (876) 543 2198',
-    email: 'info@crosspoint.com',
-    website: 'www.crosspoint.com',
+    companyName: 'ASSOCIAZIONE TERRITORIALE UNSIC DI MILANO - MI/162',
+    tagline: 'TO MAKE A BETTER COMMUNITY',
+    address: 'VIA PIETRO CRESPI 17',
+    city: 'MILANO, MI, 20127',
+    phone: '3892027610, 3299811500',
+    email: 'milano4949@gmail.com',
+    website: 'https://crosspointitaly.com/',
     logo: '/images/logos/main_logo.png'
-  }), [t])
+  }), [])
 
   // Function to get pre-filled data from sessionStorage
   // Only works in browser (client-side), not during SSR

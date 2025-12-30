@@ -1,12 +1,5 @@
 module.exports = {
   extends: ['next/core-web-vitals', 'plugin:import/recommended', 'prettier'],
-  parser: '@babel/eslint-parser',
-  parserOptions: {
-    requireConfigFile: false,
-    babelOptions: {
-      presets: ['next/babel']
-    }
-  },
   rules: {
     'jsx-a11y/alt-text': 'off',
     'react/display-name': 'off',

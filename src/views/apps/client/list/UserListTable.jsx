@@ -37,7 +37,8 @@ import TablePaginationComponent from '@components/TablePaginationComponent'
 import { getLocalizedUrl } from '@/utils/i18n'
 import tableStyles from '@core/styles/table.module.css'
 
-// Service Imports
+// Services
+import apiClient from '@/services/apiClient'
 import toastService from '@/services/toastService'
 import enhancedClientService from '@/services/enhancedClientService'
 
@@ -116,17 +117,10 @@ const ClientListTable = () => {
 
     setBranchesLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/active`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
+      const response = await apiClient.get('/branches/active')
 
-      if (response.ok) {
-        const data = await response.json()
+      if (response.status === 200) {
+        const data = response.data
         setBranches(data.data || [])
       } else {
         console.error('Failed to fetch branches')
@@ -162,34 +156,20 @@ const ClientListTable = () => {
     }
 
     try {
-      const queryParams = new URLSearchParams({
+      const params = {
         page: page.toString(),
         limit: limit.toString(),
         sortBy,
         sortType
-      })
-
-      if (search) {
-        queryParams.append('search', search)
       }
 
-      if (branch) {
-        console.log('🔄 Adding branchId to query:', branch)
-        queryParams.append('branchId', branch)
-      }
+      if (search) params.search = search
+      if (branch) params.branchId = branch
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
+      const response = await apiClient.get('/clients', { params })
+      const responseData = response.data
 
-      const responseData = await response.json()
-
-      if (response.ok) {
+      if (response.status === 200) {
         setClients(responseData.data || [])
         setPagination(prev => ({
           ...prev,
@@ -341,15 +321,9 @@ const ClientListTable = () => {
     setDeleteLoading(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/${clientToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
+      const response = await apiClient.delete(`/clients/${clientToDelete.id}`)
 
-      if (response.ok) {
+      if (response.status === 200 || response.status === 204) {
         // Show success toast
         toastService.handleApiSuccess('deleted', 'Client')
         console.log(`Client ${clientToDelete.id} deleted successfully.`)
@@ -365,13 +339,9 @@ const ClientListTable = () => {
         setDeleteDialogOpen(false)
         setClientToDelete(null)
       } else {
-        // Clone response before reading (so both reads work)
-        const responseClone = response.clone()
-        // Read original for logging
-        const errorData = await response.json().catch(() => ({}))
+        const errorData = response.data || {}
         console.error('API Error deleting client:', errorData)
-        // Show error toast using the cloned response (so handleApiError can read it)
-        await toastService.handleApiError(responseClone, 'Failed to delete client')
+        await toastService.handleApiError(response, 'Failed to delete client')
       }
     } catch (error) {
       // Show error toast

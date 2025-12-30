@@ -14,6 +14,7 @@ import BankAccountListTable from './BankAccountListTable'
 import AddBankAccountDrawer from './AddBankAccountDrawer'
 import EditBankAccountDrawer from './EditBankAccountDrawer'
 import toastService from '@/services/toastService'
+import apiClient from '@/services/apiClient'
 
 const BankAccountList = () => {
   // States
@@ -27,11 +28,6 @@ const BankAccountList = () => {
 
   // Handle bank account actions
   const handleBankAccountAction = async (action, bankAccountId, data = null) => {
-    if (!session?.accessToken) {
-      toastService.showError('Authentication required to perform this action.')
-      return
-    }
-
     try {
       switch (action) {
         case 'edit':
@@ -41,38 +37,13 @@ const BankAccountList = () => {
           break
 
         case 'delete':
-          const deleteResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bank-accounts/${bankAccountId}`, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-client-type': 'web',
-              Authorization: `Bearer ${session.accessToken}`
-            }
-          })
-
-          if (!deleteResponse.ok) {
-            const errorData = await deleteResponse.json()
-            throw new Error(errorData.message || 'Failed to delete bank account')
-          }
+          await apiClient.delete(`/bank-accounts/${bankAccountId}`)
           // Trigger refresh after successful delete
           setRefreshTrigger(prev => prev + 1)
           break
 
         case 'update':
-          const updateResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bank-accounts/${bankAccountId}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-client-type': 'web',
-              Authorization: `Bearer ${session.accessToken}`
-            },
-            body: JSON.stringify(data)
-          })
-
-          if (!updateResponse.ok) {
-            const errorData = await updateResponse.json()
-            throw new Error(errorData.message || 'Failed to update bank account')
-          }
+          await apiClient.patch(`/bank-accounts/${bankAccountId}`, data)
           // Trigger refresh after successful update
           setRefreshTrigger(prev => prev + 1)
           break
@@ -87,66 +58,30 @@ const BankAccountList = () => {
 
   // Handle add bank account
   const handleAddBankAccount = async bankAccountData => {
-    if (!session?.accessToken) {
-      toastService.showError('Authentication required to add bank account.')
-      return
-    }
-
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bank-accounts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        },
-        body: JSON.stringify(bankAccountData)
-      })
-
-      if (response.ok) {
-        toastService.handleApiSuccess('created', 'Bank Account')
-        setAddDrawerOpen(false)
-        // Trigger refresh of the table data
-        setRefreshTrigger(prev => prev + 1)
-      } else {
-        await toastService.handleApiError(response, 'Failed to add bank account')
-      }
+      await apiClient.post('/bank-accounts', bankAccountData)
+      toastService.handleApiSuccess('created', 'Bank Account')
+      setAddDrawerOpen(false)
+      // Trigger refresh of the table data
+      setRefreshTrigger(prev => prev + 1)
     } catch (err) {
       console.error('Error adding bank account:', err)
-      await toastService.handleApiError(err, 'Network error or unexpected issue. Please try again.')
+      await toastService.handleApiError(err, 'Failed to add bank account')
     }
   }
 
   // Handle edit bank account
   const handleEditBankAccount = async bankAccountData => {
-    if (!session?.accessToken) {
-      toastService.showError('Authentication required to edit bank account.')
-      return
-    }
-
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bank-accounts/${editingBankAccount.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        },
-        body: JSON.stringify(bankAccountData)
-      })
-
-      if (response.ok) {
-        toastService.handleApiSuccess('updated', 'Bank Account')
-        setEditDrawerOpen(false)
-        setEditingBankAccount(null)
-        // Trigger refresh of the table data
-        setRefreshTrigger(prev => prev + 1)
-      } else {
-        await toastService.handleApiError(response, 'Failed to update bank account')
-      }
+      await apiClient.patch(`/bank-accounts/${editingBankAccount.id}`, bankAccountData)
+      toastService.handleApiSuccess('updated', 'Bank Account')
+      setEditDrawerOpen(false)
+      setEditingBankAccount(null)
+      // Trigger refresh of the table data
+      setRefreshTrigger(prev => prev + 1)
     } catch (err) {
       console.error('Error editing bank account:', err)
-      await toastService.handleApiError(err, 'Network error or unexpected issue. Please try again.')
+      await toastService.handleApiError(err, 'Failed to update bank account')
     }
   }
 

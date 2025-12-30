@@ -20,6 +20,8 @@ import CustomTextField from '@core/components/mui/TextField'
 
 // Service Imports
 import { profileService } from '@/services/profileService'
+import apiClient from '@/services/apiClient'
+import toastService from '@/services/toastService'
 
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
@@ -155,40 +157,29 @@ const AccountDetails = () => {
       setError(null)
 
       // Fetch specific user data by ID
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/${userId}`, {
-        method: 'GET',
-        headers: {
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
+      const response = await apiClient.get(`/employees/${userId}`)
+      const responseData = response.data
+
+      setProfile(responseData)
+
+      // Split name into first and last name
+      const nameParts = responseData.name ? responseData.name.split(' ') : ['', '']
+      setFormData({
+        firstName: nameParts[0] || '',
+        lastName: nameParts[1] || '',
+        email: responseData.email || '',
+        employeeId: responseData.employeeId || '',
+        nationalIdentificationNumber: responseData.nationalIdentificationNumber || '',
+        dateOfBirth: responseData.dateOfBirth ? new Date(responseData.dateOfBirth).toISOString().split('T')[0] : '',
+        role: responseData.role || '',
+        branch: responseData.branch?.name || '',
+        isEmailVerified: responseData.isEmailVerified || false,
+        isActive: responseData.isActive !== undefined ? responseData.isActive : true
       })
 
-      if (response.ok) {
-        const responseData = await response.json()
-        setProfile(responseData)
-
-        // Split name into first and last name
-        const nameParts = responseData.name ? responseData.name.split(' ') : ['', '']
-        setFormData({
-          firstName: nameParts[0] || '',
-          lastName: nameParts[1] || '',
-          email: responseData.email || '',
-          employeeId: responseData.employeeId || '',
-          nationalIdentificationNumber: responseData.nationalIdentificationNumber || '',
-          dateOfBirth: responseData.dateOfBirth ? new Date(responseData.dateOfBirth).toISOString().split('T')[0] : '',
-          role: responseData.role || '',
-          branch: responseData.branch?.name || '',
-          isEmailVerified: responseData.isEmailVerified || false,
-          isActive: responseData.isActive !== undefined ? responseData.isActive : true
-        })
-
-        // Set profile image if available
-        if (responseData.profileImage) {
-          setImgSrc(responseData.profileImage)
-        }
-      } else {
-        const errorData = await response.json()
-        setError(errorData.message || 'Failed to fetch user data')
+      // Set profile image if available
+      if (responseData.profileImage) {
+        setImgSrc(responseData.profileImage)
       }
     } catch (err) {
       console.error('Error fetching profile:', err)
@@ -196,7 +187,7 @@ const AccountDetails = () => {
     } finally {
       setLoading(false)
     }
-  }, [session?.accessToken, userId])
+  }, [userId])
 
   const handleFormChange = (field, value) => {
     setFormData({ ...formData, [field]: value })
@@ -231,28 +222,16 @@ const AccountDetails = () => {
       }
 
       // Update employee profile
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/${userId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        },
-        body: JSON.stringify(updateData)
-      })
-
-      if (response.ok) {
-        const responseData = await response.json()
-        setProfile({ ...profile, ...responseData })
-        setSuccess('Profile updated successfully!')
-        setTimeout(() => setSuccess(null), 3000)
-      } else {
-        const errorData = await response.json()
-        setError(errorData.message || 'Failed to update profile')
-      }
+      const response = await apiClient.patch(`/employees/${userId}`, updateData)
+      const responseData = response.data
+      
+      setProfile({ ...profile, ...responseData })
+      setSuccess('Profile updated successfully!')
+      setTimeout(() => setSuccess(null), 3000)
     } catch (err) {
       console.error('Error updating profile:', err)
-      setError(err.message || 'Failed to update profile')
+      await toastService.handleApiError(err, 'Failed to update profile')
+      setError(err.response?.data?.message || 'Failed to update profile')
     } finally {
       setSaving(false)
     }
@@ -297,49 +276,28 @@ const AccountDetails = () => {
       const formData = new FormData()
       formData.append('profileImage', file)
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/upload-profile-image`, {
-        method: 'POST',
+      const response = await apiClient.post('/employees/upload-profile-image', formData, {
         headers: {
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        },
-        body: formData
+          'Content-Type': 'multipart/form-data'
+        }
       })
 
-      if (response.ok) {
-        const responseData = await response.json()
-        const profileImageUrl = responseData.data.profileImageUrl
+      const profileImageUrl = response.data.data.profileImageUrl
 
-        // Update the employee's profile image in the database
-        const updateResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/${userId}/profile-image`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          },
-          body: JSON.stringify({
-            profileImage: profileImageUrl
-          })
-        })
+      // Update the employee's profile image in the database
+      const updateResponse = await apiClient.patch(`/employees/${userId}/profile-image`, {
+        profileImage: profileImageUrl
+      })
 
-        if (updateResponse.ok) {
-          setSuccess('Profile image updated successfully!')
-          setTimeout(() => setSuccess(null), 3000)
-          // Update the profile image display
-          setImgSrc(profileImageUrl)
-          setProfile({ ...profile, profileImage: profileImageUrl })
-        } else {
-          const errorData = await updateResponse.json()
-          setError(errorData.message || 'Failed to update profile image')
-        }
-      } else {
-        const errorData = await response.json()
-        setError(errorData.message || 'Failed to upload profile image')
-      }
+      setSuccess('Profile image updated successfully!')
+      setTimeout(() => setSuccess(null), 3000)
+      // Update the profile image display
+      setImgSrc(profileImageUrl)
+      setProfile({ ...profile, profileImage: profileImageUrl })
     } catch (err) {
       console.error('Error uploading profile image:', err)
-      setError('Failed to upload profile image')
+      await toastService.handleApiError(err, 'Failed to upload profile image')
+      setError(err.response?.data?.message || 'Failed to upload profile image')
     } finally {
       setSaving(false)
     }

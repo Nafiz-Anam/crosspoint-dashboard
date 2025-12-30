@@ -21,6 +21,7 @@ import { useSession } from 'next-auth/react'
 
 // Component Imports
 import AddBankAccountForm from './AddBankAccountForm'
+import apiClient from '@/services/apiClient'
 
 const AddBankAccount = () => {
   // States
@@ -34,30 +35,11 @@ const AddBankAccount = () => {
 
   // Handle form submission
   const handleSubmit = async bankAccountData => {
-    if (!session?.accessToken) {
-      setError('Authentication required to add bank account.')
-      return
-    }
-
     try {
       setLoading(true)
       setError(null)
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bank-accounts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        },
-        body: JSON.stringify(bankAccountData)
-      })
-
-      const responseData = await response.json()
-
-      if (!response.ok) {
-        throw new Error(responseData.message || 'Failed to add bank account')
-      }
+      await apiClient.post('/bank-accounts', bankAccountData)
 
       setSuccess(true)
       // Redirect to bank account list after 2 seconds
@@ -66,7 +48,7 @@ const AddBankAccount = () => {
       }, 2000)
     } catch (err) {
       console.error('Error adding bank account:', err)
-      setError(err.message || 'Failed to add bank account')
+      setError(err.response?.data?.message || err.message || 'Failed to add bank account')
     } finally {
       setLoading(false)
     }

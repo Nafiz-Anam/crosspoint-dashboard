@@ -35,6 +35,7 @@ import { getLocalizedUrl } from '@/utils/i18n'
 import tableStyles from '@core/styles/table.module.css'
 
 // Services
+import apiClient from '@/services/apiClient'
 import toastService from '@/services/toastService'
 import enhancedTaskService from '@/services/enhancedTaskService'
 
@@ -146,17 +147,10 @@ const TaskListTable = ({
 
     setEmployeesLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/list/all`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
+      const response = await apiClient.get('/employees/list/all')
 
-      if (response.ok) {
-        const data = await response.json()
+      if (response.status === 200) {
+        const data = response.data
         // Filter only active employees
         const activeEmployees = (data.data || []).filter(emp => emp.isActive !== false)
         setAllEmployees(activeEmployees)
@@ -176,17 +170,10 @@ const TaskListTable = ({
 
     setBranchesLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/active`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
+      const response = await apiClient.get('/branches/active')
 
-      if (response.ok) {
-        const data = await response.json()
+      if (response.status === 200) {
+        const data = response.data
         setBranches(data.data || [])
       } else {
         console.error('Failed to fetch branches')
@@ -233,43 +220,22 @@ const TaskListTable = ({
     }
 
     try {
-      const queryParams = new URLSearchParams({
+      const params = {
         page: page.toString(),
         limit: limit.toString(),
         sortBy,
         sortType
-      })
-
-      if (search) {
-        queryParams.append('search', search)
       }
 
-      if (status) {
-        queryParams.append('status', status)
-      }
+      if (search) params.search = search
+      if (status) params.status = status
+      if (assignedEmployee) params.assignedEmployeeId = assignedEmployee
+      if (branch) params.branchId = branch
 
-      if (assignedEmployee) {
-        console.log('🔄 Adding assignedEmployeeId to query:', assignedEmployee)
-        queryParams.append('assignedEmployeeId', assignedEmployee)
-      }
+      const response = await apiClient.get('/tasks', { params })
+      const responseData = response.data
 
-      if (branch) {
-        console.log('🔄 Adding branchId to query:', branch)
-        queryParams.append('branchId', branch)
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      const responseData = await response.json()
-
-      if (response.ok) {
+      if (response.status === 200) {
         setTasks(responseData.data || [])
         setPagination(prev => ({
           ...prev,
@@ -498,15 +464,9 @@ const TaskListTable = ({
     setDeleteLoading(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${taskToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
+      const response = await apiClient.delete(`/tasks/${taskToDelete.id}`)
 
-      if (response.ok) {
+      if (response.status === 200 || response.status === 204) {
         // Show success toast
         toastService.handleApiSuccess('deleted', 'Task')
         console.log(`Task ${taskToDelete.id} deleted successfully.`)
@@ -524,13 +484,9 @@ const TaskListTable = ({
         setDeleteDialogOpen(false)
         setTaskToDelete(null)
       } else {
-        // Clone response before reading (so both reads work)
-        const responseClone = response.clone()
-        // Read original for logging
-        const errorData = await response.json().catch(() => ({}))
+        const errorData = response.data || {}
         console.error('API Error deleting task:', errorData)
-        // Show error toast using the cloned response (so handleApiError can read it)
-        await toastService.handleApiError(responseClone, 'Failed to delete task')
+        await toastService.handleApiError(response, 'Failed to delete task')
       }
     } catch (error) {
       // Show error toast
@@ -586,46 +542,24 @@ const TaskListTable = ({
     try {
       setExportLoading(true)
       
-      // Build query parameters based on current filters
-      const queryParams = new URLSearchParams()
-      
-      if (statusFilter) {
-        queryParams.append('status', statusFilter)
-      }
-      
-      if (branchFilter) {
-        queryParams.append('branchId', branchFilter)
-      }
-      
-      if (assignedEmployeeFilter) {
-        queryParams.append('employeeId', assignedEmployeeFilter)
-      }
-      
-      if (globalFilter) {
-        queryParams.append('search', globalFilter)
-      }
-      
-      // Add format parameter
-      queryParams.append('format', 'excel')
-      
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tasks/export-report?${queryParams.toString()}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          }
-        }
-      )
+      const params = {}
+      if (statusFilter) params.status = statusFilter
+      if (branchFilter) params.branchId = branchFilter
+      if (assignedEmployeeFilter) params.employeeId = assignedEmployeeFilter
+      if (globalFilter) params.search = globalFilter
+      params.format = 'excel'
 
-      if (!response.ok) {
+      const response = await apiClient.get('/tasks/export-report', {
+        params,
+        responseType: 'blob'
+      })
+
+      if (response.status !== 200) {
         throw new Error(`Export failed: ${response.status}`)
       }
 
       // Get the blob from response
-      const blob = await response.blob()
+      const blob = response.data
       
       // Create download link
       const url = window.URL.createObjectURL(blob)

@@ -42,6 +42,7 @@ import AddServiceDrawer from './AddServiceDrawer'
 import CustomTextField from '@core/components/mui/TextField'
 import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
 import toastService from '@/services/toastService'
+import apiClient from '@/services/apiClient'
 
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
@@ -117,62 +118,33 @@ const ServiceListTable = () => {
     category = ''
   ) => {
     console.log('🔄 fetchServices called with:', { page, search, sortBy, sortType, limit, category })
-    console.log('🔄 Current status:', status)
-    console.log('🔄 Has initially fetched:', hasInitiallyFetched.current)
 
     setFetchLoading(true)
     setFetchError(null)
 
-    if (status === 'loading') return // Wait for session to load
-    if (status === 'unauthenticated' || !session?.accessToken) {
-      setFetchError('Authentication required')
-      setFetchLoading(false)
-      return
-    }
-
     try {
-      const queryParams = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-        sortBy,
-        sortType
-      })
-
-      if (search) {
-        queryParams.append('search', search)
-      }
-
-      if (category) {
-        queryParams.append('category', category)
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
+      const response = await apiClient.get('/services', {
+        params: {
+          page: page.toString(),
+          limit: limit.toString(),
+          sortBy,
+          sortType,
+          ...(search && { search }),
+          ...(category && { category })
         }
       })
 
-      const responseData = await response.json()
+      const responseData = response.data
 
-      if (response.ok) {
-        setServices(responseData.data || [])
-        setPagination(prev => ({
-          ...prev,
-          page: responseData.pagination?.page || page,
-          total: responseData.pagination?.total || 0,
-          totalPages: responseData.pagination?.totalPages || 0,
-          hasNext: responseData.pagination?.hasNext || false,
-          hasPrev: responseData.pagination?.hasPrev || false
-        }))
-      } else {
-        const errorMessage = responseData.message || `Failed to fetch services: ${response.status}`
-        setFetchError(errorMessage)
-        await toastService.handleApiError(response, 'Failed to fetch services')
-        console.error('API Error fetching services:', responseData)
-      }
+      setServices(responseData.data || [])
+      setPagination(prev => ({
+        ...prev,
+        page: responseData.pagination?.page || page,
+        total: responseData.pagination?.total || 0,
+        totalPages: responseData.pagination?.totalPages || 0,
+        hasNext: responseData.pagination?.hasNext || false,
+        hasPrev: responseData.pagination?.hasPrev || false
+      }))
     } catch (error) {
       const errorMessage = 'Network error or unexpected issue fetching services. Please try again.'
       setFetchError(errorMessage)
@@ -269,7 +241,7 @@ const ServiceListTable = () => {
         clearTimeout(window.searchTimeout)
       }
     }
-  }, [status, session?.accessToken]) // Re-fetch if session status or token changes
+  }, [status]) // Re-fetch if session status changes
 
   // Handle delete confirmation
   const handleDeleteConfirm = useCallback(async () => {
@@ -277,32 +249,22 @@ const ServiceListTable = () => {
 
     setDeleteLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services/${serviceToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
+      await apiClient.delete(`/services/${serviceToDelete.id}`)
 
-      if (response.ok) {
-        toastService.handleApiSuccess('deleted', 'Service')
-        // Re-fetch data after deletion
-        fetchServices(
-          currentPagination.current.page,
-          currentGlobalFilter.current,
-          'createdAt',
-          'desc',
-          currentPagination.current.limit,
-          categoryFilter
-        )
-        setDeleteDialogOpen(false)
-        setServiceToDelete(null)
-      } else {
-        await toastService.handleApiError(response, 'Failed to delete service')
-      }
+      toastService.handleApiSuccess('deleted', 'Service')
+      // Re-fetch data after deletion
+      fetchServices(
+        currentPagination.current.page,
+        currentGlobalFilter.current,
+        'createdAt',
+        'desc',
+        currentPagination.current.limit,
+        categoryFilter
+      )
+      setDeleteDialogOpen(false)
+      setServiceToDelete(null)
     } catch (error) {
-      await toastService.handleApiError(error, 'Network error or unexpected issue during deletion. Please try again.')
+      await toastService.handleApiError(error, 'Failed to delete service')
     } finally {
       setDeleteLoading(false)
     }

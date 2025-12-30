@@ -25,6 +25,7 @@ import CustomTextField from '@core/components/mui/TextField'
 
 // Services
 import toastService from '@/services/toastService'
+import apiClient from '@/services/apiClient'
 
 const EditTaskCard = ({ taskId, onTaskUpdated }) => {
   console.log('EditTaskCard rendered with taskId:', taskId)
@@ -73,12 +74,6 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
 
   // Fetch task data
   const fetchTaskData = useCallback(async () => {
-    if (!session?.accessToken) {
-      console.log('No access token, waiting for session...')
-      setFetchLoading(false)
-      return
-    }
-    
     if (!taskId) {
       console.error('Task ID is missing')
       setFetchLoading(false)
@@ -88,50 +83,24 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
     console.log('Fetching task data for ID:', taskId)
     setFetchLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${taskId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        const task = data.data.task
-        console.log('Task data fetched successfully:', task)
-        setTaskData(task)
-      } else {
-        const errorData = await response.json().catch(() => ({}))
-        console.error('Failed to fetch task:', errorData)
-        await toastService.handleApiError(response, 'Failed to fetch task data')
-      }
+      const response = await apiClient.get(`/tasks/${taskId}`)
+      const task = response.data.data.task
+      console.log('Task data fetched successfully:', task)
+      setTaskData(task)
     } catch (error) {
       console.error('Error fetching task:', error)
-      await toastService.handleApiError(error, 'Network error fetching task data')
+      await toastService.handleApiError(error, 'Failed to fetch task data')
     } finally {
       setFetchLoading(false)
     }
-  }, [session?.accessToken, taskId])
+  }, [taskId])
 
   // Fetch clients
   const fetchClients = async () => {
-    if (!session?.accessToken) return
-
     setClientsLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/list/all`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setClients(data.data || [])
-      }
+      const response = await apiClient.get('/clients/list/all')
+      setClients(response.data.data || [])
     } catch (error) {
       console.error('Error fetching clients:', error)
     } finally {
@@ -141,25 +110,13 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
 
   // Fetch categories
   const fetchCategories = async () => {
-    if (!session?.accessToken) return
-
     setCategoriesLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services/list/all`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        const services = data.data || []
-        // Extract unique categories from services
-        const uniqueCategories = [...new Set(services.map(service => service.category).filter(Boolean))]
-        setCategories(uniqueCategories)
-      }
+      const response = await apiClient.get('/services/list/all')
+      const services = response.data.data || []
+      // Extract unique categories from services
+      const uniqueCategories = [...new Set(services.map(service => service.category).filter(Boolean))]
+      setCategories(uniqueCategories)
     } catch (error) {
       console.error('Error fetching categories:', error)
     } finally {
@@ -169,22 +126,10 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
 
   // Fetch services
   const fetchServices = async () => {
-    if (!session?.accessToken) return
-
     setServicesLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services/list/all`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setServices(data.data || [])
-      }
+      const response = await apiClient.get('/services/list/all')
+      setServices(response.data.data || [])
     } catch (error) {
       console.error('Error fetching services:', error)
     } finally {
@@ -194,22 +139,10 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
 
   // Fetch employees
   const fetchEmployees = async () => {
-    if (!session?.accessToken) return
-
     setEmployeesLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/list/all`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setEmployees(data.data || [])
-      }
+      const response = await apiClient.get('/employees/list/all')
+      setEmployees(response.data.data || [])
     } catch (error) {
       console.error('Error fetching employees:', error)
     } finally {
@@ -223,21 +156,17 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
 
   // Fetch all data when component mounts
   useEffect(() => {
-    console.log('useEffect triggered:', { hasToken: !!session?.accessToken, taskId })
-    if (session?.accessToken && taskId) {
+    if (taskId) {
       fetchTaskData()
       fetchClients()
       fetchCategories()
       fetchServices()
       fetchEmployees()
-    } else if (!session?.accessToken) {
-      console.log('Waiting for session...')
-      setFetchLoading(false)
-    } else if (!taskId) {
+    } else {
       console.error('TaskId is missing!')
       setFetchLoading(false)
     }
-  }, [session?.accessToken, taskId, fetchTaskData])
+  }, [taskId, fetchTaskData])
 
   // Populate form when task data and services are loaded
   useEffect(() => {
@@ -291,27 +220,12 @@ const EditTaskCard = ({ taskId, onTaskUpdated }) => {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${taskId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        },
-        body: JSON.stringify(payload)
-      })
+      const response = await apiClient.patch(`/tasks/${taskId}`, payload)
 
-      const responseData = await response.json()
-
-      if (response.ok) {
-        toastService.showSuccess('Task updated successfully!')
-        // Call parent callback to refresh task list
-        if (onTaskUpdated) {
-          onTaskUpdated(responseData.data)
-        }
-      } else {
-        const errorMessage = responseData.message || `Failed to update task: ${response.status}`
-        await toastService.handleApiError(response, errorMessage)
+      toastService.showSuccess('Task updated successfully!')
+      // Call parent callback to refresh task list
+      if (onTaskUpdated) {
+        onTaskUpdated(response.data.data)
       }
     } catch (error) {
       await toastService.handleApiError(error, 'Network error or unexpected issue. Please try again.')

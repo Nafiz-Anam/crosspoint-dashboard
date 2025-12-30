@@ -1,26 +1,23 @@
+import apiClient, { createApiClient } from './apiClient'
+
 class ProfileService {
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL
+    this.endpoint = '/profile'
+  }
+
+  // Get API client with optional token
+  getApiClient(token = null) {
+    if (token) {
+      return createApiClient(token)
+    }
+    return apiClient
   }
 
   async getMyProfile(token = null) {
     try {
-      const response = await fetch(`${this.baseURL}/profile`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${token}`
-        }
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch profile')
-      }
-
-      return data
+      const client = this.getApiClient(token)
+      const response = await client.get(this.endpoint)
+      return response.data
     } catch (error) {
       console.error('Get profile error:', error)
       throw error
@@ -29,23 +26,9 @@ class ProfileService {
 
   async updateMyProfile(profileData, token = null) {
     try {
-      const response = await fetch(`${this.baseURL}/profile`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(profileData)
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to update profile')
-      }
-
-      return data
+      const client = this.getApiClient(token)
+      const response = await client.patch(this.endpoint, profileData)
+      return response.data
     } catch (error) {
       console.error('Update profile error:', error)
       throw error
@@ -54,23 +37,9 @@ class ProfileService {
 
   async changePassword(passwordData, token = null) {
     try {
-      const response = await fetch(`${this.baseURL}/profile/change-password`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(passwordData)
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to change password')
-      }
-
-      return data
+      const client = this.getApiClient(token)
+      const response = await client.patch(`${this.endpoint}/change-password`, passwordData)
+      return response.data
     } catch (error) {
       console.error('Change password error:', error)
       throw error
@@ -79,3 +48,5 @@ class ProfileService {
 }
 
 export const profileService = new ProfileService()
+
+export default profileService

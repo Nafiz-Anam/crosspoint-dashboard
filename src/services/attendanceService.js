@@ -1,27 +1,23 @@
+import apiClient, { createApiClient } from './apiClient'
+
 class AttendanceService {
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL
+    this.endpoint = '/attendance'
+  }
+
+  // Get API client with optional token
+  getApiClient(token = null) {
+    if (token) {
+      return createApiClient(token)
+    }
+    return apiClient
   }
 
   async checkIn(token = null) {
     try {
-      const response = await fetch(`${this.baseURL}/attendance/check-in`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${token}`
-        }
-        // body: JSON.stringify({ notes })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Check-in failed')
-      }
-
-      return data
+      const client = this.getApiClient(token)
+      const response = await client.post(`${this.endpoint}/check-in`)
+      return response.data
     } catch (error) {
       console.error('Check-in error:', error)
       throw error
@@ -30,23 +26,9 @@ class AttendanceService {
 
   async checkOut(token = null, notes = '') {
     try {
-      const response = await fetch(`${this.baseURL}/attendance/check-out`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ notes })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Check-out failed')
-      }
-
-      return data
+      const client = this.getApiClient(token)
+      const response = await client.post(`${this.endpoint}/check-out`, { notes })
+      return response.data
     } catch (error) {
       console.error('Check-out error:', error)
       throw error
@@ -55,26 +37,10 @@ class AttendanceService {
 
   async getMyAttendance(date = null, token = null) {
     try {
-      const url = date
-        ? `${this.baseURL}/attendance/my-attendance?date=${date}`
-        : `${this.baseURL}/attendance/my-attendance`
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${token}`
-        }
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch attendance')
-      }
-
-      return data
+      const client = this.getApiClient(token)
+      const params = date ? { date } : {}
+      const response = await client.get(`${this.endpoint}/my-attendance`, { params })
+      return response.data
     } catch (error) {
       console.error('Get attendance error:', error)
       throw error
@@ -83,25 +49,11 @@ class AttendanceService {
 
   async getMyAttendanceRange(startDate, endDate, token = null) {
     try {
-      const response = await fetch(
-        `${this.baseURL}/attendance/my-attendance/range?startDate=${startDate}&endDate=${endDate}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch attendance range')
-      }
-
-      return data
+      const client = this.getApiClient(token)
+      const response = await client.get(`${this.endpoint}/my-attendance/range`, {
+        params: { startDate, endDate }
+      })
+      return response.data
     } catch (error) {
       console.error('Get attendance range error:', error)
       throw error
@@ -110,25 +62,11 @@ class AttendanceService {
 
   async getMyAttendanceStats(startDate, endDate, token = null) {
     try {
-      const response = await fetch(
-        `${this.baseURL}/attendance/my-attendance/stats?startDate=${startDate}&endDate=${endDate}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch attendance stats')
-      }
-
-      return data
+      const client = this.getApiClient(token)
+      const response = await client.get(`${this.endpoint}/my-attendance/stats`, {
+        params: { startDate, endDate }
+      })
+      return response.data
     } catch (error) {
       console.error('Get attendance stats error:', error)
       throw error

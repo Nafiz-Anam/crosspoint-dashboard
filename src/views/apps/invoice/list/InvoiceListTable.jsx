@@ -45,6 +45,9 @@ import CustomTextField from '@core/components/mui/TextField'
 import CustomAutocomplete from '@core/components/mui/Autocomplete'
 import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
 
+// API Imports
+import apiClient from '@/services/apiClient'
+
 // Util Imports
 import { getInitials } from '@/utils/getInitials'
 import { getLocalizedUrl } from '@/utils/i18n'
@@ -147,37 +150,26 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
     console.log('🔄 Fetching branches internally...')
     setInternalBranchesLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/active`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
+      const response = await apiClient.get('/branches/active')
 
-      if (response.ok) {
-        const data = await response.json()
-        console.log('📊 Internal branches API response:', data)
-        let branchesData = []
-        if (Array.isArray(data)) {
-          branchesData = data
-        } else if (Array.isArray(data.data)) {
-          branchesData = data.data
-        } else if (data.data && !Array.isArray(data.data)) {
-          branchesData = [data.data]
-        }
-        console.log('📊 Internal branches array after processing:', branchesData, 'Length:', branchesData.length)
-        setInternalBranches(branchesData)
-      } else {
-        console.error('Failed to fetch branches:', response.status, response.statusText)
+      console.log('📊 Internal branches API response:', response.data)
+      let branchesData = []
+      const data = response.data
+      if (Array.isArray(data)) {
+        branchesData = data
+      } else if (Array.isArray(data.data)) {
+        branchesData = data.data
+      } else if (data.data && !Array.isArray(data.data)) {
+        branchesData = [data.data]
       }
+      console.log('📊 Internal branches array after processing:', branchesData, 'Length:', branchesData.length)
+      setInternalBranches(branchesData)
     } catch (error) {
       console.error('Error fetching branches:', error)
     } finally {
       setInternalBranchesLoading(false)
     }
-  }, [session?.accessToken, externalBranches.length])
+  }, [externalBranches.length])
 
   // Function to fetch invoice data from API with pagination
   const fetchInvoices = async (
@@ -204,63 +196,42 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
     }
 
     try {
-      const queryParams = new URLSearchParams({
+      const params = {
         page: page.toString(),
         limit: limit.toString(),
         sortBy,
         sortType
-      })
+      }
 
       if (search) {
-        queryParams.append('search', search)
+        params.search = search
       }
 
       if (status) {
-        queryParams.append('status', status)
+        params.status = status
       }
 
       if (branch) {
-        queryParams.append('branchId', branch)
+        params.branchId = branch
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
+      const response = await apiClient.get('/invoices', { params })
+      const responseData = response.data
 
-      const responseData = await response.json()
-
-      if (response.ok) {
-        console.log('🔄 API Response data:', responseData.data)
-        console.log('🔄 API Response pagination:', responseData.pagination)
-        setInvoices(responseData.data || [])
-        setPagination(prev => ({
-          ...prev,
-          page: responseData.pagination?.page || page,
-          total: responseData.pagination?.total || 0,
-          totalPages: responseData.pagination?.totalPages || 0,
-          hasNext: responseData.pagination?.hasNext || false,
-          hasPrev: responseData.pagination?.hasPrev || false
-        }))
-        console.log('🔄 Invoices state updated:', responseData.data || [])
-        console.log('🔄 Pagination state updated:', {
-          page: responseData.pagination?.page || page,
-          total: responseData.pagination?.total || 0,
-          totalPages: responseData.pagination?.totalPages || 0,
-          hasNext: responseData.pagination?.hasNext || false,
-          hasPrev: responseData.pagination?.hasPrev || false
-        })
-      } else {
-        const errorMessage = responseData.message || `Failed to fetch invoices: ${response.status}`
-        setFetchError(errorMessage)
-        console.error('API Error fetching invoices:', responseData)
-      }
+      console.log('🔄 API Response data:', responseData.data)
+      console.log('🔄 API Response pagination:', responseData.pagination)
+      setInvoices(responseData.data || [])
+      setPagination(prev => ({
+        ...prev,
+        page: responseData.pagination?.page || page,
+        total: responseData.pagination?.total || 0,
+        totalPages: responseData.pagination?.totalPages || 0,
+        hasNext: responseData.pagination?.hasNext || false,
+        hasPrev: responseData.pagination?.hasPrev || false
+      }))
+      console.log('🔄 Invoices state updated:', responseData.data || [])
     } catch (error) {
-      const errorMessage = 'Network error or unexpected issue fetching invoices. Please try again.'
+      const errorMessage = error.message || 'Network error or unexpected issue fetching invoices. Please try again.'
       setFetchError(errorMessage)
       console.error('Fetch error invoices:', error)
     } finally {
@@ -369,41 +340,29 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
       setExportLoading(true)
       
       // Build query parameters based on current filters
-      const queryParams = new URLSearchParams()
+      const params = {
+        format: 'excel'
+      }
       
       if (statusFilter) {
-        queryParams.append('status', statusFilter)
+        params.status = statusFilter
       }
       
       if (branchFilter) {
-        queryParams.append('branchId', branchFilter)
+        params.branchId = branchFilter
       }
       
       if (globalFilter) {
-        queryParams.append('search', globalFilter)
+        params.search = globalFilter
       }
       
-      // Add format parameter
-      queryParams.append('format', 'excel')
-      
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/invoices/export-revenue-report?${queryParams.toString()}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          }
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error(`Export failed: ${response.status}`)
-      }
+      const response = await apiClient.get('/invoices/export-revenue-report', {
+        params,
+        responseType: 'blob'
+      })
 
       // Get the blob from response
-      const blob = await response.blob()
+      const blob = response.data
       
       // Create download link
       const url = window.URL.createObjectURL(blob)
@@ -411,7 +370,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
       link.href = url
       
       // Get filename from response headers or use default
-      const contentDisposition = response.headers.get('Content-Disposition')
+      const contentDisposition = response.headers['content-disposition']
       let filename = 'revenue-report.xlsx'
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="(.+)"/)
@@ -428,11 +387,10 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
       
     } catch (error) {
       console.error('Error exporting report:', error)
-      // You can add a toast notification here if you have a toast service
     } finally {
       setExportLoading(false)
     }
-  }, [statusFilter, branchFilter, globalFilter, session?.accessToken])
+  }, [statusFilter, branchFilter, globalFilter])
 
   const columns = useMemo(
     () => [
@@ -483,8 +441,10 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
               const statusTranslations = {
                 paid: t('invoices.status.paid'),
                 pending: t('invoices.status.pending'),
+                unpaid: t('invoices.status.unpaid'),
                 overdue: t('invoices.status.overdue'),
-                draft: t('invoices.status.draft')
+                draft: t('invoices.status.draft'),
+                cancelled: t('invoices.status.cancelled')
               }
 
               if (statusTranslations[statusKey]) {
@@ -497,8 +457,7 @@ const InvoiceListTable = ({ invoiceData, onFilterChange, onInvoiceAction, filter
             variant='tonal'
             size='small'
             sx={{
-              fontWeight: 600,
-              textTransform: 'capitalize'
+              fontWeight: 600
             }}
           />
         ),

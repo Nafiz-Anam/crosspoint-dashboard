@@ -44,6 +44,8 @@ import { useSession } from 'next-auth/react' // Import useSession to get token
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import AddBranchDrawer from './AddBranchDrawer' // Ensure this is the updated drawer
 import CustomTextField from '@core/components/mui/TextField'
+// Services
+import apiClient from '@/services/apiClient'
 import toastService from '@/services/toastService'
 
 // Hooks
@@ -134,33 +136,20 @@ const BranchListTable = () => {
     }
 
     try {
-      const queryParams = new URLSearchParams({
+      const params = {
         page: page.toString(),
         limit: limit.toString(),
         sortBy,
         sortType
-      })
-
-      if (search) {
-        queryParams.append('search', search)
       }
 
-      if (isActive) {
-        queryParams.append('isActive', isActive)
-      }
+      if (search) params.search = search
+      if (isActive) params.isActive = isActive
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
+      const response = await apiClient.get('/branches', { params })
+      const responseData = response.data
 
-      const responseData = await response.json()
-
-      if (response.ok) {
+      if (response.status === 200) {
         setBranches(responseData.data || [])
         setPagination(prev => ({
           ...prev,
@@ -173,7 +162,7 @@ const BranchListTable = () => {
       } else {
         const errorMessage = responseData.message || `Failed to fetch branches: ${response.status}`
         setFetchError(errorMessage)
-        await toastService.handleApiError(response, 'Failed to create branch')
+        await toastService.handleApiError(response, 'Failed to fetch branches')
         console.error('API Error fetching branches:', responseData)
       }
     } catch (error) {
@@ -304,15 +293,9 @@ const BranchListTable = () => {
     setDeleteLoading(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/${branchToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
+      const response = await apiClient.delete(`/branches/${branchToDelete.id}`)
 
-      if (response.ok) {
+      if (response.status === 200 || response.status === 204) {
         // Show success toast
         toastService.handleApiSuccess('deleted', 'Branch')
         console.log(`Branch ${branchToDelete.id} deleted successfully.`)
@@ -327,13 +310,9 @@ const BranchListTable = () => {
         setDeleteDialogOpen(false)
         setBranchToDelete(null)
       } else {
-        // Clone response before reading (so both reads work)
-        const responseClone = response.clone()
-        // Read original for logging
-        const errorData = await response.json().catch(() => ({}))
+        const errorData = response.data || {}
         console.error('API Error deleting branch:', errorData)
-        // Show error toast using the cloned response (so handleApiError can read it)
-        await toastService.handleApiError(responseClone, 'Failed to delete branch')
+        await toastService.handleApiError(response, 'Failed to delete branch')
       }
     } catch (error) {
       // Show error toast

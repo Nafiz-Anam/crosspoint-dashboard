@@ -47,6 +47,8 @@ import CustomAutocomplete from '@core/components/mui/Autocomplete'
 import CustomAvatar from '@core/components/mui/Avatar'
 import AttendanceReportDialog from '@/components/AttendanceReportDialog'
 import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
+// Services
+import apiClient from '@/services/apiClient'
 import toastService from '@/services/toastService'
 
 // Hooks
@@ -151,17 +153,10 @@ const EmployeeListTable = () => {
 
     setBranchesLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/active`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
+      const response = await apiClient.get('/branches/active')
 
-      if (response.ok) {
-        const data = await response.json()
+      if (response.status === 200) {
+        const data = response.data
         setBranches(data.data || [])
       } else {
         console.error('Failed to fetch branches')
@@ -199,41 +194,22 @@ const EmployeeListTable = () => {
     }
 
     try {
-      const queryParams = new URLSearchParams({
+      const params = {
         page: page.toString(),
         limit: limit.toString(),
         sortBy,
         sortType
-      })
-
-      if (search) {
-        queryParams.append('search', search)
       }
 
-      if (role) {
-        queryParams.append('role', role)
-      }
+      if (search) params.search = search
+      if (role) params.role = role
+      if (status) params.isActive = status
+      if (branch) params.branchId = branch
 
-      if (status) {
-        queryParams.append('isActive', status)
-      }
+      const response = await apiClient.get('/employees', { params })
+      const responseData = response.data
 
-      if (branch) {
-        queryParams.append('branchId', branch)
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      const responseData = await response.json()
-
-      if (response.ok) {
+      if (response.status === 200) {
         setEmployees(responseData.data || [])
         setPagination(prev => ({
           ...prev,
@@ -427,15 +403,9 @@ const EmployeeListTable = () => {
 
     setDeleteLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/${employeeToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
+      const response = await apiClient.delete(`/employees/${employeeToDelete.id}`)
 
-      if (response.ok) {
+      if (response.status === 200 || response.status === 204) {
         toastService.handleApiSuccess('deleted', 'Employee')
         // Re-fetch data after deletion
         fetchEmployees(

@@ -26,6 +26,7 @@ import { object, minLength, string, pipe, nonEmpty, length } from 'valibot'
 import DirectionalIcon from '@components/DirectionalIcon'
 import Logo from '@components/layout/shared/Logo'
 import CustomTextField from '@core/components/mui/TextField'
+import apiClient from '@/services/apiClient'
 
 // Hook Imports
 import { useImageVariant } from '@core/hooks/useImageVariant'
@@ -130,30 +131,18 @@ const VerifyOTP = ({ mode }) => {
     setSuccess(false)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web'
-        },
-        body: JSON.stringify({ email, otp: data.otp })
-      })
+      await apiClient.post('/auth/verify-otp', { email, otp: data.otp })
 
-      if (response.ok) {
-        setSuccess(true)
-        setError(null)
-        // Redirect to reset password page after 2 seconds
-        setTimeout(() => {
-          router.push(
-            getLocalizedUrl(`/pages/auth/reset-password-otp?email=${encodeURIComponent(email)}&otp=${data.otp}`, locale)
-          )
-        }, 2000)
-      } else {
-        const errorData = await response.json()
-        setError(errorData.message || t('auth.otpVerificationError'))
-      }
+      setSuccess(true)
+      setError(null)
+      // Redirect to reset password page after 2 seconds
+      setTimeout(() => {
+        router.push(
+          getLocalizedUrl(`/pages/auth/reset-password-otp?email=${encodeURIComponent(email)}&otp=${data.otp}`, locale)
+        )
+      }, 2000)
     } catch (err) {
-      setError(t('auth.unexpectedError'))
+      setError(err.response?.data?.message || t('auth.otpVerificationError'))
     } finally {
       setIsLoading(false)
     }
@@ -166,24 +155,12 @@ const VerifyOTP = ({ mode }) => {
     setError(null)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web'
-        },
-        body: JSON.stringify({ email })
-      })
+      await apiClient.post('/auth/forgot-password-otp', { email })
 
-      if (response.ok) {
-        setTimeLeft(600) // 10 minutes
-        setError(null)
-      } else {
-        const errorData = await response.json()
-        setError(errorData.message || t('auth.resendOTPError'))
-      }
+      setTimeLeft(600) // 10 minutes
+      setError(null)
     } catch (err) {
-      setError(t('auth.unexpectedError'))
+      setError(err.response?.data?.message || t('auth.resendOTPError'))
     } finally {
       setIsLoading(false)
     }

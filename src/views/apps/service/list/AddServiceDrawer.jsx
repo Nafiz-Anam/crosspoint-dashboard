@@ -20,6 +20,7 @@ import { useSession } from 'next-auth/react'
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
 import toastService from '@/services/toastService'
+import apiClient from '@/services/apiClient'
 
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
@@ -69,52 +70,20 @@ const AddServiceDrawer = props => {
   const onSubmit = async data => {
     setLoading(true)
 
-    if (!session?.accessToken) {
-      toastService.showError(t('services.authenticationTokenNotFound'))
-      setLoading(false)
-      return
-    }
-
-    // Convert price to float
-    const priceValue = parseFloat(data.price)
-    if (isNaN(priceValue) || priceValue < 0) {
-      toastService.showError(t('services.priceInvalid'))
-      setLoading(false)
-      return
-    }
-
-    const payload = {
-      name: data.name,
-      price: priceValue,
-      category: data.category || null
-    }
-
     const isEditMode = !!currentService
-    const apiMethod = isEditMode ? 'PUT' : 'POST'
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'
-    const apiUrl = isEditMode ? `${baseUrl}/services/${currentService.id}` : `${baseUrl}/services`
 
     try {
-      const response = await fetch(apiUrl, {
-        method: apiMethod,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        },
-        body: JSON.stringify(payload)
-      })
-
-      if (response.ok) {
-        const responseData = await response.json()
-        toastService.handleApiSuccess(isEditMode ? 'updated' : 'created', 'Service')
-        onServiceAdded()
-        handleReset()
+      if (isEditMode) {
+        await apiClient.put(`/services/${currentService.id}`, payload)
       } else {
-        await toastService.handleApiError(response, `Failed to ${isEditMode ? 'update' : 'create'} service`)
+        await apiClient.post('/services', payload)
       }
+
+      toastService.handleApiSuccess(isEditMode ? 'updated' : 'created', 'Service')
+      onServiceAdded()
+      handleReset()
     } catch (error) {
-      await toastService.handleApiError(error, 'Network error or unexpected issue. Please try again.')
+      await toastService.handleApiError(error, `Failed to ${isEditMode ? 'update' : 'create'} service`)
     } finally {
       setLoading(false)
     }

@@ -24,6 +24,7 @@ import CustomTextField from '@core/components/mui/TextField'
 // Service Imports
 import toastService from '@/services/toastService'
 import enhancedClientService from '@/services/enhancedClientService'
+import apiClient from '@/services/apiClient'
 
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
@@ -65,49 +66,21 @@ const AddClientDrawer = props => {
 
   // Fetch branches
   const fetchBranches = async () => {
-    if (!session?.accessToken) return
-
+    console.log('Fetching branches...')
     setBranchesLoading(true)
     try {
       // If user is a manager, fetch only their branch details
       if (session?.user?.role === 'MANAGER' && session?.user?.branchId) {
         // Fetch the specific branch details for the manager
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/${session.user.branchId}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          }
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          const branchData = data.data || data
-          setBranches([branchData])
-        } else {
-          // Fallback to mock data if API fails
-          const managerBranch = {
-            id: session.user.branchId,
-            name: `Branch ${session.user.branchId}`,
-            branchId: session.user.branchId,
-            city: 'Current City'
-          }
-          setBranches([managerBranch])
-        }
+        const response = await apiClient.get(`/branches/${session.user.branchId}`)
+        const data = response.data
+        const branchData = data.data || data
+        setBranches([branchData])
       } else {
         // For other roles, fetch all active branches
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/active`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          }
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setBranches(data.data || [])
-        }
+        const response = await apiClient.get('/branches/active')
+        const data = response.data
+        setBranches(data.data || [])
       }
     } catch (error) {
       console.error('Error fetching branches:', error)
@@ -267,14 +240,14 @@ const AddClientDrawer = props => {
     try {
       let result
       if (isEditMode) {
-        result = await enhancedClientService.updateClient(currentClient.id, payload, session.accessToken, {
+        result = await enhancedClientService.updateClient(currentClient.id, payload, null, {
           showToast: true,
           successMessage: t('clients.clientUpdatedSuccessfully'),
           errorMessage: t('clients.failedToUpdateClient'),
           showLoading: false // We're handling loading state manually
         })
       } else {
-        result = await enhancedClientService.createClient(payload, session.accessToken, {
+        result = await enhancedClientService.createClient(payload, null, {
           showToast: true,
           successMessage: t('clients.clientCreatedSuccessfully'),
           errorMessage: t('clients.failedToCreateClient'),

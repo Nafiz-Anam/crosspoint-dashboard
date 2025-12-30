@@ -23,6 +23,9 @@ import Divider from '@mui/material/Divider'
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
 
+// API Imports
+import apiClient from '@/services/apiClient'
+
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
 import { useTranslation } from '@/hooks/useTranslation'
@@ -92,32 +95,12 @@ const AddActions = ({
 
   // Generate invoice number function
   const generateInvoiceNumber = async () => {
-    if (!session?.accessToken) {
-      throw new Error('Authentication token not found. Please log in again.')
-    }
-
-    const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/invoices/generate-number`
-
     try {
-      console.log(`Making API call to: ${apiUrl}`)
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
+      console.log('Generating invoice number...')
+      const response = await apiClient.get('/invoices/generate-number')
 
-      const responseData = await response.json()
-
-      if (response.ok) {
-        console.log('Invoice number generated successfully:', responseData)
-        return responseData.data.invoiceNumber
-      } else {
-        const errorMessage = responseData.message || `Failed to generate invoice number: ${response.status}`
-        throw new Error(errorMessage)
-      }
+      console.log('Invoice number generated successfully:', response.data)
+      return response.data.data.invoiceNumber
     } catch (error) {
       console.error('Generate invoice number error:', error)
       throw error
@@ -176,13 +159,6 @@ const AddActions = ({
     setApiSuccess(false)
     setSaveStatus('saving')
 
-    if (!session?.accessToken) {
-      setApiError('Authentication token not found. Please log in again.')
-      setIsLoading(false)
-      setSaveStatus('error')
-      return
-    }
-
     try {
       // Validate data
       const validationErrors = validateInvoiceData()
@@ -202,172 +178,96 @@ const AddActions = ({
       const finalBranchId = branchId || selectedClient?.branchId
       const finalEmployeeId = employeeId || selectedSalesperson?.id
 
-      if (isEdit) {
-        // For edit mode, use single API call like create mode
-        const payload = {
-          clientId: selectedClient.id,
-          branchId: finalBranchId,
-          employeeId: finalEmployeeId,
-          invoiceNumber: currentInvoiceNumber,
-          thanksMessage: thanksMessage || t('invoices.defaultThankYouMessage'),
-          notes: clientNotesText || null,
-          paymentTerms: paymentTerms ? paymentTermsText : null,
-          taxRate: taxRate || 0,
-          discountAmount: discountAmount || 0,
-          paymentMethod: selectedBankAccount ? 'Bank Transfer' : 'Internet Banking',
-          bankAccountId: selectedBankAccount || null,
-          // Company Information
-          companyName: companyInfo?.companyName || null,
-          companyTagline: companyInfo?.tagline || null,
-          companyAddress: companyInfo?.address || null,
-          companyCity: companyInfo?.city || null,
-          companyPhone: companyInfo?.phone || null,
-          companyEmail: companyInfo?.email || null,
-          companyWebsite: companyInfo?.website || null,
-          companyLogo: companyInfo?.logo || null,
-          // Invoice Items
-          items: invoiceItems.map(item => ({
-            serviceId: item.serviceId,
-            description: item.description,
-            rate: parseFloat(item.rate),
-            discount: parseFloat(item.discount || 0)
-          }))
-        }
+      // Base payload common to both create and edit
+      const payload = {
+        clientId: selectedClient.id,
+        branchId: finalBranchId,
+        employeeId: finalEmployeeId,
+        invoiceNumber: currentInvoiceNumber,
+        thanksMessage: thanksMessage || t('invoices.defaultThankYouMessage'),
+        notes: clientNotesText || null,
+        paymentTerms: paymentTerms ? paymentTermsText : null,
+        taxRate: taxRate || 0,
+        discountAmount: discountAmount || 0,
+        paymentMethod: selectedBankAccount ? 'Bank Transfer' : 'Internet Banking',
+        bankAccountId: selectedBankAccount || null,
+        // Company Information
+        companyName: companyInfo?.companyName || null,
+        companyTagline: companyInfo?.tagline || null,
+        companyAddress: companyInfo?.address || null,
+        companyCity: companyInfo?.city || null,
+        companyPhone: companyInfo?.phone || null,
+        companyEmail: companyInfo?.email || null,
+        companyWebsite: companyInfo?.website || null,
+        companyLogo: companyInfo?.logo || null,
+        // Invoice Items
+        items: invoiceItems.map(item => ({
+          serviceId: item.serviceId,
+          description: item.description,
+          rate: parseFloat(item.rate),
+          discount: parseFloat(item.discount || 0)
+        }))
+      }
 
+      if (isEdit) {
         console.log('Updating invoice:', payload)
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoiceId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          },
-          body: JSON.stringify(payload)
+        const response = await apiClient.patch(`/invoices/${invoiceId}`, payload)
+        const responseData = response.data
+
+        setApiSuccess(true)
+        setSaveStatus('updated')
+        setCreatedInvoiceId(invoiceId)
+        console.log('Invoice updated successfully:', responseData)
+
+        // Update invoice state with updated invoice data
+        updateInvoiceState({
+          invoiceId: invoiceId,
+          invoiceNumber: currentInvoiceNumber
         })
-
-        const responseData = await response.json()
-
-        if (response.ok) {
-          setApiSuccess(true)
-          setSaveStatus('updated')
-          setCreatedInvoiceId(invoiceId)
-          console.log('Invoice updated successfully:', responseData)
-
-          // Update invoice state with updated invoice data
-          updateInvoiceState({
-            invoiceId: invoiceId,
-            invoiceNumber: currentInvoiceNumber
-          })
-
-          // Reset company info to defaults after successful save
-          if (onResetCompanyInfo) {
-            onResetCompanyInfo()
-          }
-
-          // Clear success message after 3 seconds
-          setTimeout(() => {
-            setSaveStatus('')
-            setApiSuccess(false)
-          }, 3000)
-        } else {
-          const errorMessage = responseData.message || `Failed to update invoice: ${response.status}`
-          setApiError(errorMessage)
-          setSaveStatus('error')
-          console.error('API Error:', responseData)
-        }
       } else {
-        // For create mode, use the original single API call
-        const payload = {
-          clientId: selectedClient.id,
-          branchId: finalBranchId,
-          employeeId: finalEmployeeId,
-          invoiceNumber: currentInvoiceNumber,
-          thanksMessage: thanksMessage || t('invoices.defaultThankYouMessage'),
-          notes: clientNotesText || null,
-          paymentTerms: paymentTerms ? paymentTermsText : null,
-          taxRate: taxRate || 0,
-          discountAmount: discountAmount || 0,
-          paymentMethod: selectedBankAccount ? 'Bank Transfer' : 'Internet Banking',
-          bankAccountId: selectedBankAccount || null,
-          // Company Information
-          companyName: companyInfo?.companyName || null,
-          companyTagline: companyInfo?.tagline || null,
-          companyAddress: companyInfo?.address || null,
-          companyCity: companyInfo?.city || null,
-          companyPhone: companyInfo?.phone || null,
-          companyEmail: companyInfo?.email || null,
-          companyWebsite: companyInfo?.website || null,
-          companyLogo: companyInfo?.logo || null,
-          items: invoiceItems.map(item => ({
-            serviceId: item.serviceId,
-            description: item.description,
-            rate: parseFloat(item.rate),
-            discount: parseFloat(item.discount || 0)
-          }))
-        }
+        console.log('Creating invoice:', payload)
 
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/invoices`
-        console.log(`Making API call to: ${apiUrl}`)
-        console.log('Payload:', payload)
+        const response = await apiClient.post('/invoices', payload)
+        const responseData = response.data
 
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          },
-          body: JSON.stringify(payload)
+        setApiSuccess(true)
+        setSaveStatus('success')
+        const newInvoiceId = responseData.data.invoice.id
+        setCreatedInvoiceId(newInvoiceId)
+        console.log('Invoice created successfully:', responseData)
+
+        // Update invoice state with created invoice data
+        updateInvoiceState({
+          invoiceId: newInvoiceId,
+          invoiceNumber: responseData.data.invoice.invoiceNumber
         })
-
-        const responseData = await response.json()
-
-        if (response.ok) {
-          setApiSuccess(true)
-          setSaveStatus('success')
-          const invoiceId = responseData.data.invoice.id
-          setCreatedInvoiceId(invoiceId)
-          console.log('Invoice created successfully:', responseData)
-
-          // Update invoice state with created invoice data
-          updateInvoiceState({
-            invoiceId: invoiceId,
-            invoiceNumber: responseData.data.invoice.invoiceNumber
-          })
-
-          // Reset company info to defaults after successful save
-          if (onResetCompanyInfo) {
-            onResetCompanyInfo()
-          }
-          
-          // Clear success message after 3 seconds
-          setTimeout(() => {
-            setSaveStatus('')
-            setApiSuccess(false)
-          }, 3000)
-        } else {
-          const errorMessage = responseData.message || `Failed to create invoice: ${response.status}`
-          setApiError(errorMessage)
-          setSaveStatus('error')
-          console.error('API Error:', responseData)
-        }
       }
+
+      // Shared cleanup logic after success
+      if (onResetCompanyInfo) {
+        onResetCompanyInfo()
+      }
+
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSaveStatus('')
+        setApiSuccess(false)
+      }, 3000)
+
     } catch (error) {
       const errorMessage = error.message || 'Network error or unexpected issue. Please try again.'
       setApiError(errorMessage)
       setSaveStatus('error')
       console.error(`Invoice ${isEdit ? 'update' : 'creation'} error:`, error)
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        setApiError(null)
+        setSaveStatus('')
+      }, 5000)
     } finally {
       setIsLoading(false)
-
-      // Clear error message after 5 seconds
-      if (apiError || saveStatus === 'error') {
-        setTimeout(() => {
-          setApiError(null)
-          setSaveStatus('')
-        }, 5000)
-      }
     }
   }
 

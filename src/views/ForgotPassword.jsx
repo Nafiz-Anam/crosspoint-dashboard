@@ -25,6 +25,7 @@ import { email, object, minLength, string, pipe, nonEmpty } from 'valibot'
 import DirectionalIcon from '@components/DirectionalIcon'
 import Logo from '@components/layout/shared/Logo'
 import CustomTextField from '@core/components/mui/TextField'
+import apiClient from '@/services/apiClient'
 
 // Hook Imports
 import { useImageVariant } from '@core/hooks/useImageVariant'
@@ -103,28 +104,16 @@ const ForgotPassword = ({ mode }) => {
     setSuccess(false)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web'
-        },
-        body: JSON.stringify({ email: data.email })
-      })
+      await apiClient.post('/auth/forgot-password-otp', { email: data.email })
 
-      if (response.ok) {
-        setSuccess(true)
-        setError(null)
-        // Redirect to OTP verification page after 2 seconds
-        setTimeout(() => {
-          router.push(getLocalizedUrl(`/pages/auth/verify-otp?email=${encodeURIComponent(data.email)}`, locale))
-        }, 2000)
-      } else {
-        const errorData = await response.json()
-        setError(errorData.message || t('auth.forgotPasswordError'))
-      }
+      setSuccess(true)
+      setError(null)
+      // Redirect to OTP verification page after 2 seconds
+      setTimeout(() => {
+        router.push(getLocalizedUrl(`/pages/auth/verify-otp?email=${encodeURIComponent(data.email)}`, locale))
+      }, 2000)
     } catch (err) {
-      setError(t('auth.unexpectedError'))
+      setError(err.response?.data?.message || t('auth.forgotPasswordError'))
     } finally {
       setIsLoading(false)
     }

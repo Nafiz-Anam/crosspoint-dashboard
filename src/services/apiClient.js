@@ -1,6 +1,27 @@
 import axios from 'axios'
+import { getSession } from 'next-auth/react'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/v1'
+
+// Variables for token refresh queuing
+let isRefreshing = false
+let failedQueue = []
+
+/**
+ * Process the queue of failed requests
+ * @param {Error|null} error - Error if refresh failed
+ * @param {string|null} token - New access token if refresh succeeded
+ */
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve(token)
+    }
+  })
+  failedQueue = []
+}
 
 // Create axios instance
 const apiClient = axios.create({
@@ -12,35 +33,23 @@ const apiClient = axios.create({
   }
 })
 
-// Function to create API client with specific token
-export const createApiClient = token => {
-  const client = axios.create({
-    baseURL: API_BASE_URL,
-    timeout: 10000,
-    headers: {
-      'Content-Type': 'application/json',
-      'x-client-type': 'web',
-      ...(token && { Authorization: `Bearer ${token}` })
+/**
+ * Helper to handle session expiration and redirect
+ */
+const handleAuthFailure = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('token')
+    sessionStorage.clear()
+    
+    // Show toast before redirect
+    if (window.toastService) {
+      window.toastService.showError('Your session has expired. Please log in again.')
     }
-  })
-
-  // Add response interceptor for error handling
-  client.interceptors.response.use(
-    response => response,
-    error => {
-      // Handle authentication errors
-      if (error.response?.status === 401) {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('token')
-          sessionStorage.clear()
-          window.location.href = '/login'
-        }
-      }
-      return Promise.reject(error)
-    }
-  )
-
-  return client
+    
+    setTimeout(() => {
+      window.location.href = '/login'
+    }, 2000)
+  }
 }
 
 // Request interceptor to add auth token
@@ -75,49 +84,111 @@ apiClient.interceptors.request.use(
   }
 )
 
-// Response interceptor to handle common errors
-apiClient.interceptors.response.use(
-  response => {
-    return response
-  },
-  error => {
-    // Handle authentication errors
-    if (error.response?.status === 401) {
-      // Clear token and redirect to login
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token')
-        sessionStorage.clear()
-        // Show toast before redirect
-        if (window.toastService) {
-          window.toastService.showError('Your session has expired. Please log in again.')
+/**
+ * Common response interceptor to handle common errors and token refresh
+ */
+const addResponseInterceptors = (client) => {
+  client.interceptors.response.use(
+    response => {
+      return response
+    },
+    async error => {
+      const originalRequest = error.config
+
+      // Handle authentication errors (401)
+      if (error.response?.status === 401 && !originalRequest._retry) {
+        if (isRefreshing) {
+          // If refresh is already in progress, queue this request
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject })
+          })
+            .then(token => {
+              originalRequest.headers.Authorization = `Bearer ${token}`
+              return client(originalRequest)
+            })
+            .catch(err => {
+              return Promise.reject(err)
+            })
         }
-        setTimeout(() => {
-          window.location.href = '/login'
-        }, 2000)
+
+        originalRequest._retry = true
+        isRefreshing = true
+
+        return new Promise(async (resolve, reject) => {
+          try {
+            console.log('[apiClient] Token expired, attempting refresh...')
+            
+            // Trigger session refresh via NextAuth
+            const session = await getSession()
+            const newToken = session?.accessToken
+
+            if (newToken) {
+              console.log('[apiClient] Token refreshed successfully.')
+              
+              // Update storage for consistency
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('token', newToken)
+                sessionStorage.setItem('accessToken', newToken)
+              }
+              
+              // Process the queue with the new token
+              processQueue(null, newToken)
+              
+              // Retry the original request
+              originalRequest.headers.Authorization = `Bearer ${newToken}`
+              resolve(client(originalRequest))
+            } else {
+              console.error('[apiClient] Refresh failed: No token returned from session.')
+              throw new Error('Refresh failed')
+            }
+          } catch (refreshError) {
+            console.error('[apiClient] Refresh process error:', refreshError)
+            processQueue(refreshError, null)
+            handleAuthFailure()
+            reject(refreshError)
+          } finally {
+            isRefreshing = false
+          }
+        })
       }
-    }
 
-    // Handle network errors
-    if (!error.response) {
-      error.message = 'Network error. Please check your internet connection.'
-    }
-
-    // Handle server errors
-    if (error.response?.status >= 500) {
-      error.message = 'Server error. Please try again later.'
-    }
-
-    // Handle client errors
-    if (error.response?.status >= 400 && error.response?.status < 500) {
-      if (error.response?.data?.message) {
-        error.message = error.response.data.message
-      } else {
-        error.message = `Request failed with status ${error.response.status}`
+      // Handle other common errors
+      if (!error.response) {
+        error.message = 'Network error. Please check your internet connection.'
+      } else if (error.response.status >= 500) {
+        error.message = 'Server error. Please try again later.'
+      } else if (error.response.status >= 400) {
+        if (error.response.data?.message) {
+          error.message = error.response.data.message
+        } else {
+          error.message = `Request failed with status ${error.response.status}`
+        }
       }
-    }
 
-    return Promise.reject(error)
-  }
-)
+      return Promise.reject(error)
+    }
+  )
+}
+
+// Add interceptors to the default instance
+addResponseInterceptors(apiClient)
+
+// Function to create API client with specific token
+export const createApiClient = token => {
+  const client = axios.create({
+    baseURL: API_BASE_URL,
+    timeout: 10000,
+    headers: {
+      'Content-Type': 'application/json',
+      'x-client-type': 'web',
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  })
+
+  // Add the same response interceptors to this client
+  addResponseInterceptors(client)
+
+  return client
+}
 
 export default apiClient

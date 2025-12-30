@@ -22,6 +22,7 @@ import CustomTextField from '@core/components/mui/TextField'
 
 // Services
 import toastService from '@/services/toastService'
+import apiClient from '@/services/apiClient'
 
 const GenerateInvoiceDrawer = ({ open, handleClose, task, onInvoiceGenerated }) => {
   // States
@@ -67,28 +68,13 @@ const GenerateInvoiceDrawer = ({ open, handleClose, task, onInvoiceGenerated }) 
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices/from-task/${task.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        },
-        body: JSON.stringify(payload)
-      })
+      const response = await apiClient.post(`/invoices/from-task/${task.id}`, payload)
 
-      const responseData = await response.json()
-
-      if (response.ok) {
-        toastService.showSuccess('Invoice generated successfully!')
-        onInvoiceGenerated()
-        setTimeout(() => {
-          handleReset()
-        }, 2000)
-      } else {
-        const errorMessage = responseData.message || `Failed to generate invoice: ${response.status}`
-        await toastService.handleApiError(response, errorMessage)
-      }
+      toastService.showSuccess('Invoice generated successfully!')
+      onInvoiceGenerated()
+      setTimeout(() => {
+        handleReset()
+      }, 2000)
     } catch (error) {
       await toastService.handleApiError(error, 'Network error or unexpected issue. Please try again.')
     } finally {

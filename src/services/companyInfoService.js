@@ -1,78 +1,38 @@
+import apiClient from './apiClient'
+
 class CompanyInfoService {
-  constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL
-  }
-
-  async getCompanyInfo(token) {
+  async getCompanyInfo() {
     try {
-      const response = await fetch(`${this.baseURL}/company-info`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${token}`
-        }
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch company information')
-      }
-
-      return data
+      const response = await apiClient.get('/company-info')
+      return response.data
     } catch (error) {
       console.error('Get company info error:', error)
       throw error
     }
   }
 
-  async updateCompanyInfo(companyData, token) {
+  async updateCompanyInfo(companyData) {
     try {
-      const response = await fetch(`${this.baseURL}/company-info`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(companyData)
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to update company information')
-      }
-
-      return data
+      const response = await apiClient.put('/company-info', companyData)
+      return response.data
     } catch (error) {
       console.error('Update company info error:', error)
       throw error
     }
   }
 
-  async uploadLogo(file, token) {
+  async uploadLogo(file) {
     try {
       const formData = new FormData()
       formData.append('logo', file)
 
-      const response = await fetch(`${this.baseURL}/company-info/logo`, {
-        method: 'POST',
+      const response = await apiClient.post('/company-info/logo', formData, {
         headers: {
-          'x-client-type': 'web',
-          Authorization: `Bearer ${token}`
-        },
-        body: formData
+          'Content-Type': 'multipart/form-data'
+        }
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to upload logo')
-      }
-
-      return data
+      return response.data
     } catch (error) {
       console.error('Upload logo error:', error)
       throw error

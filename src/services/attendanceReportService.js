@@ -1,27 +1,14 @@
-class AttendanceReportService {
-  constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL
-  }
+import apiClient from './apiClient'
 
-  async downloadAttendanceReport(employeeId, reportData, token) {
+class AttendanceReportService {
+  async downloadAttendanceReport(employeeId, reportData) {
     try {
-      const response = await fetch(`${this.baseURL}/attendance/report/${employeeId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(reportData)
+      const response = await apiClient.post(`/attendance/report/${employeeId}`, reportData, {
+        responseType: 'blob'
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to generate report')
-      }
-
       // Get the filename from the response headers
-      const contentDisposition = response.headers.get('Content-Disposition')
+      const contentDisposition = response.headers['content-disposition']
       let filename = 'attendance-report.xlsx'
 
       if (contentDisposition) {
@@ -31,8 +18,8 @@ class AttendanceReportService {
         }
       }
 
-      // Convert response to blob
-      const blob = await response.blob()
+      // Convert response data to blob (axios already does this if responseType is 'blob')
+      const blob = response.data
 
       // Create download link
       const url = window.URL.createObjectURL(blob)
@@ -51,25 +38,10 @@ class AttendanceReportService {
     }
   }
 
-  async getAttendanceReportData(employeeId, reportData, token) {
+  async getAttendanceReportData(employeeId, reportData) {
     try {
-      const response = await fetch(`${this.baseURL}/attendance/report-data/${employeeId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(reportData)
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch report data')
-      }
-
-      return data
+      const response = await apiClient.post(`/attendance/report-data/${employeeId}`, reportData)
+      return response.data
     } catch (error) {
       console.error('Get report data error:', error)
       throw error

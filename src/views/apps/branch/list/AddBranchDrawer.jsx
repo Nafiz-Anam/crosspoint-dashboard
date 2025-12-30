@@ -22,6 +22,7 @@ import { useSession } from 'next-auth/react' // Import useSession to get token
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
 import toastService from '@/services/toastService'
+import apiClient from '@/services/apiClient'
 
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
@@ -86,55 +87,20 @@ const AddBranchDrawer = props => {
   const onSubmit = async data => {
     setLoading(true)
 
-    if (!session?.accessToken) {
-      toastService.showError(t('branches.authenticationTokenNotFound'))
-      setLoading(false)
-      return
-    }
-
-    const payload = {
-      name: data.name,
-      address: data.address,
-      city: data.city,
-      postalCode: data.postalCode,
-      province: data.province,
-      phone: data.phone || null,
-      email: data.email || null,
-      isActive: data.isActive
-    }
-
     const isEditMode = !!currentBranch
-    const apiMethod = isEditMode ? 'PUT' : 'POST'
-    const apiUrl = isEditMode
-      ? `${process.env.NEXT_PUBLIC_API_URL}/branches/${currentBranch.id}`
-      : `${process.env.NEXT_PUBLIC_API_URL}/branches`
 
     try {
-      console.log(`Making API call to: ${apiUrl} with method: ${apiMethod}`)
-      const response = await fetch(apiUrl, {
-        method: apiMethod,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        },
-        body: JSON.stringify(payload)
-      })
-
-      if (response.ok) {
-        const responseData = await response.json()
-        // Show success toast
-        toastService.handleApiSuccess(isEditMode ? 'updated' : 'created', 'Branch')
-        console.log(`Branch ${isEditMode ? 'updated' : 'created'} successfully:`, responseData)
-        onBranchAdded()
-        handleReset()
+      if (isEditMode) {
+        await apiClient.put(`/branches/${currentBranch.id}`, payload)
       } else {
-        // Show error toast - pass the response object before consuming it
-        await toastService.handleApiError(response, `Failed to ${isEditMode ? 'update' : 'create'} branch`)
+        await apiClient.post('/branches', payload)
       }
+
+      toastService.handleApiSuccess(isEditMode ? 'updated' : 'created', 'Branch')
+      onBranchAdded()
+      handleReset()
     } catch (error) {
-      // Show error toast
-      await toastService.handleApiError(error, 'Network error or unexpected issue. Please try again.')
+      await toastService.handleApiError(error, `Failed to ${isEditMode ? 'update' : 'create'} branch`)
       console.error('Fetch error:', error)
     } finally {
       setLoading(false)

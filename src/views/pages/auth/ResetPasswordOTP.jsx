@@ -27,6 +27,7 @@ import { object, minLength, string, pipe, nonEmpty } from 'valibot'
 import DirectionalIcon from '@components/DirectionalIcon'
 import Logo from '@components/layout/shared/Logo'
 import CustomTextField from '@core/components/mui/TextField'
+import apiClient from '@/services/apiClient'
 
 // Hook Imports
 import { useImageVariant } from '@core/hooks/useImageVariant'
@@ -141,32 +142,20 @@ const ResetPasswordOTP = ({ mode }) => {
     setSuccess(false)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/reset-password-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web'
-        },
-        body: JSON.stringify({
-          email,
-          otp,
-          password: data.password
-        })
+      await apiClient.post('/auth/reset-password-otp', {
+        email,
+        otp,
+        password: data.password
       })
 
-      if (response.ok) {
-        setSuccess(true)
-        setError(null)
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          router.push(getLocalizedUrl('/login', locale))
-        }, 3000)
-      } else {
-        const errorData = await response.json()
-        setError(errorData.message || t('auth.resetPasswordError'))
-      }
+      setSuccess(true)
+      setError(null)
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        router.push(getLocalizedUrl('/login', locale))
+      }, 3000)
     } catch (err) {
-      setError(t('auth.unexpectedError'))
+      setError(err.response?.data?.message || t('auth.resetPasswordError'))
     } finally {
       setIsLoading(false)
     }

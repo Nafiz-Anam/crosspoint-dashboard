@@ -1,121 +1,86 @@
+import apiClient, { createApiClient } from './apiClient'
+
 class TaskService {
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/v1'
+    this.endpoint = '/tasks'
   }
 
-  async fetchWithAuth(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error('API request failed')
+  // Get API client with optional token
+  getApiClient(token = null) {
+    if (token) {
+      return createApiClient(token)
     }
-
-    return response.json()
+    return apiClient
   }
 
-  async getTaskStats(token) {
+  async getTaskStats(token = null) {
     try {
-      return await this.fetchWithAuth('/tasks/statistics', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      const client = this.getApiClient(token)
+      const response = await client.get(`${this.endpoint}/statistics`)
+      return response.data
     } catch (error) {
       console.error('Get task stats error:', error)
       throw error
     }
   }
 
-  // Mock task list - in real app, this would call actual task APIs
+  // Get tasks from API
   async getMyTasks(status = null, token = null) {
     try {
-      // For now, return mock data
-      // In the future, this would call something like:
-      // GET /api/v1/tasks/my-tasks?status=pending
-
-      const mockTasks = [
-        { id: 1, title: 'Task 1', status: 'pending', priority: 'high' },
-        { id: 2, title: 'Task 2', status: 'completed', priority: 'medium' },
-        { id: 3, title: 'Task 3', status: 'cancelled', priority: 'low' }
-      ]
-
-      const filteredTasks = status ? mockTasks.filter(task => task.status === status) : mockTasks
-
-      return {
-        success: true,
-        data: {
-          tasks: filteredTasks,
-          total: filteredTasks.length
-        }
-      }
+      const client = this.getApiClient(token)
+      const params = status ? { status } : {}
+      const response = await client.get(this.endpoint, { params })
+      return response.data
     } catch (error) {
       console.error('Get tasks error:', error)
       throw error
     }
   }
 
-  // Create task - in real app, this would call actual task APIs
+  // Create task
   async createTask(taskData, token = null) {
     try {
-      // For now, return mock success
-      // In the future, this would call:
-      // POST /api/v1/tasks
-
-      return {
-        success: true,
-        data: {
-          id: Date.now(),
-          ...taskData,
-          createdAt: new Date().toISOString()
-        }
-      }
+      const client = this.getApiClient(token)
+      const response = await client.post(this.endpoint, taskData)
+      return response.data
     } catch (error) {
       console.error('Create task error:', error)
       throw error
     }
   }
 
-  // Update task - in real app, this would call actual task APIs
+  // Update task
   async updateTask(taskId, taskData, token = null) {
     try {
-      // For now, return mock success
-      // In the future, this would call:
-      // PUT /api/v1/tasks/{id}
-
-      return {
-        success: true,
-        data: {
-          id: taskId,
-          ...taskData,
-          updatedAt: new Date().toISOString()
-        }
-      }
+      const client = this.getApiClient(token)
+      const response = await client.patch(`${this.endpoint}/${taskId}`, taskData)
+      return response.data
     } catch (error) {
       console.error('Update task error:', error)
       throw error
     }
   }
 
-  // Delete task - in real app, this would call actual task APIs
+  // Delete task
   async deleteTask(taskId, token = null) {
     try {
-      // For now, return mock success
-      // In the future, this would call:
-      // DELETE /api/v1/tasks/{id}
-
-      return {
-        success: true,
-        message: 'Task deleted successfully'
-      }
+      const client = this.getApiClient(token)
+      const response = await client.delete(`${this.endpoint}/${taskId}`)
+      return response.data
     } catch (error) {
       console.error('Delete task error:', error)
+      throw error
+    }
+  }
+
+  // Get task by ID
+  async getTaskById(taskId, token = null) {
+    try {
+      const client = this.getApiClient(token)
+      const response = await client.get(`${this.endpoint}/${taskId}`)
+      return response.data
+    } catch (error) {
+      console.error('Get task by ID error:', error)
       throw error
     }
   }

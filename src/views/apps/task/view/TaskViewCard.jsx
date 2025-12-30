@@ -21,6 +21,7 @@ import { useSession } from 'next-auth/react'
 
 // Services
 import toastService from '@/services/toastService'
+import apiClient from '@/services/apiClient'
 
 // Utils
 import { getLocalizedUrl } from '@/utils/i18n'
@@ -51,26 +52,14 @@ const TaskViewCard = () => {
 
   // Function to fetch task data
   const fetchTaskData = async () => {
-    if (!session?.accessToken || !taskId) return
+    if (!taskId) return
 
     setLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks/${taskId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setTask(data.data.task)
-      } else {
-        await toastService.handleApiError(response, t('tasks.failedToCreateTask'))
-      }
+      const response = await apiClient.get(`/tasks/${taskId}`)
+      setTask(response.data.data.task)
     } catch (error) {
-      await toastService.handleApiError(error, t('tasks.networkError'))
+      await toastService.handleApiError(error, t('tasks.failedToCreateTask'))
     } finally {
       setLoading(false)
     }

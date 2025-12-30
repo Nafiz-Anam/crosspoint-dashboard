@@ -18,6 +18,7 @@ import { useSession } from 'next-auth/react' // Import useSession to get token
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
 import toastService from '@/services/toastService'
+import apiClient from '@/services/apiClient'
 
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
@@ -79,59 +80,17 @@ const AddEmployeeDrawer = props => {
     setBranchesLoading(true)
     setBranchesError(null)
 
-    if (sessionStatus === 'loading') return
-    if (sessionStatus === 'unauthenticated' || !session?.accessToken) {
-      setBranchesError(t('employees.authenticationRequired'))
-      setBranchesLoading(false)
-      return
-    }
-
     try {
       // If user is a manager, fetch only their branch details
       if (session?.user?.role === 'MANAGER' && session?.user?.branchId) {
         // Fetch the specific branch details for the manager
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/${session.user.branchId}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          }
-        })
-        const responseData = await response.json()
-
-        if (response.ok) {
-          const branchData = responseData.data || responseData
-          setBranchesList([branchData])
-        } else {
-          // Fallback to mock data if API fails
-          const managerBranch = {
-            id: session.user.branchId,
-            name: `Branch ${session.user.branchId}`,
-            branchId: session.user.branchId,
-            city: 'Current City'
-          }
-          setBranchesList([managerBranch])
-        }
+        const response = await apiClient.get(`/branches/${session.user.branchId}`)
+        const branchData = response.data.data || response.data
+        setBranchesList([branchData])
       } else {
         // For other roles, fetch all active branches
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/branches/active`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          }
-        })
-        const responseData = await response.json()
-
-        if (response.ok) {
-          setBranchesList(responseData.data || responseData)
-        } else {
-          const errorMessage = responseData.message || `Failed to load branches: ${response.status}`
-          setBranchesError(errorMessage)
-          console.error('API Error loading branches:', responseData)
-        }
+        const response = await apiClient.get('/branches/active')
+        setBranchesList(response.data.data || response.data)
       }
     } catch (error) {
       setBranchesError('Network error loading branches. Please try again.')
@@ -150,13 +109,13 @@ const AddEmployeeDrawer = props => {
     } finally {
       setBranchesLoading(false)
     }
-  }, [sessionStatus, session?.accessToken, session?.user?.role, session?.user?.branchId])
+  }, [session?.user?.role, session?.user?.branchId])
 
   useEffect(() => {
     if (sessionStatus === 'authenticated') {
       fetchBranchesList()
     }
-  }, [sessionStatus, session?.accessToken])
+  }, [sessionStatus, fetchBranchesList])
 
   // Pre-select manager's branch when branches are loaded
   useEffect(() => {
@@ -220,69 +179,18 @@ const AddEmployeeDrawer = props => {
   const onSubmit = async data => {
     setLoading(true)
 
-    if (!session?.accessToken) {
-      toastService.showError('Authentication token not found. Please log in again.')
-      setLoading(false)
-      return
-    }
-
-    const isEditMode = !!currentEmployee
-    const apiMethod = isEditMode ? 'PATCH' : 'POST'
-    const apiUrl = isEditMode
-      ? `${process.env.NEXT_PUBLIC_API_URL}/employees/${currentEmployee.id}`
-      : `${process.env.NEXT_PUBLIC_API_URL}/employees`
-
-    const payload = {
-      name: data.name || null,
-      phone: data.phone,
-      nationalIdentificationNumber: data.nationalIdentificationNumber,
-      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString() : null,
-      branchId: data.branchId || null,
-      isActive: data.isActive
-    }
-
-    // Include role based on permissions
-    const allowedRoles = getCreatableRoles()
-    const desiredRole = data.role
-    if (!isEditMode || canEditRole()) {
-      if (allowedRoles.includes(desiredRole)) {
-        payload.role = desiredRole
-      } else {
-        setLoading(false)
-        toastService.showError('You are not allowed to create this role')
-        return
-      }
-    }
-
-    // Include email based on permissions
-    if (!isEditMode || canEditEmail()) {
-      payload.email = data.email
-    }
-
-    if (!isEditMode || (isEditMode && data.password)) {
-      payload.password = data.password
-    }
-
     try {
-      const response = await fetch(apiUrl, {
-        method: apiMethod,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        },
-        body: JSON.stringify(payload)
-      })
-
-      if (response.ok) {
-        toastService.handleApiSuccess(isEditMode ? 'updated' : 'created', 'Employee')
-        onEmployeeAdded()
-        handleReset()
+      if (isEditMode) {
+        await apiClient.patch(`/employees/${currentEmployee.id}`, payload)
       } else {
-        await toastService.handleApiError(response, `Failed to ${isEditMode ? 'update' : 'create'} employee`)
+        await apiClient.post('/employees', payload)
       }
+
+      toastService.handleApiSuccess(isEditMode ? 'updated' : 'created', 'Employee')
+      onEmployeeAdded()
+      handleReset()
     } catch (error) {
-      await toastService.handleApiError(error, 'Network error or unexpected issue. Please try again.')
+      await toastService.handleApiError(error, `Failed to ${isEditMode ? 'update' : 'create'} employee`)
       console.error('Fetch error:', error)
     } finally {
       setLoading(false)

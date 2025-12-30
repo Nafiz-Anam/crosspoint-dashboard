@@ -41,6 +41,7 @@ import CustomTextField from '@core/components/mui/TextField'
 import DeleteConfirmationDialog from '@components/dialogs/DeleteConfirmationDialog'
 import toastService from '@/services/toastService'
 import bankAccountService from '@/libs/bankAccountService'
+import apiClient from '@/services/apiClient'
 
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
@@ -109,62 +110,33 @@ const BankAccountListTable = ({ onBankAccountAction, onAddBankAccount, refreshTr
     isActive = ''
   ) => {
     console.log('🔄 fetchBankAccounts called with:', { page, search, sortBy, sortType, limit })
-    console.log('🔄 Current status:', status)
-    console.log('🔄 Has initially fetched:', hasInitiallyFetched.current)
 
     setFetchLoading(true)
     setFetchError(null)
 
-    if (status === 'loading') return // Wait for session to load
-    if (status === 'unauthenticated' || !session?.accessToken) {
-      setFetchError('Authentication required')
-      setFetchLoading(false)
-      return
-    }
-
     try {
-      const queryParams = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-        sortBy,
-        sortType
-      })
-
-      if (search) {
-        queryParams.append('search', search)
-      }
-
-      if (isActive) {
-        queryParams.append('isActive', isActive)
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bank-accounts?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
+      const response = await apiClient.get('/bank-accounts', {
+        params: {
+          page: page.toString(),
+          limit: limit.toString(),
+          sortBy,
+          sortType,
+          ...(search && { search }),
+          ...(isActive && { isActive })
         }
       })
 
-      const responseData = await response.json()
+      const responseData = response.data
 
-      if (response.ok) {
-        setBankAccounts(responseData.data || [])
-        setPagination(prev => ({
-          ...prev,
-          page: responseData.pagination?.page || page,
-          total: responseData.pagination?.total || 0,
-          totalPages: responseData.pagination?.totalPages || 0,
-          hasNext: responseData.pagination?.hasNext || false,
-          hasPrev: responseData.pagination?.hasPrev || false
-        }))
-      } else {
-        const errorMessage = responseData.message || `Failed to fetch bank accounts: ${response.status}`
-        setFetchError(errorMessage)
-        await toastService.handleApiError(response, 'Failed to fetch bank accounts')
-        console.error('API Error fetching bank accounts:', responseData)
-      }
+      setBankAccounts(responseData.data || [])
+      setPagination(prev => ({
+        ...prev,
+        page: responseData.pagination?.page || page,
+        total: responseData.pagination?.total || 0,
+        totalPages: responseData.pagination?.totalPages || 0,
+        hasNext: responseData.pagination?.hasNext || false,
+        hasPrev: responseData.pagination?.hasPrev || false
+      }))
     } catch (error) {
       const errorMessage = 'Network error or unexpected issue fetching bank accounts. Please try again.'
       setFetchError(errorMessage)
@@ -246,7 +218,7 @@ const BankAccountListTable = ({ onBankAccountAction, onAddBankAccount, refreshTr
         clearTimeout(window.searchTimeout)
       }
     }
-  }, [status, session?.accessToken]) // Re-fetch if session status or token changes
+  }, [status]) // Re-fetch if session status changes
 
   // Effect to handle status filter changes
   useEffect(() => {

@@ -25,6 +25,7 @@ import CustomAutocomplete from '@core/components/mui/Autocomplete'
 
 // Services
 import toastService from '@/services/toastService'
+import apiClient from '@/services/apiClient'
 
 // Hooks
 import { useTranslation } from '@/hooks/useTranslation'
@@ -79,117 +80,72 @@ const AddTaskCard = ({ onTaskCreated }) => {
 
   // Fetch clients
   const fetchClients = useCallback(async () => {
-    if (!session?.accessToken) return
-
+    console.log('Fetching clients...')
     setClientsLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/list/all`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setClients(data.data?.clients || data.data || [])
-      }
+      const response = await apiClient.get('/clients/list/all')
+      const data = response.data
+      setClients(data.data?.clients || data.data || [])
     } catch (error) {
       console.error('Error fetching clients:', error)
     } finally {
       setClientsLoading(false)
     }
-  }, [session?.accessToken])
+  }, [])
 
   // Fetch all services to extract categories (like invoice form)
   const fetchAllServices = useCallback(async () => {
-    if (!session?.accessToken) return
-
+    console.log('Fetching all services for categories...')
     setCategoriesLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/services/list/all`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        const servicesData = data.data || []
-        setAllServices(servicesData)
-        
-        // Extract unique categories from services (same as invoice form)
-        const uniqueCategories = [...new Set(servicesData.map(service => service.category).filter(Boolean))]
-        setCategories(uniqueCategories || [])
-        console.log('Extracted categories from services:', uniqueCategories)
-      }
+      const response = await apiClient.get('/services/list/all')
+      const data = response.data
+      const servicesData = data.data || []
+      setAllServices(servicesData)
+      
+      // Extract unique categories from services (same as invoice form)
+      const uniqueCategories = [...new Set(servicesData.map(service => service.category).filter(Boolean))]
+      setCategories(uniqueCategories || [])
+      console.log('Extracted categories from services:', uniqueCategories)
     } catch (error) {
       console.error('Error fetching all services:', error)
     } finally {
       setCategoriesLoading(false)
     }
-  }, [session?.accessToken])
+  }, [])
 
   // Fetch services filtered by category
   const fetchServices = useCallback(
     async (category = null) => {
-      if (!session?.accessToken) return
-
+      console.log(`Fetching services for category: ${category || 'all'}`)
       setServicesLoading(true)
       try {
-        let url = `${process.env.NEXT_PUBLIC_API_URL}/services/list/all`
-        if (category) {
-          url += `?category=${encodeURIComponent(category)}`
-        }
-
-        const response = await fetch(url, {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-client-type': 'web',
-            Authorization: `Bearer ${session.accessToken}`
-          }
+        const response = await apiClient.get('/services/list/all', {
+          params: category ? { category } : {}
         })
-
-        if (response.ok) {
-          const data = await response.json()
-          setServices(data.data || [])
-        }
+        const data = response.data
+        setServices(data.data || [])
       } catch (error) {
         console.error('Error fetching services:', error)
       } finally {
         setServicesLoading(false)
       }
-    },
-    [session?.accessToken]
-  )
+    }, [])
 
   // Fetch employees
   const fetchEmployees = useCallback(async () => {
-    if (!session?.accessToken) return
-
+    console.log('Fetching employees...')
     setEmployeesLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/list/all`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setEmployees(data.data || [])
-      }
+      const response = await apiClient.get('/employees/list/all')
+      const data = response.data
+      setEmployees(data.data || [])
     } catch (error) {
       console.error('Error fetching employees:', error)
     } finally {
       setEmployeesLoading(false)
     }
-  }, [session?.accessToken])
+  }, [])
 
   // Valid status and priority values
   const validStatuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'ON_HOLD']
@@ -206,12 +162,10 @@ const AddTaskCard = ({ onTaskCreated }) => {
 
   // Fetch dropdown data when component mounts
   useEffect(() => {
-    if (session?.accessToken) {
-      fetchClients()
-      fetchEmployees()
-      fetchAllServices() // Fetch all services to extract categories
-    }
-  }, [session?.accessToken, fetchClients, fetchEmployees, fetchAllServices])
+    fetchClients()
+    fetchEmployees()
+    fetchAllServices() // Fetch all services to extract categories
+  }, [fetchClients, fetchEmployees, fetchAllServices])
 
   // Handle category changes and fetch services
   useEffect(() => {
@@ -299,37 +253,23 @@ const AddTaskCard = ({ onTaskCreated }) => {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-type': 'web',
-          Authorization: `Bearer ${session.accessToken}`
-        },
-        body: JSON.stringify(payload)
+      const response = await apiClient.post('/tasks', payload)
+      const responseData = response.data
+
+      toastService.showSuccess('Task created successfully!')
+      resetForm({
+        description: '',
+        clientId: preSelectedClientId || '',
+        categoryId: '',
+        serviceId: '',
+        assignedEmployeeId: '',
+        status: 'PENDING',
+        startDate: '',
+        dueDate: ''
       })
-
-      const responseData = await response.json()
-
-      if (response.ok) {
-        toastService.showSuccess('Task created successfully!')
-        resetForm({
-          description: '',
-          clientId: preSelectedClientId || '',
-          categoryId: '',
-          serviceId: '',
-          assignedEmployeeId: '',
-          status: 'PENDING',
-          startDate: '',
-          dueDate: ''
-        })
-        // Call parent callback to refresh task list
-        if (onTaskCreated) {
-          onTaskCreated(responseData.data)
-        }
-      } else {
-        const errorMessage = responseData.message || `Failed to create task: ${response.status}`
-        await toastService.handleApiError(response, errorMessage)
+      // Call parent callback to refresh task list
+      if (onTaskCreated) {
+        onTaskCreated(responseData.data)
       }
     } catch (error) {
       await toastService.handleApiError(error, 'Network error or unexpected issue. Please try again.')
