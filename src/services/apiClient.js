@@ -131,6 +131,9 @@ const addResponseInterceptors = (client) => {
                 sessionStorage.setItem('accessToken', newToken)
               }
               
+              // Reset refreshing state before processing queue to allow new requests to flow
+              isRefreshing = false
+              
               // Process the queue with the new token
               processQueue(null, newToken)
               
@@ -143,11 +146,10 @@ const addResponseInterceptors = (client) => {
             }
           } catch (refreshError) {
             console.error('[apiClient] Refresh process error:', refreshError)
+            isRefreshing = false // Ensure reset on error
             processQueue(refreshError, null)
             handleAuthFailure()
             reject(refreshError)
-          } finally {
-            isRefreshing = false
           }
         })
       }
